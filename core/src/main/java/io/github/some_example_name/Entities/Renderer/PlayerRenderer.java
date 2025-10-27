@@ -22,9 +22,9 @@ public class PlayerRenderer {
     }
 
     private Animation<TextureRegion> selectAnimation(Robertinhoo player) {
-         if (player.state == Robertinhoo.MELEE_ATTACK) {
-        return getMeleeAnimation(player);
-    }
+        if (player.state == Robertinhoo.MELEE_ATTACK) {
+            return getMeleeAnimation(player);
+        }
 
         Weapon equippedWeapon = player.getInventory().getEquippedWeapon();
         boolean isReloading = equippedWeapon != null &&
@@ -56,20 +56,33 @@ public class PlayerRenderer {
         return getDirectionalAnimation(player.lastDir, false);
     }
 
+    // PlayerRenderer.java - Modificação no método getDashAnimation
     private Animation<TextureRegion> getDashAnimation(Robertinhoo player) {
         switch (player.dashDirection) {
             case Robertinhoo.UP:
-            case Robertinhoo.NORTH_EAST:
-            case Robertinhoo.NORTH_WEST:
                 return animations.special.rollUp;
-                
+
             case Robertinhoo.DOWN:
-            case Robertinhoo.SOUTH_EAST:
-            case Robertinhoo.SOUTH_WEST:
                 return animations.special.rollDown;
-                
+
             case Robertinhoo.LEFT:
+                return animations.special.rollSide;
+
             case Robertinhoo.RIGHT:
+                return animations.special.rollSide;
+
+            case Robertinhoo.NORTH_EAST:
+                return animations.special.rollUpRight;
+
+            case Robertinhoo.NORTH_WEST:
+                return animations.special.rollUpLeft;
+
+            case Robertinhoo.SOUTH_EAST:
+                return animations.special.rollDownRight;
+
+            case Robertinhoo.SOUTH_WEST:
+                return animations.special.rollDownLeft;
+
             default:
                 return animations.special.rollSide;
         }
@@ -101,25 +114,25 @@ public class PlayerRenderer {
                     return animations.basic.idleDown;
             }
         } else {
-             switch (direction) {
-            case Robertinhoo.UP:
-                return isOneHand ? animations.weapon.idleUp : animations.basic.idleUp;
-            case Robertinhoo.DOWN:
-                return isOneHand ? animations.weapon.idleDown : animations.basic.idleDown;
-            case Robertinhoo.LEFT:
-                return isOneHand ? animations.weapon.idleLeft : animations.basic.idleLeft;
-            case Robertinhoo.RIGHT:
-                return isOneHand ? animations.weapon.idleRight : animations.basic.idleRight;
-            case Robertinhoo.NORTH_WEST:
-                return isOneHand ? animations.weapon.idleNW : animations.basic.idleNorthWest;
-            case Robertinhoo.NORTH_EAST:
-                return isOneHand ? animations.weapon.idleNE : animations.basic.idleNorthEast;
-            case Robertinhoo.SOUTH_WEST:
-                return isOneHand ? animations.weapon.idleSW : animations.basic.idleSouthWest;
-            case Robertinhoo.SOUTH_EAST:
-                return isOneHand ? animations.weapon.idleSE : animations.basic.idleSouthEast;
-            default:
-                return animations.basic.idleDown;
+            switch (direction) {
+                case Robertinhoo.UP:
+                    return isOneHand ? animations.weapon.idleUp : animations.basic.idleUp;
+                case Robertinhoo.DOWN:
+                    return isOneHand ? animations.weapon.idleDown : animations.basic.idleDown;
+                case Robertinhoo.LEFT:
+                    return isOneHand ? animations.weapon.idleLeft : animations.basic.idleLeft;
+                case Robertinhoo.RIGHT:
+                    return isOneHand ? animations.weapon.idleRight : animations.basic.idleRight;
+                case Robertinhoo.NORTH_WEST:
+                    return isOneHand ? animations.weapon.idleNW : animations.basic.idleNorthWest;
+                case Robertinhoo.NORTH_EAST:
+                    return isOneHand ? animations.weapon.idleNE : animations.basic.idleNorthEast;
+                case Robertinhoo.SOUTH_WEST:
+                    return isOneHand ? animations.weapon.idleSW : animations.basic.idleSouthWest;
+                case Robertinhoo.SOUTH_EAST:
+                    return isOneHand ? animations.weapon.idleSE : animations.basic.idleSouthEast;
+                default:
+                    return animations.basic.idleDown;
 
             }
         }
@@ -164,33 +177,33 @@ public class PlayerRenderer {
     }
 
     private Animation<TextureRegion> getMeleeAnimation(Robertinhoo player) {
-    switch (player.meleeDirection) {
-        case Robertinhoo.RIGHT:
-            return animations.special.meleeAttackRight;
-        case Robertinhoo.LEFT:
-            return animations.special.meleeAttackLeft;
-        case Robertinhoo.UP:
-            return animations.special.meleeAttackUp;
-        case Robertinhoo.DOWN:
-        default:
-            return animations.special.meleeAttackDown;
+        switch (player.meleeDirection) {
+            case Robertinhoo.RIGHT:
+                return animations.special.meleeAttackRight;
+            case Robertinhoo.LEFT:
+                return animations.special.meleeAttackLeft;
+            case Robertinhoo.UP:
+                return animations.special.meleeAttackUp;
+            case Robertinhoo.DOWN:
+            default:
+                return animations.special.meleeAttackDown;
+        }
     }
-}
 
-  private boolean shouldReverseAnimation(Robertinhoo player) {
-  
-    if (player.state == Robertinhoo.DASH || player.state == Robertinhoo.MELEE_ATTACK) {
-        return false;
+    private boolean shouldReverseAnimation(Robertinhoo player) {
+
+        if (player.state == Robertinhoo.DASH || player.state == Robertinhoo.MELEE_ATTACK) {
+            return false;
+        }
+
+        if (player.dir == Robertinhoo.IDLE || !weaponSystem.isAiming()
+                || player.getInventory().getEquippedWeapon() == null) {
+            return false;
+        }
+        int movementDir = player.dir;
+        int aimingDir = getDirectionFromAngle(player.applyAimRotation());
+        return areOpposite(movementDir, aimingDir);
     }
-    
-    if (player.dir == Robertinhoo.IDLE || !weaponSystem.isAiming()
-            || player.getInventory().getEquippedWeapon() == null) {
-        return false;
-    }
-    int movementDir = player.dir;
-    int aimingDir = getDirectionFromAngle(player.applyAimRotation());
-    return areOpposite(movementDir, aimingDir);
-}
 
     public void render(SpriteBatch batch, Robertinhoo player, float delta, float offsetX, float offsetY) {
         animationTime += delta;
@@ -246,8 +259,8 @@ public class PlayerRenderer {
         this.currentFlipState = shouldFlip;
 
         if (player.isTakingDamage) {
-        float alpha = (float) (Math.sin(animationTime * 30) + 1) / 2;
-        batch.setColor(1, 1, 1, alpha);
+            float alpha = (float) (Math.sin(animationTime * 30) + 1) / 2;
+            batch.setColor(1, 1, 1, alpha);
         }
 
         batch.draw(frame,
@@ -263,13 +276,14 @@ public class PlayerRenderer {
         return currentFlipState;
     }
 
-  public float getRenderScale() {
-        if (currentAnimation == null) return 1.4f;
-        
+    public float getRenderScale() {
+        if (currentAnimation == null)
+            return 1.4f;
+
         if (currentAnimation == animations.basic.walkDown ||
-            currentAnimation == animations.basic.idleDown ||
-            currentAnimation == animations.basic.walkUp ||
-            currentAnimation == animations.basic.idleUp) {
+                currentAnimation == animations.basic.idleDown ||
+                currentAnimation == animations.basic.walkUp ||
+                currentAnimation == animations.basic.idleUp) {
             return 1.2f;
         }
         return 1.4f;

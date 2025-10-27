@@ -1,8 +1,10 @@
 package io.github.some_example_name.MapConfig;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -38,6 +40,7 @@ import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
 import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
+import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
 
 public class Mapa {
 
@@ -56,7 +59,6 @@ public class Mapa {
     public World world;
     public WallOtimizations agruparParedes;
     public MapGenerator mapGenerator;
-    private BarrelSpawner barrelSpawner;
 
     public static int TILE = 0x000000; // #000000 (tiles normais)
     static int START = 0xFF0000; // #FF0000 (ponto de início)
@@ -78,6 +80,10 @@ public class Mapa {
     public Ratinho ratinho;
     private RayHandler rayHandler;
     private boolean lightsInitialized = false;
+    private MapCleanUpManager cleanupManager;
+    private boolean obstaclesChanged = false;
+    private int previousDestructiblesCount = 0;
+    private Set<Vector2> previousBarrelPositions = new HashSet<>();
 
     public void setRayHandler(RayHandler rayHandler) {
         this.rayHandler = rayHandler;
@@ -95,6 +101,7 @@ public class Mapa {
         polvoras = new ArrayList<>();
         agruparParedes = new WallOtimizations(this);
         this.pathfindingSystem = new PathfindingSystem(this);
+        this.cleanupManager = new MapCleanUpManager(this);
 
         // 1. Criar gerador de mapa
         this.mapGenerator = new MapGenerator(50, 50);
@@ -198,25 +205,20 @@ public class Mapa {
             castoresAdded++;
         }
 
-        BarrelSpawner.spawnBarrels(this, 14);
+        BarrelSpawner.spawnBarrels(this, 10);
+        GrassSpawner.spawnGrass(this, 80);
 
     }
 
     public Rectangle findRoomContainingTile(Vector2 tilePos) {
-        // Gdx.app.log("Mapa", "Procurando sala para tile: " + tilePos);
-
         for (Rectangle room : rooms) {
-            // Gdx.app.log("Mapa", "Verificando sala: " + room);
 
-            // Verificar se o tile está dentro da sala (excluindo as paredes)
             if (tilePos.x >= room.x + 1 && tilePos.x < room.x + room.width - 1 &&
                     tilePos.y >= room.y + 1 && tilePos.y < room.y + room.height - 1) {
                 Gdx.app.log("Mapa", "✅ Sala encontrada: " + room);
                 return room;
             }
         }
-
-        // Gdx.app.error("Mapa", "❌ Nenhuma sala encontrada para tile: " + tilePos);
         return null;
     }
 
@@ -307,59 +309,22 @@ public class Mapa {
     }
 
     public void update(float deltaTime) {
-        java.util.Iterator<Projectile> it = projectiles.iterator();
-        while (it.hasNext()) {
-            Projectile p = it.next();
-            p.update(deltaTime);
-            if (p.isMarkedForDestruction()) {
-                p.destroy();
-                it.remove();
-            }
-        }
-
-        java.util.Iterator<Enemy> iterator = enemies.iterator();
-        while (iterator.hasNext()) {
-            Enemy enemy = iterator.next();
-            if (enemy instanceof Ratinho) {
-                Ratinho rat = (Ratinho) enemy;
-                if (rat.isMarkedForDestruction()) {
-                    world.destroyBody(rat.getBody());
-                    iterator.remove();
-                    Gdx.app.log("Mapa", "Ratinho removido do jogo.");
-                }
-            } else if (enemy instanceof Castor) {
-                Castor castor = (Castor) enemy;
-                if (castor.isMarkedForDestruction()) {
-                    world.destroyBody(castor.getBody());
-                    iterator.remove();
-                    Gdx.app.log("Mapa", "Castor removido do jogo.");
-                }
-            }
-        }
-
-        for (Destructible d : destructibles) {
-            d.update(deltaTime);
-        }
-
-        java.util.Iterator<Destructible> destructibleIterator = destructibles.iterator();
-        while (destructibleIterator.hasNext()) {
-            Destructible d = destructibleIterator.next();
-
-            if (d instanceof Barrel) {
-                Barrel barrel = (Barrel) d;
-
-                if (barrel.isBodyMarkedForDestruction()) {
-                    barrel.destroyBody();
-                    barrel.setBodyMarkedForDestruction(false);
-                }
-
-                // Remove após a animação terminar
-                if (barrel.isAnimationFinished() && barrel.isDestroyed()) {
-                    destructibleIterator.remove();
-                }
-            }
-        }
+        cleanupManager.clean(deltaTime);
         processPendingActions();
+
+        if (obstaclesChanged) {
+            pathfindingSystem.updateGrid();
+            obstaclesChanged = false;
+        }
+        checkObstaclesChanges(deltaTime);
+    }
+
+    public void markObstaclesChanged() {
+        this.obstaclesChanged = true;
+    }
+
+    public void forcePathfindingUpdate() {
+        pathfindingSystem.forceGridUpdate();
     }
 
     public void addPendingAction(Runnable action) {
@@ -476,5 +441,52 @@ public class Mapa {
 
     public MapGenerator getMapGenerator() {
         return mapGenerator;
+    }
+
+    private float obstacleCheckTimer = 0f;
+    private static final float OBSTACLE_CHECK_INTERVAL = 1.0f; // Verifica a cada 1 segundo
+
+    public void onItemDestroyed() {
+        obstaclesChanged = true;
+        pathfindingSystem.forceGridUpdate();
+        Gdx.app.log("Mapa", "Barril destruído - Pathfinding atualizado");
+    }
+
+    private void checkObstaclesChanges(float deltaTime) {
+        obstacleCheckTimer += deltaTime;
+
+        if (obstacleCheckTimer >= OBSTACLE_CHECK_INTERVAL) {
+            obstacleCheckTimer = 0f;
+
+            int currentCount = destructibles.size();
+            if (currentCount != previousDestructiblesCount) {
+                obstaclesChanged = true;
+                previousDestructiblesCount = currentCount;
+            }
+
+            if (!obstaclesChanged) {
+                Set<Vector2> currentBarrelPositions = new HashSet<>();
+                for (Destructible destructible : destructibles) {
+                    if (destructible instanceof Barrel) {
+                        Barrel barrel = (Barrel) destructible;
+                        if (!barrel.isDestroyed()) {
+                            Vector2 tilePos = worldToTile(barrel.getPosition());
+                            currentBarrelPositions.add(new Vector2((int) tilePos.x, (int) tilePos.y));
+                        }
+                    }
+                }
+
+                if (!currentBarrelPositions.equals(previousBarrelPositions)) {
+                    obstaclesChanged = true;
+                    previousBarrelPositions = currentBarrelPositions;
+                }
+            }
+
+            if (obstaclesChanged) {
+                pathfindingSystem.updateGrid();
+                obstaclesChanged = false;
+                Gdx.app.log("Mapa", "Mudanças detectadas - Grid atualizado");
+            }
+        }
     }
 }

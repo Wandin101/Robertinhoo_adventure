@@ -10,8 +10,6 @@ import java.util.Arrays;
 import com.badlogic.gdx.graphics.Texture;
 // PlayerAnimations.java
 
-
-
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import java.util.Arrays;
@@ -35,7 +33,7 @@ public class PlayerAnimations implements Disposable {
         public final Animation<TextureRegion> idleNorthEast;
         public final Animation<TextureRegion> idleSouthWest;
         public final Animation<TextureRegion> idleSouthEast;
-        
+
         // Construtor
         public BasicAnimations() {
             idleDown = AnimationLoader.loadAnimation("rober/idle/idle_S-Sheet.png", 0.2f, false, 12);
@@ -77,7 +75,8 @@ public class PlayerAnimations implements Disposable {
 
         // Construtor
         public WeaponAnimations() {
-            idleDown = AnimationLoader.loadAnimation("rober/idle_with_weapon/idle_S_with_weapon_Sheet.png", 0.2f, false, 12);
+            idleDown = AnimationLoader.loadAnimation("rober/idle_with_weapon/idle_S_with_weapon_Sheet.png", 0.2f, false,
+                    12);
             idleLeft = AnimationLoader.loadAnimation("rober/idle_with_weapon/Idle_E-Sheet.png", 0.2f, true, 12);
             idleRight = AnimationLoader.loadAnimation("rober/idle_with_weapon/Idle_E-Sheet.png", 0.2f, false, 12);
             idleUp = AnimationLoader.loadAnimation("rober/idle_with_weapon/Idle_N-Sheet.png", 0.2f, true, 12);
@@ -100,6 +99,12 @@ public class PlayerAnimations implements Disposable {
         public final Animation<TextureRegion> rollDown;
         public final Animation<TextureRegion> rollUp;
         public final Animation<TextureRegion> rollSide;
+        // Novas animações de roll diagonal
+        public final Animation<TextureRegion> rollDownRight;
+        public final Animation<TextureRegion> rollUpRight;
+        public final Animation<TextureRegion> rollDownLeft;
+        public final Animation<TextureRegion> rollUpLeft;
+
         public final Animation<TextureRegion> meleeAttackRight;
         public final Animation<TextureRegion> meleeAttackLeft;
         public final Animation<TextureRegion> meleeAttackUp;
@@ -107,7 +112,6 @@ public class PlayerAnimations implements Disposable {
 
         // Construtor
         public SpecialAnimations() {
-            // Roll animations
             Texture rollTexture = AnimationLoader.loadTexture("rober/roll/roll-Sheet.png");
             int frameWidth = rollTexture.getWidth() / 21;
             int frameHeight = rollTexture.getHeight();
@@ -115,12 +119,43 @@ public class PlayerAnimations implements Disposable {
             TextureRegion[] rollDownFrames = Arrays.copyOfRange(rollFrames[0], 0, 7);
             TextureRegion[] rollUpFrames = Arrays.copyOfRange(rollFrames[0], 14, 21);
             TextureRegion[] rollSideFrames = Arrays.copyOfRange(rollFrames[0], 7, 14);
-            float rollFrameDuration = 0.1f;
-            rollDown = new Animation<>(rollFrameDuration, rollDownFrames);
-            rollUp = new Animation<>(rollFrameDuration, rollUpFrames);
-            rollSide = new Animation<>(rollFrameDuration, rollSideFrames);
+            float basicRollFrameDuration = 0.7f / 7;
 
-            // Melee attack animations
+            rollDown = new Animation<>(basicRollFrameDuration, rollDownFrames);
+            rollUp = new Animation<>(basicRollFrameDuration, rollUpFrames);
+            rollSide = new Animation<>(basicRollFrameDuration, rollSideFrames);
+
+            Texture rollDiagonalTexture = AnimationLoader.loadTexture("rober/roll/roll_NEW.png");
+
+            int frameCols = 7;
+            int frameRows = 2;
+            int diagFrameWidth = rollDiagonalTexture.getWidth() / frameCols;
+            int diagFrameHeight = rollDiagonalTexture.getHeight() / frameRows;
+
+            TextureRegion[][] diagFrames = TextureRegion.split(rollDiagonalTexture, diagFrameWidth, diagFrameHeight);
+            TextureRegion[] rollDownRightFrames = Arrays.copyOf(diagFrames[0], 7);
+            TextureRegion[] rollUpRightFrames = Arrays.copyOf(diagFrames[1], 7);
+            TextureRegion[] rollDownLeftFrames = new TextureRegion[rollDownRightFrames.length];
+            TextureRegion[] rollUpLeftFrames = new TextureRegion[rollUpRightFrames.length];
+
+            for (int i = 0; i < rollDownRightFrames.length; i++) {
+                rollDownLeftFrames[i] = new TextureRegion(rollDownRightFrames[i]);
+                rollDownLeftFrames[i].flip(true, false);
+            }
+
+            for (int i = 0; i < rollUpRightFrames.length; i++) {
+                rollUpLeftFrames[i] = new TextureRegion(rollUpRightFrames[i]);
+                rollUpLeftFrames[i].flip(true, false);
+            }
+
+            float diagonalRollFrameDuration = 0.7f / 7;
+
+            rollDownRight = new Animation<>(diagonalRollFrameDuration, rollDownRightFrames);
+            rollUpRight = new Animation<>(diagonalRollFrameDuration, rollUpRightFrames);
+            rollDownLeft = new Animation<>(diagonalRollFrameDuration, rollDownLeftFrames);
+            rollUpLeft = new Animation<>(diagonalRollFrameDuration, rollUpLeftFrames);
+
+            // Melee attack animations (mantido igual)
             Texture meleeTexture = AnimationLoader.loadTexture("rober/corpo_a_corpo/ataque_sheet.png");
             int frameWidthMelee = meleeTexture.getWidth() / 7;
             int frameHeightMelee = meleeTexture.getHeight() / 4;
@@ -142,7 +177,7 @@ public class PlayerAnimations implements Disposable {
     public PlayerAnimations() {
         // Carregar todas as texturas primeiro
         loadAllTextures();
-        
+
         // Inicializar categorias
         basic = new BasicAnimations();
         weapon = new WeaponAnimations();
@@ -152,24 +187,24 @@ public class PlayerAnimations implements Disposable {
     private void loadAllTextures() {
         // Lista de caminhos de textura
         String[] texturePaths = {
-            "rober/idle/idle_S-Sheet.png",
-            "rober/idle/idle_N-Sheet.png",
-            "rober/idle/idle_E-Sheet.png",
-            "rober/run/2_Template_Run_Left-Sheet.png",
-            "rober/run/2_Template_Run_Up-Sheet.png",
-            "rober/run/2_Template_Run_Down-Sheet.png",
-            "rober/idle_with_weapon/Idle_down_With_weapon-Sheet.png",
-            "rober/idle_with_weapon/idle_left_with_weapon.png",
-            "rober/idle_with_weapon/Idle_E-Sheet.png",
-            "rober/idle_with_weapon/Idle_N-Sheet.png",
-            "rober/run_with_weapon/2_Template_Run_Up_With_One_HandWEAPON-Sheet.png",
-            "rober/idle_with_weapon/1_Template_Idle_Up_with_weapon-Sheet.png",
-            "rober/run_with_weapon/2_Template_Run_Left_withe_oneHand_WEAPON.png",
-            "rober/run_with_weapon/runDown_With_One_HandWEAPON-Sheet.png",
-            "rober/run_with_weapon/2_Template_Run_Up_With_One_HandWEAPON-Sheet.png",
-            "rober/walk/walk_SE-Sheet.png",
-            "rober/roll/roll-Sheet.png",
-            "rober/corpo_a_corpo/ataque_sheet.png"
+                "rober/idle/idle_S-Sheet.png",
+                "rober/idle/idle_N-Sheet.png",
+                "rober/idle/idle_E-Sheet.png",
+                "rober/run/2_Template_Run_Left-Sheet.png",
+                "rober/run/2_Template_Run_Up-Sheet.png",
+                "rober/run/2_Template_Run_Down-Sheet.png",
+                "rober/idle_with_weapon/Idle_down_With_weapon-Sheet.png",
+                "rober/idle_with_weapon/idle_left_with_weapon.png",
+                "rober/idle_with_weapon/Idle_E-Sheet.png",
+                "rober/idle_with_weapon/Idle_N-Sheet.png",
+                "rober/run_with_weapon/2_Template_Run_Up_With_One_HandWEAPON-Sheet.png",
+                "rober/idle_with_weapon/1_Template_Idle_Up_with_weapon-Sheet.png",
+                "rober/run_with_weapon/2_Template_Run_Left_withe_oneHand_WEAPON.png",
+                "rober/run_with_weapon/runDown_With_One_HandWEAPON-Sheet.png",
+                "rober/run_with_weapon/2_Template_Run_Up_With_One_HandWEAPON-Sheet.png",
+                "rober/walk/walk_SE-Sheet.png",
+                "rober/roll/roll-Sheet.png",
+                "rober/corpo_a_corpo/ataque_sheet.png"
         };
 
         // Carregar e armazenar texturas

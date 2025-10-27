@@ -17,7 +17,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.Gdx;
 
-public class Barrel extends BaseDestructible implements ShadowEntity {
+public class Barrel extends BaseDestructible implements ShadowEntity, Obstacle {
     private Body body;
     private int health;
     private final Mapa mapa;
@@ -61,7 +61,8 @@ public class Barrel extends BaseDestructible implements ShadowEntity {
         fixtureDef.density = 1.0f;
         fixtureDef.friction = 0.5f;
         fixtureDef.filter.categoryBits = Constants.BIT_OBJECT;
-        fixtureDef.filter.maskBits = Constants.BIT_PLAYER | Constants.BIT_PLAYER_ATTACK | Constants.BIT_PROJECTILE | Constants.BIT_ENEMY;
+        fixtureDef.filter.maskBits = Constants.BIT_PLAYER | Constants.BIT_PLAYER_ATTACK | Constants.BIT_PROJECTILE
+                | Constants.BIT_ENEMY;
 
         Fixture fixture = body.createFixture(fixtureDef);
         fixture.setUserData(this);
@@ -107,6 +108,7 @@ public class Barrel extends BaseDestructible implements ShadowEntity {
             super.startDestructionAnimation();
             destroy();
             dropGunpowder();
+            mapa.onItemDestroyed();
         }
     }
 
@@ -161,6 +163,7 @@ public class Barrel extends BaseDestructible implements ShadowEntity {
         if (isAnimating && destructionAnimation.isAnimationFinished(animationTime)) {
             bodyMarkedForDestruction = true;
             Gdx.app.log("Barrel", "Animação finalizada. Marcando corpo para destruição.");
+            mapa.markObstaclesChanged();
         }
     }
 
@@ -179,5 +182,15 @@ public class Barrel extends BaseDestructible implements ShadowEntity {
 
     public boolean isBodyMarkedForDestruction() {
         return bodyMarkedForDestruction;
+    }
+
+    @Override
+    public boolean blocksPath() {
+        return !isDestroyed();
+    }
+
+    @Override
+    public Vector2 getTilePosition() {
+        return mapa.worldToTile(getPosition());
     }
 }

@@ -5,10 +5,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.TimeUtils;
 
-import io.github.some_example_name.Entities.Enemies.IA.AStarPathFinder;
-import io.github.some_example_name.Entities.Enemies.IA.Grid;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
+import io.github.some_example_name.Interface.DebugHUD;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
@@ -26,8 +26,8 @@ public class GameScreen extends CatScreen {
     private SpriteBatch hudBatch;
     private OrthographicCamera hudCamera;
     private RobertinhoFaceHUD robertinhoFaceHUD;
-    private Cursor systemCursor;
-    private Cursor blankCursor;
+    private DebugHUD debugHUD;
+    private boolean debugEnabled = true;
 
     public GameScreen(Game game) {
         super(game);
@@ -46,12 +46,15 @@ public class GameScreen extends CatScreen {
 
         weaponHUD = new WeaponHUD(robertinhoo);
         float width = Gdx.graphics.getWidth();
-        float height = Gdx.graphics.getHeight(); // Corrigido para height
+        float height = Gdx.graphics.getHeight();
 
         robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, robertinhoo);
 
         robertinhoo.setMapRenderer(renderer);
         weaponHUD.setBatch(hudBatch);
+
+        // DebugHUD sem Viewport problemático
+        debugHUD = new DebugHUD();
 
         System.out.println("MapRenderer configurado no Robertinhoo.");
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -65,16 +68,25 @@ public class GameScreen extends CatScreen {
 
     @Override
     public void render(float delta) {
+        long startTime = TimeUtils.nanoTime();
+
         delta = Math.min(0.06f, Gdx.graphics.getDeltaTime());
 
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // Update
+        long updateStart = TimeUtils.nanoTime();
         robertinhoo.update(delta);
         mapa.update(delta);
+        float updateTime = (TimeUtils.nanoTime() - updateStart) / 1000000f; // ms
 
+        // Render do jogo
+        long renderStart = TimeUtils.nanoTime();
         renderer.render(delta, robertinhoo);
+        float renderTime = (TimeUtils.nanoTime() - renderStart) / 1000000f; // ms
 
+        // HUD normal
         weaponHUD.update(delta);
         robertinhoFaceHUD.update(delta);
 
@@ -82,6 +94,17 @@ public class GameScreen extends CatScreen {
         weaponHUD.draw();
         robertinhoFaceHUD.draw(hudBatch, delta);
         hudBatch.end();
+
+        // Debug HUD (sempre por último) - SEM Viewport problemático
+        debugHUD.update(delta);
+        if (debugEnabled) {
+            debugHUD.render();
+        }
+
+        // Toggle debug com F3
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F3)) {
+            debugEnabled = !debugEnabled;
+        }
     }
 
     @Override
@@ -89,7 +112,7 @@ public class GameScreen extends CatScreen {
         // Atualize PRIMEIRO a câmera do jogo principal
         renderer.resize(width, height);
 
-        // Atualize AGORA a câmera HUD
+        // Atualize AGORA a câmera HUD (método antigo que funcionava)
         hudCamera.setToOrtho(false, width, height);
         hudCamera.update();
         hudBatch.setProjectionMatrix(hudCamera.combined);
@@ -111,7 +134,6 @@ public class GameScreen extends CatScreen {
 
     @Override
     public void dispose() {
-
         if (renderer != null) {
             renderer.dispose();
         }
@@ -121,9 +143,11 @@ public class GameScreen extends CatScreen {
         if (hudBatch != null) {
             hudBatch.dispose();
         }
-
         if (robertinhoFaceHUD != null) {
             robertinhoFaceHUD.dispose();
+        }
+        if (debugHUD != null) {
+            debugHUD.dispose();
         }
     }
 }
