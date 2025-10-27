@@ -12,16 +12,17 @@ import java.util.List;
 
 public class GameContactListener implements ContactListener {
     private final List<ContactHandler> handlers = new ArrayList<>();
-    
+
     public GameContactListener(Robertinhoo player) {
-       
+
         handlers.add(new MeleeAttackHandler(player));
         handlers.add(new PlayerItemHandler(player));
         handlers.add(new ProjectileHandler(player));
         handlers.add(new EnemyHandler(player));
         handlers.add(new BarrelHandler());
+        handlers.add(new GrassHandler());
     }
-    
+
     public void addHandler(ContactHandler handler) {
         handlers.add(0, handler);
     }
@@ -30,7 +31,7 @@ public class GameContactListener implements ContactListener {
     public void beginContact(Contact contact) {
         Fixture fixtureA = contact.getFixtureA();
         Fixture fixtureB = contact.getFixtureB();
-        
+
         for (ContactHandler handler : handlers) {
             if (handler.handleBeginContact(contact, fixtureA, fixtureB)) {
                 // Se o handler retornar true, para de processar este contato
@@ -43,15 +44,17 @@ public class GameContactListener implements ContactListener {
     public void endContact(Contact contact) {
         Fixture fixtureA = contact.getFixtureA();
         Fixture fixtureB = contact.getFixtureB();
-        
+
         for (ContactHandler handler : handlers) {
             handler.handleEndContact(contact, fixtureA, fixtureB);
         }
     }
 
     @Override
-    public void preSolve(Contact contact, Manifold oldManifold) {}
+    public void preSolve(Contact contact, Manifold oldManifold) {
+    }
 
     @Override
-    public void postSolve(Contact contact, ContactImpulse impulse) {}
+    public void postSolve(Contact contact, ContactImpulse impulse) {
+    }
 }

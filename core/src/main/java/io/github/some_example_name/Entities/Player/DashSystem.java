@@ -2,19 +2,18 @@ package io.github.some_example_name.Entities.Player;
 
 import com.badlogic.gdx.math.Vector2;
 
-
 public class DashSystem {
     private final Robertinhoo player;
-    
-    // Constantes
-    public static final float DASH_DURATION = 0.57f;
+
+    // Constantes AJUSTADAS para sincronizar com animações
+    public static final float BASIC_ROLL_DURATION = 0.7f; // Para rolls básicos
     public static final float DASH_COOLDOWN = 1f;
     public static final float DASH_SPEED = 2.5f;
     public static final float DASH_STAMINA_COST = 30f;
     public static final float FREEZE_DURATION = 0.10f;
     public static final float POST_DASH_IMPULSE = 1.2f;
-    public static final float POST_DASH_DURATION = 0.2f; // Duração do impulso
-    
+    public static final float POST_DASH_DURATION = 0.2f;
+
     // Estado do dash
     private float dashTime = 0;
     private float dashCooldownTime = 0;
@@ -25,6 +24,7 @@ public class DashSystem {
     private boolean isApplyingPostDash = false;
     private Vector2 dashDirectionCache;
     private Vector2 postDashImpulse;
+    private float currentDashDuration; // Duração atual baseada na direção
 
     public DashSystem(Robertinhoo player) {
         this.player = player;
@@ -37,24 +37,22 @@ public class DashSystem {
 
         if (isDashing) {
             dashTime -= deltaTime;
-            
+
             if (isFreezing) {
-                if (dashTime <= DASH_DURATION - FREEZE_DURATION) {
+                if (dashTime <= currentDashDuration - FREEZE_DURATION) {
                     isFreezing = false;
                     player.body.setLinearVelocity(dashDirectionCache.cpy().scl(DASH_SPEED));
                 }
-            } 
-            else if (dashTime <= 0) {
+            } else if (dashTime <= 0) {
                 endDash();
             }
         }
-        
-        // Atualizar tempo do impulso pós-dash
+
         if (isApplyingPostDash) {
             postDashTime -= deltaTime;
             if (postDashTime <= 0) {
                 isApplyingPostDash = false;
-                player.body.setLinearVelocity(0, 0); // Reseta velocidade após impulso
+                player.body.setLinearVelocity(0, 0);
             }
         }
     }
@@ -63,17 +61,17 @@ public class DashSystem {
         if (canDash(spaceJustPressed, spacePressed, moveDir)) {
             activateDash(moveDir);
         }
-        
+
         dashKeyWasPressed = spacePressed;
     }
 
     private boolean canDash(boolean spaceJustPressed, boolean spacePressed, Vector2 moveDir) {
         return (spaceJustPressed || (!dashKeyWasPressed && spacePressed)) &&
-               dashCooldownTime <= 0 &&
-               !isDashing &&
-               !isApplyingPostDash &&
-               !moveDir.isZero() &&
-               player.getStaminaSystem().hasStamina(DASH_STAMINA_COST);
+                dashCooldownTime <= 0 &&
+                !isDashing &&
+                !isApplyingPostDash &&
+                !moveDir.isZero() &&
+                player.getStaminaSystem().hasStamina(DASH_STAMINA_COST);
     }
 
     private void activateDash(Vector2 moveDir) {
@@ -83,7 +81,9 @@ public class DashSystem {
         player.setInvulnerable(true);
         dashDirectionCache = moveDir.cpy();
 
-        dashTime = DASH_DURATION;
+        // Todos os rolls têm a mesma duração agora
+        currentDashDuration = BASIC_ROLL_DURATION;
+        dashTime = currentDashDuration;
         dashCooldownTime = DASH_COOLDOWN;
         isDashing = true;
         isFreezing = true;
@@ -96,8 +96,7 @@ public class DashSystem {
         player.state = Robertinhoo.IDLE;
         player.setInvulnerable(false);
         isDashing = false;
-        
-        // Prepara o impulso mas não aplica ainda
+
         postDashImpulse = dashDirectionCache.cpy().scl(DASH_SPEED * POST_DASH_IMPULSE);
     }
 
@@ -117,12 +116,19 @@ public class DashSystem {
     public boolean isDashing() {
         return isDashing;
     }
-    
+
     public boolean isApplyingPostDashImpulse() {
         return isApplyingPostDash;
     }
-    
+
     public boolean isFreezing() {
         return isFreezing;
+    }
+
+    // Novo método para obter o progresso do dash (útil para sincronização)
+    public float getDashProgress() {
+        if (!isDashing)
+            return 0f;
+        return 1f - (dashTime / currentDashDuration);
     }
 }
