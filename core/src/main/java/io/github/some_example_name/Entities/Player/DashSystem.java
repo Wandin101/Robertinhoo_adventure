@@ -1,12 +1,14 @@
 package io.github.some_example_name.Entities.Player;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Filter;
+import io.github.some_example_name.Entities.Itens.Contact.Constants;
 
 public class DashSystem {
     private final Robertinhoo player;
 
-    // Constantes AJUSTADAS para sincronizar com animações
-    public static final float BASIC_ROLL_DURATION = 0.7f; // Para rolls básicos
+    // Constantes (mantidas as mesmas)
+    public static final float BASIC_ROLL_DURATION = 0.7f;
     public static final float DASH_COOLDOWN = 1f;
     public static final float DASH_SPEED = 2.5f;
     public static final float DASH_STAMINA_COST = 30f;
@@ -24,7 +26,11 @@ public class DashSystem {
     private boolean isApplyingPostDash = false;
     private Vector2 dashDirectionCache;
     private Vector2 postDashImpulse;
-    private float currentDashDuration; // Duração atual baseada na direção
+    private float currentDashDuration;
+    
+    // Para restaurar os filtros de colisão
+    private short originalCategoryBits;
+    private short originalMaskBits;
 
     public DashSystem(Robertinhoo player) {
         this.player = player;
@@ -42,6 +48,8 @@ public class DashSystem {
                 if (dashTime <= currentDashDuration - FREEZE_DURATION) {
                     isFreezing = false;
                     player.body.setLinearVelocity(dashDirectionCache.cpy().scl(DASH_SPEED));
+                    // Aplica a intangibilidade REAL quando começa a se mover
+                    applyDashCollisionFilter();
                 }
             } else if (dashTime <= 0) {
                 endDash();
@@ -78,10 +86,12 @@ public class DashSystem {
         moveDir.nor();
         player.state = Robertinhoo.DASH;
         player.dashDirection = player.dir;
-        player.setInvulnerable(true);
+        
+        // Guarda os filtros originais ANTES de modificar
+        saveOriginalCollisionFilter();
+        
         dashDirectionCache = moveDir.cpy();
 
-        // Todos os rolls têm a mesma duração agora
         currentDashDuration = BASIC_ROLL_DURATION;
         dashTime = currentDashDuration;
         dashCooldownTime = DASH_COOLDOWN;
@@ -92,10 +102,39 @@ public class DashSystem {
         player.getStaminaSystem().consumeStamina(DASH_STAMINA_COST);
     }
 
+    private void saveOriginalCollisionFilter() {
+        if (player.body.getFixtureList().size > 0) {
+            Filter filter = player.body.getFixtureList().first().getFilterData();
+            originalCategoryBits = filter.categoryBits;
+            originalMaskBits = filter.maskBits;
+        }
+    }
+
+    private void applyDashCollisionFilter() {
+        if (player.body.getFixtureList().size > 0) {
+            Filter filter = new Filter();
+            filter.categoryBits = originalCategoryBits;
+            filter.maskBits = (short) (Constants.BIT_GROUND | Constants.BIT_WALL | Constants.BIT_OBJECT);
+            
+            player.body.getFixtureList().first().setFilterData(filter);
+        }
+    }
+
+    private void restoreOriginalCollisionFilter() {
+        if (player.body.getFixtureList().size > 0) {
+            Filter filter = new Filter();
+            filter.categoryBits = originalCategoryBits;
+            filter.maskBits = originalMaskBits;
+            player.body.getFixtureList().first().setFilterData(filter);
+        }
+    }
+
     private void endDash() {
         player.state = Robertinhoo.IDLE;
-        player.setInvulnerable(false);
         isDashing = false;
+
+        // Restaura a colisão normal
+        restoreOriginalCollisionFilter();
 
         postDashImpulse = dashDirectionCache.cpy().scl(DASH_SPEED * POST_DASH_IMPULSE);
     }
@@ -113,6 +152,7 @@ public class DashSystem {
         }
     }
 
+    // Remove o setInvulnerable e gerencia tudo via filtros de colisão
     public boolean isDashing() {
         return isDashing;
     }
@@ -125,7 +165,6 @@ public class DashSystem {
         return isFreezing;
     }
 
-    // Novo método para obter o progresso do dash (útil para sincronização)
     public float getDashProgress() {
         if (!isDashing)
             return 0f;
