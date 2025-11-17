@@ -10,6 +10,7 @@ import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho.State;
 import io.github.some_example_name.Entities.Enemies.Enemy;
 import io.github.some_example_name.Entities.Renderer.CorpsesManager.CorpseManager;
+import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -79,7 +80,11 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
     }
 
     public void render(SpriteBatch batch, float delta, Ratinho rat, float offsetX, float offsetY) {
-        rat.update(delta);
+
+        if (!ScreenFreezeSystem.isFrozen()) {
+            rat.update(delta);
+        }
+
         boolean flip = shouldFlip(rat);
 
         if (!rat.isDead() || rat.isDying()) {

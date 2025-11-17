@@ -3,9 +3,10 @@ package io.github.some_example_name.Entities.Player;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Timer;
-
+import com.badlogic.gdx.Gdx;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
-
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 
 public class MeleeAttackSystem {
     private final Robertinhoo player;
@@ -14,38 +15,46 @@ public class MeleeAttackSystem {
     private float attackDuration;
     private final World world;
     private final ParrySystem parrySystem;
+    private Timer.Task endAttackTask;
+    private boolean isParryExtended = false;
+     private boolean hitboxCreated = false;
 
     public MeleeAttackSystem(Robertinhoo player) {
         this.player = player;
         this.world = player.getMap().world;
         this.attackInProgress = false;
-        this.attackDuration = 0.2f; // Duração do ataque
         this.attackDuration = player.getMeleeAttackDuration();
-          this.parrySystem = new ParrySystem(player);
+        this.parrySystem = new ParrySystem(player);
     }
 
-    public void startAttack(int direction) {
-        if (attackInProgress)
+     public void startAttack(int direction) {
+        if (attackInProgress) {
             return;
+        }
 
         attackInProgress = true;
-        
-
+        isParryExtended = false;
+        hitboxCreated = false; // RESET
         parrySystem.activateParry();
+        cancelExistingTimers();
 
         Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
                 createMeleeHitbox(direction);
-
-                Timer.schedule(new Timer.Task() {
-                    @Override
-                    public void run() {
-                        endAttack();
-                    }
-                }, attackDuration);
+                hitboxCreated = true;
+                scheduleEndAttackTimer();
             }
         }, 0.1f);
+           AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.PARRY_SUCCESS);
+    }
+       public void extendAttackForParry() {
+        if (attackInProgress && !isParryExtended) {
+            isParryExtended = true;
+            if (hitboxCreated) {
+                scheduleEndAttackTimer();
+            }
+        }
     }
 
     private void createMeleeHitbox(int direction) {
@@ -78,10 +87,8 @@ public class MeleeAttackSystem {
             case Robertinhoo.DOWN:
                 localCenter.set(0, -0.5f - halfH);
                 break;
-            // diagonais: ajuste x e y juntos
         }
-        // cria caixa de melee deslocada localmente, sem precisar chamar setTransform
-        // depois
+
         shape.setAsBox(halfW, halfH, localCenter, 0f);
 
         FixtureDef fd = new FixtureDef();
@@ -91,20 +98,23 @@ public class MeleeAttackSystem {
         fd.filter.maskBits = Constants.BIT_ENEMY | Constants.BIT_OBJECT;
         meleeHitboxBody.createFixture(fd);
         shape.dispose();
-
-        System.out.println("Criando hitbox de ataque corpo a corpo em: " +
-                meleeHitboxBody.getPosition() +
-                " | Direção: " + direction);
     }
 
-    private void endAttack() {
-        if (meleeHitboxBody != null) {
-            world.destroyBody(meleeHitboxBody);
-            meleeHitboxBody = null;
-            System.out.println("Hitbox de ataque destruída");
-        }
-        attackInProgress = false;
+private void endAttack() {
+    Gdx.app.log("MELEE_DEBUG", "=== FINALIZANDO ATAQUE ===");
+    
+    parrySystem.resetParrySuccess();
+    
+    if (meleeHitboxBody != null) {
+        world.destroyBody(meleeHitboxBody);
+        meleeHitboxBody = null;
+        Gdx.app.log("MELEE_DEBUG", "Hitbox destruída");
     }
+    attackInProgress = false;
+    isParryExtended = false;
+    
+    Gdx.app.log("MELEE_DEBUG", "Ataque finalizado. attackInProgress: " + attackInProgress);
+}
 
     public boolean isAttacking() {
         return attackInProgress;
@@ -114,8 +124,37 @@ public class MeleeAttackSystem {
         return meleeHitboxBody;
     }
 
-        public ParrySystem getParrySystem() {
+    public ParrySystem getParrySystem() {
         return parrySystem;
+    }
+
+    public boolean isParrySuccess() {
+        boolean success = parrySystem.isParrySuccess();
+        return success;
+    }
+        private void cancelExistingTimers() {
+        if (endAttackTask != null) {
+            endAttackTask.cancel();
+            endAttackTask = null;
+        }
+    }
+
+        private void scheduleEndAttackTimer() {
+        cancelExistingTimers();
+        
+        float duration;
+        if (parrySystem.isParrySuccess()) {
+            duration = 0.616f;
+        } else {
+            duration = attackDuration;
+        }
+
+        endAttackTask = Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                endAttack();
+            }
+        }, duration);
     }
 
 }

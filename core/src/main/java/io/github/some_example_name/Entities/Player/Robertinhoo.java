@@ -61,7 +61,7 @@ public class Robertinhoo implements ShadowEntity {
     public static final int MELEE_ATTACK = 14;
 
     private float meleeAttackTime = 0;
-    private float meleeAttackDuration = 0.4f;
+    private float meleeAttackDuration = 0.616f;
     public int meleeDirection = DOWN;
 
     public boolean isTakingDamage = false;
@@ -316,10 +316,9 @@ public class Robertinhoo implements ShadowEntity {
         this.itemToPickup = null;
     }
 
-    public void setInvulnerable(boolean invulnerable) {
-        this.isInvulnerable = invulnerable;
-    }
-
+public void setInvulnerable(boolean invulnerable) {
+    this.isInvulnerable = invulnerable;
+}
     @Override
     public Vector2 getPosition() {
         return body.getPosition();
@@ -364,6 +363,9 @@ public class Robertinhoo implements ShadowEntity {
 
     public PlayerItemHandler getItemHandler() {
         return itemHandler;
+    }
+    public Body getBody() {
+        return body;
     }
 
 }

@@ -13,6 +13,10 @@ import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
+import io.github.some_example_name.MapConfig.RoomManager;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Cursor;
@@ -28,6 +32,8 @@ public class GameScreen extends CatScreen {
     private RobertinhoFaceHUD robertinhoFaceHUD;
     private DebugHUD debugHUD;
     private boolean debugEnabled = true;
+    private AudioManager audioManager;
+    private RoomManager roomManager = RoomManager.getInstance();
 
     public GameScreen(Game game) {
         super(game);
@@ -35,10 +41,15 @@ public class GameScreen extends CatScreen {
 
     @Override
     public void show() {
-        mapa = new Mapa();
+        audioManager = AudioManager.getInstance();
+        GameGameSoundsPaths.loadAllAssets();
+
+        // CARREGA A SALA 0 (SALA INICIAL)
+        mapa = roomManager.createRoom0();
         robertinhoo = mapa.robertinhoo;
         renderer = new MapRenderer(mapa);
 
+        // Resto do código permanece igual...
         hudBatch = new SpriteBatch();
         hudCamera = new OrthographicCamera();
         hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -53,10 +64,9 @@ public class GameScreen extends CatScreen {
         robertinhoo.setMapRenderer(renderer);
         weaponHUD.setBatch(hudBatch);
 
-        // DebugHUD sem Viewport problemático
         debugHUD = new DebugHUD();
 
-        System.out.println("MapRenderer configurado no Robertinhoo.");
+        System.out.println("Sala 0 carregada - Player posicionado no centro");
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(0, 0, 0, 0); // transparente
         pixmap.fill();
@@ -70,33 +80,41 @@ public class GameScreen extends CatScreen {
     public void render(float delta) {
         long startTime = TimeUtils.nanoTime();
 
-        delta = Math.min(0.06f, Gdx.graphics.getDeltaTime());
+        float gameplayDelta = ScreenFreezeSystem.getGameplayDelta(); // Inimigos, projéteis
+        float playerDelta = ScreenFreezeSystem.getPlayerDelta(); // Player (sempre normal)
+        float animationDelta = ScreenFreezeSystem.getAnimationDelta(); // Animações (sempre normal)
+
+        ScreenFreezeSystem.update(delta);
+
+        gameplayDelta = Math.min(0.06f, gameplayDelta);
+        playerDelta = Math.min(0.06f, playerDelta);
+        animationDelta = Math.min(0.06f, animationDelta);
 
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Update
+        // UPDATE:
         long updateStart = TimeUtils.nanoTime();
-        robertinhoo.update(delta);
-        mapa.update(delta);
-        float updateTime = (TimeUtils.nanoTime() - updateStart) / 1000000f; // ms
+        robertinhoo.update(playerDelta); // Player sempre atualiza normalmente
+        mapa.update(gameplayDelta); // Inimigos e projéteis congelam durante freeze
+        float updateTime = (TimeUtils.nanoTime() - updateStart) / 1000000f;
 
-        // Render do jogo
+        // RENDER:
         long renderStart = TimeUtils.nanoTime();
-        renderer.render(delta, robertinhoo);
-        float renderTime = (TimeUtils.nanoTime() - renderStart) / 1000000f; // ms
+        renderer.render(animationDelta, robertinhoo); // Animações sempre normais
+        float renderTime = (TimeUtils.nanoTime() - renderStart) / 1000000f;
 
-        // HUD normal
-        weaponHUD.update(delta);
-        robertinhoFaceHUD.update(delta);
+        // HUD:
+        weaponHUD.update(animationDelta);
+        robertinhoFaceHUD.update(animationDelta);
 
         hudBatch.begin();
         weaponHUD.draw();
-        robertinhoFaceHUD.draw(hudBatch, delta);
+        robertinhoFaceHUD.draw(hudBatch, animationDelta);
         hudBatch.end();
 
-        // Debug HUD (sempre por último) - SEM Viewport problemático
-        debugHUD.update(delta);
+        // Debug HUD
+        debugHUD.update(animationDelta);
         if (debugEnabled) {
             debugHUD.render();
         }
@@ -105,6 +123,10 @@ public class GameScreen extends CatScreen {
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F3)) {
             debugEnabled = !debugEnabled;
         }
+
+         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F10)) {
+        AudioManager.getInstance().debugAudioState();
+    }
     }
 
     @Override
@@ -148,6 +170,10 @@ public class GameScreen extends CatScreen {
         }
         if (debugHUD != null) {
             debugHUD.dispose();
+        }
+
+        if (audioManager != null) {
+            audioManager.dispose();
         }
     }
 }

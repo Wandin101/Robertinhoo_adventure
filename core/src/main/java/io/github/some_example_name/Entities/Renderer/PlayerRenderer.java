@@ -1,5 +1,6 @@
 package io.github.some_example_name.Entities.Renderer;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -177,16 +178,31 @@ public class PlayerRenderer {
     }
 
     private Animation<TextureRegion> getMeleeAnimation(Robertinhoo player) {
-        switch (player.meleeDirection) {
-            case Robertinhoo.RIGHT:
-                return animations.special.meleeAttackRight;
-            case Robertinhoo.LEFT:
-                return animations.special.meleeAttackLeft;
-            case Robertinhoo.UP:
-                return animations.special.meleeAttackUp;
-            case Robertinhoo.DOWN:
-            default:
-                return animations.special.meleeAttackDown;
+        boolean isParrySuccess = player.getMeleeAttackSystem().isParrySuccess();
+        if (isParrySuccess) {
+            switch (player.meleeDirection) {
+                case Robertinhoo.RIGHT:
+                    return animations.special.parryRight;
+                case Robertinhoo.LEFT:
+                    return animations.special.parryLeft;
+                case Robertinhoo.UP:
+                    return animations.special.parryUp;
+                case Robertinhoo.DOWN:
+                default:
+                    return animations.special.parryDown;
+            }
+        } else {
+            switch (player.meleeDirection) {
+                case Robertinhoo.RIGHT:
+                    return animations.special.meleeAttackRight;
+                case Robertinhoo.LEFT:
+                    return animations.special.meleeAttackLeft;
+                case Robertinhoo.UP:
+                    return animations.special.meleeAttackUp;
+                case Robertinhoo.DOWN:
+                default:
+                    return animations.special.meleeAttackDown;
+            }
         }
     }
 
@@ -213,6 +229,7 @@ public class PlayerRenderer {
             animationTime = 0f;
             currentAnimation = selectedAnimation;
         }
+
         float effectiveTime = animationTime;
         if (shouldReverseAnimation(player)) {
             float totalDuration = currentAnimation.getAnimationDuration();

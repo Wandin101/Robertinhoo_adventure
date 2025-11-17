@@ -1,6 +1,5 @@
 package io.github.some_example_name.MapConfig;
 
-import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,15 +7,13 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import box2dLight.RayHandler;
 import box2dLight.PointLight;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 
+import io.github.some_example_name.Entities.Debug.DebugRenderers;
 import io.github.some_example_name.Entities.Enemies.Enemy;
 import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
@@ -35,7 +32,10 @@ import io.github.some_example_name.Entities.Renderer.Projectile.ProjectileRender
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
-// import io.github.some_example_name.Entities.Renderer.MeleeAttackRenderer;
+import io.github.some_example_name.Luz.EscurecedorAmbiente;
+import io.github.some_example_name.Luz.SistemaLuz;
+import io.github.some_example_name.MapConfig.Rooms.Room0TileRenderer;
+import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
 import io.github.some_example_name.Camera.Camera;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -45,7 +45,7 @@ import io.github.some_example_name.Entities.Enemies.StateEnemy.StateEnemy;
 
 public class MapRenderer {
     private RayHandler rayHandler;
-    private PointLight playerLight;
+
     private Mapa mapa;
     private ShapeRenderer shapeRenderer;
     private SpriteBatch spriteBatch;
@@ -60,39 +60,36 @@ public class MapRenderer {
     private CraftItensRenderer craftItensRenderer;
     private CorpseManager corpseManager;
     private StateEnemy stateEnemy;
+    private Room0TileRenderer room0TileRenderer;
+    private boolean isRoom0 = false;
+    private SistemaLuz sistemaLuz;
+    private EscurecedorAmbiente escurecedor;
+
+    // ADICIONADO: DebugRenderer
+    private DebugRenderers debugRenderers;
 
     private DestructibleRenderer destructibleRenderer;
-    // private MeleeAttackRenderer meleeAttackRenderer;
-    private PointLight debugLight;
     public static final int TILE_SIZE = 64;
     public float offsetX;
     public float offsetY;
 
     private Stage uiStage;
     private Skin uiSkin;
-
     private TileRenderer tileRenderer;
 
     public MapRenderer(Mapa mapa) {
         this.mapa = mapa;
 
-        if (mapa.getRayHandler() == null) {
-            mapa.initializeLights();
-        }
-
-        if (mapa.getRayHandler() == null) {
-            Gdx.app.error("MapRenderer", "RayHandler não inicializado!");
-            mapa.initializeLights();
-        }
-
-        playerLight = new PointLight(mapa.getRayHandler(), 100, Color.BLUE, 15, 0, 0);
-        playerLight.setSoft(true);
-        playerLight.setSoftnessLength(8f);
+        this.rayHandler = mapa.getRayHandler();
 
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         spriteBatch = new SpriteBatch();
         cameraController = new Camera();
+
+        // ADICIONADO: Inicialização do DebugRenderer
+        this.debugRenderers = new DebugRenderers();
+
         this.tileRenderer = new TileRenderer(mapa, TILE_SIZE);
         this.projectileRenderer = new ProjectileRenderer(mapa, TILE_SIZE);
         this.playerRenderer = new PlayerRenderer(mapa.robertinhoo.getWeaponSystem());
@@ -106,18 +103,28 @@ public class MapRenderer {
                 64,
                 new Vector2(175, 100), mapa.robertinhoo.getInventoryController());
         mapa.robertinhoo.getInventoryController().setContextMenu(renderInventory.getContextMenu());
-        ;
 
         mapa.robertinhoo.setCamera(cameraController.getCamera());
         this.destructibleRenderer = new DestructibleRenderer(TILE_SIZE);
         this.shadowRenderer = new ShadowRenderer(shapeRenderer);
         this.craftItensRenderer = new CraftItensRenderer(TILE_SIZE);
         this.corpseManager = new CorpseManager();
-        // this.meleeAttackRenderer = new MeleeAttackRenderer(mapa.robertinhoo);
+        this.isRoom0 = mapa.getCampFire() != null;
+
+        this.isRoom0 = detectIfRoom0(mapa);
+
+        if (isRoom0) {
+            this.room0TileRenderer = new Room0TileRenderer(mapa, TILE_SIZE);
+            System.out.println("✅ Room0TileRenderer inicializado para Sala 0");
+        }
+        this.sistemaLuz = new SistemaLuz();
+        this.escurecedor = new EscurecedorAmbiente();
+
     }
 
     public void render(float delta, Robertinhoo player) {
-        // Limpa a tela
+        // ✅ FUNDO MAIS ESCURO
+        Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Calcula offsets e atualiza câmera
@@ -130,11 +137,6 @@ public class MapRenderer {
 
         // Atualiza física do mundo
         mapa.world.step(delta, 6, 2);
-
-        // Configura luz do jogador
-        playerLight.setPosition(
-                offsetX + player.pos.x * TILE_SIZE + TILE_SIZE / 2f,
-                offsetY + player.pos.y * TILE_SIZE + TILE_SIZE / 2f);
 
         // --- COLETA DE ENTIDADES PARA SOMBRA ---
         List<ShadowEntity> shadowEntities = new ArrayList<>();
@@ -152,31 +154,48 @@ public class MapRenderer {
             }
         }
 
-        // 1. RENDERIZAÇÃO DO CHÃO (TILES)
+        // 1. RENDERIZAÇÃO DO CHÃO (TILES) - MAIS ESCURO
         spriteBatch.begin();
-        tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
+        // ✅ APLICA COR ESCURA AOS TILES
+        spriteBatch.setColor(0.5f, 0.5f, 0.5f, 1f);
+
+        if (isRoom0 && room0TileRenderer != null) {
+            room0TileRenderer.renderFloor(spriteBatch, offsetX, offsetY);
+        } else {
+            tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
+        }
+
+        // ✅ RESTAURA COR NORMAL
+        spriteBatch.setColor(1f, 1f, 1f, 1f);
         spriteBatch.end();
 
-        // 2. RENDERIZAÇÃO DAS SOMBRAS
+        spriteBatch.begin();
+        if (isRoom0 && mapa.getCampFire() != null) {
+            Vector2 campfireTilePos = mapa.getCampFire().getPosition();
+
+            // ✅ POSIÇÃO CORRETA: Usar a mesma lógica de conversão
+            float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
+            float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
+
+            mapa.getCampFire().update(delta);
+            mapa.getCampFire().render(spriteBatch, screenX, screenY);
+        }
+        spriteBatch.end();
+
+        // 3. RENDERIZAÇÃO DAS SOMBRAS
         shadowRenderer.renderShadows(shadowEntities, offsetX, offsetY, TILE_SIZE);
 
-        // 3. RENDERIZAÇÃO DOS OBJETOS E ENTIDADES
+        // 4. RENDERIZAÇÃO DOS OBJETOS E ENTIDADES
         spriteBatch.begin();
         {
-            // Renderiza itens do cenário (barris, etc.)
             destructibleRenderer.render(spriteBatch, mapa.getDestructibles(), offsetX, offsetY);
-
-            // Renderiza projéteis
             projectileRenderer.render(spriteBatch, delta, offsetX, offsetY);
 
-            // Renderiza jogador
             float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale() - 1) * 8;
             float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale() - 1) * 8;
             corpseManager.render(spriteBatch, offsetX, offsetY);
 
             playerRenderer.render(spriteBatch, player, delta, offsetX, offsetY);
-
-            // Renderiza arma do jogador
             player.getWeaponSystem().renderWeapon(spriteBatch, delta, player, playerX, playerY);
 
             // Renderiza inimigos
@@ -187,7 +206,6 @@ public class MapRenderer {
                     if (rat.isDead()) {
                         if (rat.isDeathAnimationFinished()) {
                             if (!rat.isMarkedForDestruction()) {
-                                // AGORA GENÉRICO!
                                 corpseManager.addCorpse(rat, ratRenderer);
                                 rat.markForDestruction();
                             }
@@ -201,8 +219,10 @@ public class MapRenderer {
 
                 if (enemy instanceof Castor) {
                     Castor castor = (Castor) enemy;
-                    castor.update(delta);
 
+                    if (!ScreenFreezeSystem.isFrozen()) {
+                        castor.update(delta);
+                    }
                     if (castor.isDead()) {
                         if (castor.isDeathAnimationFinished()) {
                             if (!castor.isMarkedForDestruction()) {
@@ -221,8 +241,8 @@ public class MapRenderer {
                         castor.ai.getStateEnemy().render(spriteBatch);
                     }
                 }
-
             }
+
             // Renderiza armas no chão
             for (Weapon weapon : mapa.getWeapons()) {
                 weapon.update(delta);
@@ -239,47 +259,57 @@ public class MapRenderer {
             ammoRenderer.render(spriteBatch, mapa.getAmmo(), offsetX, offsetY);
             craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
         }
-        spriteBatch.end();
-        // shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
-        // shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        // for (Enemy enemy : mapa.getEnemies())
-        // if (enemy instanceof Castor) {
-        // Castor castor = (Castor) enemy;
-        // // castor.debugRender(shapeRenderer, new Vector2(offsetX, offsetY),
-        // TILE_SIZE);
-        // // castor.ai.debugRenderVision(shapeRenderer);
+        spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
 
-        // }
-        // shapeRenderer.end();
+        sistemaLuz.setProjectionMatrix(cameraController.getCamera().combined);
+        sistemaLuz.begin();
 
-        // --- DEBUG RENDER ---
-        // debugRender(offsetX, offsetY);
-        // debugMeleeHitbox(offsetX, offsetY);
-        // shapeRenderer.begin(ShapeRenderer.ShapeType.Filled); // INÍCIO DO
-        // SHAPERENDERER
-        // {
-        // // Debug do mapa (paredes e caminhos)
-        // //mapa.renderDebug(shapeRenderer);
+        // Luz do jogador (suave)
+        Vector2 playerWorldPos = player.getBody().getPosition();
+        float playerScreenX = offsetX + playerWorldPos.x * TILE_SIZE;
+        float playerScreenY = offsetY + playerWorldPos.y * TILE_SIZE;
 
-        // // Debug adicional (hitboxes, etc)
-        // // debugRender(offsetX, offsetY);
-        // // debugMeleeHitbox(offsetX, offsetY);
-        // //renderInventory.debugRenderPosition();
-        // //renderInventory.debugRenderInteractionArea();
-        // }
-        // shapeRenderer.end();
+        sistemaLuz.renderLight(playerScreenX, playerScreenY, 90f,
+                new Color(0.7f, 0.8f, 1.0f, 0.3f));
 
+        if (isRoom0 && mapa.getCampFire() != null) {
+            Vector2 campfireTilePos = mapa.getCampFire().getPosition();
+
+            // ✅ USAR A MESMA POSIÇÃO DO RENDER - centralizada
+            float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
+            float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
+
+            // Ajuste para a luz ficar centralizada com o sprite
+            float lightX = screenX + TILE_SIZE / 2f; // Centro do tile
+            float lightY = screenY + TILE_SIZE / 2f;
+
+            sistemaLuz.renderFogueira(lightX, lightY, 350f, delta);
+        }
+
+        sistemaLuz.end();
+        // --- CONTINUA COM O RESTO DO RENDER ---
         // --- RENDERIZAÇÃO DE FORMAS (MIRA E DEBUG) ---
-        // Reconfigura a matriz (importante após renderização de sombras)
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
 
         // Renderiza mira apenas se jogador estiver com arma equipada
         if (player.getInventory().getEquippedWeapon() != null) {
             player.getWeaponSystem().renderMiraArma(shapeRenderer);
         }
-        // --- RENDERIZAÇÃO DE LUZES ---
-        mapa.getRayHandler().setCombinedMatrix(cameraController.getCamera());
-        mapa.getRayHandler().updateAndRender();
+
+        // SUBSTITUÍDO: Todo o debug agora é feito pelo DebugRenderer
+        // debugRenderers.renderAllDebug(shapeRenderer, delta, offsetX, offsetY, player,
+        // mapa, null);
+
+        // --- RENDERIZAÇÃO DO RAYHANDLER (apenas para preenchimento) ---
+        if (rayHandler != null) {
+            rayHandler.setCombinedMatrix(
+                    cameraController.getCamera().combined,
+                    cameraController.getCamera().position.x,
+                    cameraController.getCamera().position.y,
+                    cameraController.getCamera().viewportWidth,
+                    cameraController.getCamera().viewportHeight);
+            rayHandler.updateAndRender();
+        }
 
         // --- RENDERIZAÇÃO DA INTERFACE ---
         if (player.getInventoryController().GetIsOpen()) {
@@ -295,10 +325,7 @@ public class MapRenderer {
                     player.getInventoryController().getCursorGridX(),
                     player.getInventoryController().getCursorGridY(),
                     player.getInventoryController().getAvailableRecipes(),
-                    player.getInventoryController().getSelectedRecipe()
-
-            );
-            // renderInventory.debugRenderInventoryBounds();
+                    player.getInventoryController().getSelectedRecipe());
         }
 
         if (player.getInventoryController().isInPlacementMode()) {
@@ -315,13 +342,40 @@ public class MapRenderer {
                     player.getInventoryController().getPlacementGridY(),
                     player.getInventoryController().getAvailableRecipes(),
                     player.getInventoryController().getSelectedRecipe());
-            // renderInventory.debugRenderInventoryBounds();
         }
 
+        if (rayHandler != null) {
+            rayHandler.setCombinedMatrix(
+                    cameraController.getCamera().combined,
+                    cameraController.getCamera().position.x,
+                    cameraController.getCamera().position.y,
+                    cameraController.getCamera().viewportWidth,
+                    cameraController.getCamera().viewportHeight);
+            rayHandler.updateAndRender();
+        }
+    }
+
+    private boolean detectIfRoom0(Mapa mapa) {
+        if (mapa.getCampFire() != null) {
+            System.out.println("✅ Detectada sala 0 pela fogueira");
+            return true;
+        }
+
+        if (mapa.mapWidth == 64 && mapa.mapHeight == 64) {
+            System.out.println("✅ Detectada sala 0 pelo tamanho 64x64");
+            return true;
+        }
+
+        if (mapa.mapGenerator == null) {
+            System.out.println("✅ Detectada sala 0 pela ausência de mapGenerator");
+            return true;
+        }
+
+        System.out.println("❌ Não é sala 0");
+        return false;
     }
 
     public void calculateOffsets() {
-
         float viewportWidth = cameraController.getCamera().viewportWidth;
         float viewportHeight = cameraController.getCamera().viewportHeight;
 
@@ -334,66 +388,22 @@ public class MapRenderer {
         calculateOffsets();
     }
 
-    private void debugRender(float offsetX, float offsetY) {
-        shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-
-        for (Enemy e : mapa.getEnemies()) {
-            if (e instanceof Ratinho) {
-                ((Ratinho) e).debugDraw(shapeRenderer, offsetX, offsetY);
-            }
-        }
-
-        shapeRenderer.end();
-    }
-
-    private void debugMeleeHitbox(float offsetX, float offsetY) {
-        Body hitbox = mapa.robertinhoo.getMeleeAttackSystem().getMeleeHitboxBody();
-        if (hitbox == null)
-            return;
-
-        shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.CYAN); // cor que destaque o ataque
-
-        for (Fixture f : hitbox.getFixtureList()) {
-            if (f.getShape() instanceof PolygonShape) {
-                PolygonShape poly = (PolygonShape) f.getShape();
-                Vector2[] verts = new Vector2[poly.getVertexCount()];
-                for (int i = 0; i < poly.getVertexCount(); i++) {
-                    Vector2 local = new Vector2();
-                    poly.getVertex(i, local);
-
-                    // converte de metros → pixels
-                    float worldX = local.x * TILE_SIZE;
-                    float worldY = local.y * TILE_SIZE;
-
-                    // aplica posição do body e offset
-                    Vector2 bodyPos = hitbox.getPosition();
-                    float px = offsetX + bodyPos.x * TILE_SIZE + worldX;
-                    float py = offsetY + bodyPos.y * TILE_SIZE + worldY;
-
-                    verts[i] = new Vector2(px, py);
-                }
-                // desenha arestas
-                for (int i = 0; i < verts.length; i++) {
-                    Vector2 a = verts[i];
-                    Vector2 b = verts[(i + 1) % verts.length];
-                    shapeRenderer.line(a, b);
-                }
-            }
-        }
-
-        shapeRenderer.end();
-    }
-
     public void dispose() {
+        if (mapa.getCampFire() != null) {
+            mapa.getCampFire().dispose();
+        }
+
+        if (sistemaLuz != null) {
+            sistemaLuz.dispose();
+        }
         shapeRenderer.dispose();
         spriteBatch.dispose();
         tileRenderer.dispose();
         playerRenderer.dispose();
-        uiStage.dispose();
-        uiSkin.dispose();
+        if (uiStage != null)
+            uiStage.dispose();
+        if (uiSkin != null)
+            uiSkin.dispose();
         castorRenderer.dispose();
         ratRenderer.dispose();
         for (Enemy enemy : mapa.getEnemies()) {
@@ -401,6 +411,8 @@ public class MapRenderer {
                 ((Castor) enemy).ai.getStateEnemy().dispose();
             }
         }
-
+        if (escurecedor != null) {
+            escurecedor.dispose();
+        }
     }
 }

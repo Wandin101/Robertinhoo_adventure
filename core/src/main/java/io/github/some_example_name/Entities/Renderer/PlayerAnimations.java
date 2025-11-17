@@ -110,6 +110,11 @@ public class PlayerAnimations implements Disposable {
         public final Animation<TextureRegion> meleeAttackUp;
         public final Animation<TextureRegion> meleeAttackDown;
 
+        public final Animation<TextureRegion> parryRight;
+        public final Animation<TextureRegion> parryLeft;
+        public final Animation<TextureRegion> parryUp;
+        public final Animation<TextureRegion> parryDown;
+
         // Construtor
         public SpecialAnimations() {
             Texture rollTexture = AnimationLoader.loadTexture("rober/roll/roll-Sheet.png");
@@ -164,6 +169,28 @@ public class PlayerAnimations implements Disposable {
             meleeAttackLeft = new Animation<>(0.088f, meleeFrames[1]);
             meleeAttackDown = new Animation<>(0.088f, meleeFrames[2]);
             meleeAttackUp = new Animation<>(0.088f, meleeFrames[3]);
+
+            Texture parryTexture = AnimationLoader.loadTexture("rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png");
+            int frameWidthParry = parryTexture.getWidth() / 7;
+            int frameHeightParry = parryTexture.getHeight();
+
+            TextureRegion[] parryFrames = new TextureRegion[7];
+            for (int i = 0; i < 7; i++) {
+                parryFrames[i] = new TextureRegion(parryTexture, i * frameWidthParry, 0, frameWidthParry,
+                        frameHeightParry);
+            }
+
+            parryLeft = new Animation<>(0.080f, parryFrames);
+
+            TextureRegion[] rightFrames = new TextureRegion[7];
+            for (int i = 0; i < 7; i++) {
+                rightFrames[i] = new TextureRegion(parryFrames[i]);
+                rightFrames[i].flip(true, false);
+            }
+            parryRight = new Animation<>(0.088f, rightFrames);
+            parryUp = new Animation<>(0.088f, parryFrames);
+            parryDown = new Animation<>(0.088f, parryFrames);
+
         }
     }
 
@@ -204,7 +231,9 @@ public class PlayerAnimations implements Disposable {
                 "rober/run_with_weapon/2_Template_Run_Up_With_One_HandWEAPON-Sheet.png",
                 "rober/walk/walk_SE-Sheet.png",
                 "rober/roll/roll-Sheet.png",
-                "rober/corpo_a_corpo/ataque_sheet.png"
+                "rober/roll/roll_NEW.png",
+                "rober/corpo_a_corpo/ataque_sheet.png",
+                "rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png"
         };
 
         // Carregar e armazenar texturas

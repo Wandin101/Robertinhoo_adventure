@@ -21,8 +21,6 @@ public class MeleeAttackHandler implements ContactHandler {
         Object dataA = fixtureA.getBody().getUserData();
         Object dataB = fixtureB.getBody().getUserData();
 
-        Gdx.app.log("MeleeAttackHandler", "Início de contato entre: " + dataA + " e " + dataB);
-
         if (checkMissileParry(contact, fixtureA, fixtureB)) {
             return true;
         }
@@ -50,25 +48,19 @@ public class MeleeAttackHandler implements ContactHandler {
         if (isMeleeVsMissile || isPlayerVsMissile) {
             Missile missile = (Missile) ((dataA instanceof Missile) ? dataA : dataB);
 
-            Gdx.app.log("MeleeAttackHandler", "Colisão de parry detectada: " +
-                    (isMeleeVsMissile ? "MELEE_ATTACK vs Missile" : "PLAYER vs Missile"));
+            if (player.getMeleeAttackSystem().getParrySystem().isParryActive()) {
+                if (!missile.isReflected() && missile.getOwner() != null) {
+                    Gdx.app.log("PARRY_SYNC", "Parry detectado - processando míssil");
 
-            if (!missile.isReflected() && missile.getOwner() != null) {
+                    // Marca o parry como sucesso e passa o míssil
+                    player.getMeleeAttackSystem().getParrySystem().markParrySuccess(missile);
 
-                Vector2 returnDirection = missile.getOwner().getPosition()
-                        .cpy().sub(missile.getPosition()).nor();
-
-                missile.reflect(returnDirection);
-
-                Gdx.app.log("MeleeAttackHandler", "Míssil rebatido com sucesso!");
-                player.getMeleeAttackSystem().getParrySystem().deactivateParry();
-                return true;
-            } else {
-                Gdx.app.log("MeleeAttackHandler", "Míssil não pode ser rebatido - já refletido: " +
-                        missile.isReflected() + ", owner: " + (missile.getOwner() != null));
+                    return true;
+                } else {
+                    Gdx.app.log("PARRY_SYNC", "Míssil não pode ser revertido");
+                }
             }
         }
-
         return false;
     }
 
@@ -79,7 +71,6 @@ public class MeleeAttackHandler implements ContactHandler {
         enemy.takeDamage(15);
         float knockbackForce = 1f;
 
-        // Verificar se é um Castor e reduzir muito o knockback
         if (enemy instanceof io.github.some_example_name.Entities.Enemies.Castor.Castor) {
             knockbackForce = 0.1f;
         }

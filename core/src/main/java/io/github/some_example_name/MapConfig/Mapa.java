@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -39,6 +40,8 @@ import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
+import io.github.some_example_name.MapConfig.Rooms.Room0LayoutLoader;
+import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
 import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
 
@@ -53,8 +56,10 @@ public class Mapa {
     private List<Item> craftItems = new ArrayList<>();
     private List<Runnable> pendingActions = new ArrayList<>();
     private List<Rectangle> rooms = new ArrayList<>();
+    public static final float BOX2D_SCALE = 1/64f;
 
     public PathfindingSystem pathfindingSystem;
+    private CampFire campFire;
 
     public World world;
     public WallOtimizations agruparParedes;
@@ -93,48 +98,46 @@ public class Mapa {
         return rayHandler;
     }
 
-    public Mapa() {
+    public Mapa(boolean isRoom0) {
+        // Inicializações básicas
         world = new World(new Vector2(0, 0), true);
         enemies = new ArrayList<>();
         weapons = new ArrayList<>();
         ammo = new ArrayList<>();
         polvoras = new ArrayList<>();
+        projectiles = new ArrayList<>();
+        destructibles = new ArrayList<>();
+        craftItems = new ArrayList<>();
+        pendingActions = new ArrayList<>();
+        rooms = new ArrayList<>();
+
         agruparParedes = new WallOtimizations(this);
         this.pathfindingSystem = new PathfindingSystem(this);
         this.cleanupManager = new MapCleanUpManager(this);
 
-        // 1. Criar gerador de mapa
-        this.mapGenerator = new MapGenerator(50, 50);
-
         initializeLights();
 
-        // 2. Copiar dados do mapa
-        this.mapWidth = mapGenerator.getMapWidth();
-        this.mapHeight = mapGenerator.getMapHeight();
-        this.tiles = mapGenerator.getTiles();
-        this.wallPositions = mapGenerator.getWallPositions();
+        if (isRoom0) {
+            // Configuração específica para a Sala 0
+            setupRoom0();
+        } else {
+            // Código normal do mapa procedural (seu código original)
+            this.mapGenerator = new MapGenerator(50, 50);
+            this.mapWidth = mapGenerator.getMapWidth();
+            this.mapHeight = mapGenerator.getMapHeight();
+            this.tiles = mapGenerator.getTiles();
+            this.wallPositions = mapGenerator.getWallPositions();
 
-        // 3. Criar Robertinhoo usando a posição do gerador
-        Vector2 worldStartPos = mapGenerator.getWorldStartPosition(mapHeight);
-        robertinhoo = new Robertinhoo(
-                this,
-                worldStartPos.x,
-                worldStartPos.y,
-                null,
-                null);
+            Vector2 worldStartPos = mapGenerator.getWorldStartPosition(mapHeight);
+            robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
+            this.startPosition = mapGenerator.getStartPosition();
+            agruparEPCriarParedes();
+            addRandomEntities();
+            generateProceduralMap(mapWidth, mapHeight, mapGenerator);
+            
+        }
 
-        // 4. Armazenar a posição inicial em coordenadas de tile
-        this.startPosition = mapGenerator.getStartPosition();
-
-        // 5. Criar paredes físicas
-        agruparEPCriarParedes();
-
-        // 6. Adicionar entidades (que dependem de robertinhoo)
-        addRandomEntities();
-
-        // 7. Configurar listener de colisões
         world.setContactListener(new GameContactListener(robertinhoo));
-        generateProceduralMap(mapWidth, mapHeight, mapGenerator);
     }
 
     private void generateProceduralMap(int width, int height, MapGenerator mapGenerator) {
@@ -149,17 +152,101 @@ public class Mapa {
         agruparEPCriarParedes();
     }
 
-    public void initializeLights() {
-        if (rayHandler == null) {
-            rayHandler = new RayHandler(world);
-            rayHandler.setAmbientLight(0.8f);
-            rayHandler.setShadows(true);
-            rayHandler.setBlurNum(3);
-            lightsInitialized = true;
-            Gdx.app.log("Mapa", "RayHandler inicializado com sucesso!");
+private void setupRoom0() {
+    System.out.println("Inicializando Sala 0 - Com Layout da Imagem");
+    
+    // PRIMEIRO carrega o layout da imagem para definir o tamanho
+    loadRoom0LayoutFromImage("sala_0/layoyt_sala_0.png");
+    
+    // DEPOIS cria o Robertinhoo
+    Vector2 worldStartPos = tileToWorld((int)startPosition.x, (int)startPosition.y);
+    robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
+    
+    // AGORA carrega os elementos específicos (fogueira) ANTES de criar o MapRenderer
+    Room0LayoutLoader.loadRoom0Specifics(this, "sala_0/layoyt_sala_0.png");
+    
+    // FINALMENTE cria as paredes físicas
+    agruparEPCriarParedes();
+    
+    System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
+}
+
+private void loadRoom0LayoutFromImage(String imagePath) {
+    try {
+        Pixmap pixmap = new Pixmap(Gdx.files.internal(imagePath));
+        
+        // Define o tamanho da sala pela imagem
+        this.mapWidth = pixmap.getWidth();
+        this.mapHeight = pixmap.getHeight();
+        this.tiles = new int[mapWidth][mapHeight];
+        
+        System.out.println("Definindo tamanho da sala 0 pela imagem: " + mapWidth + "x" + mapHeight);
+        
+        // Preenche com chão por padrão
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
+                tiles[x][y] = TILE;
+            }
+        }
+        
+        // Adiciona paredes nas bordas (ou você pode definir isso na imagem também)
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
+                if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
+                    tiles[x][y] = PAREDE;
+                    wallPositions.add(new Vector2(x, y));
+                }
+            }
+        }
+        
+        pixmap.dispose();
+        
+    } catch (Exception e) {
+        System.err.println("Erro ao carregar layout da imagem: " + e.getMessage());
+        // Fallback: tamanho fixo 10x10
+        this.mapWidth = 10;
+        this.mapHeight = 10;
+        this.tiles = new int[mapWidth][mapHeight];
+        
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
+                if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
+                    tiles[x][y] = PAREDE;
+                    wallPositions.add(new Vector2(x, y));
+                } else {
+                    tiles[x][y] = TILE;
+                }
+            }
         }
     }
-
+    
+    // Define posição inicial no centro
+    int startX = mapWidth / 2;
+    int startY = mapHeight / 2;
+    this.startPosition = new Vector2(startX, startY);
+}
+public void initializeLights() {
+    if (rayHandler == null) {
+        try {
+            rayHandler = new RayHandler(world);
+            
+            // ✅ CONFIGURAÇÃO PARA SOMBRAS QUASE IMPERCEPTÍVEIS
+            rayHandler.setAmbientLight(1f, 1f, 1f, 1f); // Um pouco mais claro
+            rayHandler.setShadows(true); // MANTENHA sombras ativas
+    // Blur suaviza as sombras
+            rayHandler.setBlurNum(1);    // Pouco blur para performance
+            
+            // Configurações para sombras mais suaves
+            RayHandler.useDiffuseLight(true);
+            RayHandler.setGammaCorrection(true);
+            
+            lightsInitialized = true;
+            System.out.println("✅ RayHandler com sombras suaves");
+        } catch (Exception e) {
+            System.err.println("❌ Erro no RayHandler: " + e.getMessage());
+        }
+    }
+}
     private void addRandomEntities() {
         Random rand = new Random();
         List<Vector2> validRoomPositions = new ArrayList<>();
@@ -243,6 +330,29 @@ public class Mapa {
         Gdx.app.log("Mapa", "Sistema de colisão otimizado criado:");
         Gdx.app.log("Mapa", "- Bordas: criadas apenas onde necessário");
         Gdx.app.log("Mapa", "- Paredes internas: " + retangulos.size() + " retângulos otimizados");
+    }
+
+    public void clearEnemies() {
+        if (enemies != null) {
+            for (Enemy enemy : enemies) {
+                if (enemy.getBody() != null) {
+                    world.destroyBody(enemy.getBody());
+                }
+            }
+            enemies.clear();
+            System.out.println("Inimigos removidos da sala");
+        }
+    }
+
+    public void clearItems() {
+        if (weapons != null)
+            weapons.clear();
+        if (ammo != null)
+            ammo.clear();
+        if (polvoras != null)
+            polvoras.clear();
+        if (craftItems != null)
+            craftItems.clear();
     }
 
     public void createWallBody(Rectangle ret) {
@@ -441,6 +551,14 @@ public class Mapa {
 
     public MapGenerator getMapGenerator() {
         return mapGenerator;
+    }
+
+    public CampFire getCampFire() {
+        return campFire;
+    }
+
+    public void setCampFire(CampFire campFire) {
+        this.campFire = campFire;
     }
 
     private float obstacleCheckTimer = 0f;
