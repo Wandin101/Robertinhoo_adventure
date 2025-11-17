@@ -123,6 +123,10 @@ public class GameScreen extends CatScreen {
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F3)) {
             debugEnabled = !debugEnabled;
         }
+
+         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F10)) {
+        AudioManager.getInstance().debugAudioState();
+    }
     }
 
     @Override

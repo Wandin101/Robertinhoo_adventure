@@ -225,30 +225,28 @@ private void loadRoom0LayoutFromImage(String imagePath) {
     int startY = mapHeight / 2;
     this.startPosition = new Vector2(startX, startY);
 }
-   public void initializeLights() {
-        if (rayHandler == null) {
-            try {
-                rayHandler = new RayHandler(world);
-                
-                // CONFIGURAÇÕES MELHORADAS PARA MAIS CLAREZA
-                rayHandler.setAmbientLight(0.2f, 0.2f, 0.2f, 0.8f); // MUITO MAIS CLARO
-                rayHandler.setShadows(true);
-                rayHandler.setBlur(true);
-                rayHandler.setBlurNum(2);
-                
-                // Configurações de performance e qualidade
-                RayHandler.useDiffuseLight(true);
-                RayHandler.setGammaCorrection(true);
-                
-                lightsInitialized = true;
-                System.out.println("✅ RayHandler inicializado - Ambiente: 0.6f");
-            } catch (Exception e) {
-                System.err.println("❌ Erro catastrófico no RayHandler: " + e.getMessage());
-                e.printStackTrace();
-            }
+public void initializeLights() {
+    if (rayHandler == null) {
+        try {
+            rayHandler = new RayHandler(world);
+            
+            // ✅ CONFIGURAÇÃO PARA SOMBRAS QUASE IMPERCEPTÍVEIS
+            rayHandler.setAmbientLight(1f, 1f, 1f, 1f); // Um pouco mais claro
+            rayHandler.setShadows(true); // MANTENHA sombras ativas
+    // Blur suaviza as sombras
+            rayHandler.setBlurNum(1);    // Pouco blur para performance
+            
+            // Configurações para sombras mais suaves
+            RayHandler.useDiffuseLight(true);
+            RayHandler.setGammaCorrection(true);
+            
+            lightsInitialized = true;
+            System.out.println("✅ RayHandler com sombras suaves");
+        } catch (Exception e) {
+            System.err.println("❌ Erro no RayHandler: " + e.getMessage());
         }
     }
-
+}
     private void addRandomEntities() {
         Random rand = new Random();
         List<Vector2> validRoomPositions = new ArrayList<>();

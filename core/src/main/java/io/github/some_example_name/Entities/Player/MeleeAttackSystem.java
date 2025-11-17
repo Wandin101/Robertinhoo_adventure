@@ -5,6 +5,8 @@ import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.Gdx;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 
 public class MeleeAttackSystem {
     private final Robertinhoo player;
@@ -44,6 +46,7 @@ public class MeleeAttackSystem {
                 scheduleEndAttackTimer();
             }
         }, 0.1f);
+           AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.PARRY_SUCCESS);
     }
        public void extendAttackForParry() {
         if (attackInProgress && !isParryExtended) {

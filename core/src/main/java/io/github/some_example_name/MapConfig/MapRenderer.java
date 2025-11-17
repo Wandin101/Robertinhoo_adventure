@@ -32,6 +32,8 @@ import io.github.some_example_name.Entities.Renderer.Projectile.ProjectileRender
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
+import io.github.some_example_name.Luz.EscurecedorAmbiente;
+import io.github.some_example_name.Luz.SistemaLuz;
 import io.github.some_example_name.MapConfig.Rooms.Room0TileRenderer;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
@@ -43,8 +45,7 @@ import io.github.some_example_name.Entities.Enemies.StateEnemy.StateEnemy;
 
 public class MapRenderer {
     private RayHandler rayHandler;
-    private PointLight playerLight;
-    private PointLight campfireLight;
+
     private Mapa mapa;
     private ShapeRenderer shapeRenderer;
     private SpriteBatch spriteBatch;
@@ -61,7 +62,8 @@ public class MapRenderer {
     private StateEnemy stateEnemy;
     private Room0TileRenderer room0TileRenderer;
     private boolean isRoom0 = false;
-    private PointLight testLight;
+    private SistemaLuz sistemaLuz;
+    private EscurecedorAmbiente escurecedor;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -78,32 +80,16 @@ public class MapRenderer {
     public MapRenderer(Mapa mapa) {
         this.mapa = mapa;
 
-        if (mapa.getRayHandler() == null) {
-            mapa.initializeLights();
-        }
-
         this.rayHandler = mapa.getRayHandler();
-
-        if (this.rayHandler != null) {
-            this.rayHandler.setAmbientLight(0.6f); // Luz ambiente MAIS CLARA
-            this.rayHandler.setShadows(true);
-            this.rayHandler.setBlur(true);
-            this.rayHandler.setBlurNum(2);
-        }
-
-        if (mapa.getRayHandler() == null) {
-            Gdx.app.error("MapRenderer", "RayHandler não inicializado!");
-            mapa.initializeLights();
-        }
 
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         spriteBatch = new SpriteBatch();
         cameraController = new Camera();
-        
+
         // ADICIONADO: Inicialização do DebugRenderer
         this.debugRenderers = new DebugRenderers();
-        
+
         this.tileRenderer = new TileRenderer(mapa, TILE_SIZE);
         this.projectileRenderer = new ProjectileRenderer(mapa, TILE_SIZE);
         this.playerRenderer = new PlayerRenderer(mapa.robertinhoo.getWeaponSystem());
@@ -131,34 +117,14 @@ public class MapRenderer {
             this.room0TileRenderer = new Room0TileRenderer(mapa, TILE_SIZE);
             System.out.println("✅ Room0TileRenderer inicializado para Sala 0");
         }
-        
-        playerLight = new PointLight(this.rayHandler, 10, new Color(0.8f, 0.9f, 1.0f, 0.9f), 100f, 0, 0);
-        playerLight.setSoft(true);
-        playerLight.setSoftnessLength(4f);
-        playerLight.setXray(false);
-        
-       if (isRoom0 && mapa.getCampFire() != null) {
-            Vector2 campfireTilePos = mapa.getCampFire().getPosition();
-            Vector2 campfireWorldPos = mapa.tileToWorld((int)campfireTilePos.x, (int)campfireTilePos.y);
-            
-            System.out.println("🔥 CONFIGURANDO LUZ DA FOGUEIRA:");
-            System.out.println("   Tile: " + campfireTilePos);
-            System.out.println("   Mundo: " + campfireWorldPos);
-            
-            // LUZ SIMPLES E LIMPA
-            campfireLight = new PointLight(this.rayHandler, 100, Color.ORANGE, 40f, campfireWorldPos.x, campfireWorldPos.y);
-            campfireLight.setSoft(false);  // Sem blur para testar
-            campfireLight.setXray(false);
-            campfireLight.setStaticLight(true); // Luz estática
-            
-            System.out.println("   Parâmetros: Raios=100, Raio=40f, Cor=LARANJA");
-            System.out.println("   Luz criada com sucesso!");
-        }
+        this.sistemaLuz = new SistemaLuz();
+        this.escurecedor = new EscurecedorAmbiente();
+
     }
-    
 
     public void render(float delta, Robertinhoo player) {
-        // Limpa a tela
+        // ✅ FUNDO MAIS ESCURO
+        Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Calcula offsets e atualiza câmera
@@ -171,11 +137,6 @@ public class MapRenderer {
 
         // Atualiza física do mundo
         mapa.world.step(delta, 6, 2);
-
-        // Configura luz do jogador
-        playerLight.setPosition(
-                offsetX + player.pos.x * TILE_SIZE + TILE_SIZE / 2f,
-                offsetY + player.pos.y * TILE_SIZE + TILE_SIZE / 2f);
 
         // --- COLETA DE ENTIDADES PARA SOMBRA ---
         List<ShadowEntity> shadowEntities = new ArrayList<>();
@@ -193,20 +154,31 @@ public class MapRenderer {
             }
         }
 
-        // 1. RENDERIZAÇÃO DO CHÃO (TILES)
+        // 1. RENDERIZAÇÃO DO CHÃO (TILES) - MAIS ESCURO
         spriteBatch.begin();
-        if (isRoom0 && room0TileRenderer != null) {
+        // ✅ APLICA COR ESCURA AOS TILES
+        spriteBatch.setColor(0.5f, 0.5f, 0.5f, 1f);
 
+        if (isRoom0 && room0TileRenderer != null) {
             room0TileRenderer.renderFloor(spriteBatch, offsetX, offsetY);
         } else {
             tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
         }
+
+        // ✅ RESTAURA COR NORMAL
+        spriteBatch.setColor(1f, 1f, 1f, 1f);
         spriteBatch.end();
 
-        // 2. RENDERIZAÇÃO DA FOGUEIRA
         spriteBatch.begin();
         if (isRoom0 && mapa.getCampFire() != null) {
-            renderCampfire(spriteBatch, delta, offsetX, offsetY);
+            Vector2 campfireTilePos = mapa.getCampFire().getPosition();
+
+            // ✅ POSIÇÃO CORRETA: Usar a mesma lógica de conversão
+            float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
+            float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
+
+            mapa.getCampFire().update(delta);
+            mapa.getCampFire().render(spriteBatch, screenX, screenY);
         }
         spriteBatch.end();
 
@@ -287,8 +259,35 @@ public class MapRenderer {
             ammoRenderer.render(spriteBatch, mapa.getAmmo(), offsetX, offsetY);
             craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
         }
-        spriteBatch.end();
+        spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
 
+        sistemaLuz.setProjectionMatrix(cameraController.getCamera().combined);
+        sistemaLuz.begin();
+
+        // Luz do jogador (suave)
+        Vector2 playerWorldPos = player.getBody().getPosition();
+        float playerScreenX = offsetX + playerWorldPos.x * TILE_SIZE;
+        float playerScreenY = offsetY + playerWorldPos.y * TILE_SIZE;
+
+        sistemaLuz.renderLight(playerScreenX, playerScreenY, 90f,
+                new Color(0.7f, 0.8f, 1.0f, 0.3f));
+
+        if (isRoom0 && mapa.getCampFire() != null) {
+            Vector2 campfireTilePos = mapa.getCampFire().getPosition();
+
+            // ✅ USAR A MESMA POSIÇÃO DO RENDER - centralizada
+            float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
+            float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
+
+            // Ajuste para a luz ficar centralizada com o sprite
+            float lightX = screenX + TILE_SIZE / 2f; // Centro do tile
+            float lightY = screenY + TILE_SIZE / 2f;
+
+            sistemaLuz.renderFogueira(lightX, lightY, 350f, delta);
+        }
+
+        sistemaLuz.end();
+        // --- CONTINUA COM O RESTO DO RENDER ---
         // --- RENDERIZAÇÃO DE FORMAS (MIRA E DEBUG) ---
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
 
@@ -298,16 +297,19 @@ public class MapRenderer {
         }
 
         // SUBSTITUÍDO: Todo o debug agora é feito pelo DebugRenderer
-        debugRenderers.renderAllDebug(shapeRenderer, delta, offsetX, offsetY, player, mapa, testLight);
+        // debugRenderers.renderAllDebug(shapeRenderer, delta, offsetX, offsetY, player,
+        // mapa, null);
 
-        // --- RENDERIZAÇÃO DE LUZES ---
-        rayHandler.setCombinedMatrix(
-                cameraController.getCamera().combined,
-                cameraController.getCamera().position.x,
-                cameraController.getCamera().position.y,
-                cameraController.getCamera().viewportWidth,
-                cameraController.getCamera().viewportHeight);
-        rayHandler.updateAndRender();
+        // --- RENDERIZAÇÃO DO RAYHANDLER (apenas para preenchimento) ---
+        if (rayHandler != null) {
+            rayHandler.setCombinedMatrix(
+                    cameraController.getCamera().combined,
+                    cameraController.getCamera().position.x,
+                    cameraController.getCamera().position.y,
+                    cameraController.getCamera().viewportWidth,
+                    cameraController.getCamera().viewportHeight);
+            rayHandler.updateAndRender();
+        }
 
         // --- RENDERIZAÇÃO DA INTERFACE ---
         if (player.getInventoryController().GetIsOpen()) {
@@ -323,8 +325,7 @@ public class MapRenderer {
                     player.getInventoryController().getCursorGridX(),
                     player.getInventoryController().getCursorGridY(),
                     player.getInventoryController().getAvailableRecipes(),
-                    player.getInventoryController().getSelectedRecipe()
-            );
+                    player.getInventoryController().getSelectedRecipe());
         }
 
         if (player.getInventoryController().isInPlacementMode()) {
@@ -341,6 +342,16 @@ public class MapRenderer {
                     player.getInventoryController().getPlacementGridY(),
                     player.getInventoryController().getAvailableRecipes(),
                     player.getInventoryController().getSelectedRecipe());
+        }
+
+        if (rayHandler != null) {
+            rayHandler.setCombinedMatrix(
+                    cameraController.getCamera().combined,
+                    cameraController.getCamera().position.x,
+                    cameraController.getCamera().position.y,
+                    cameraController.getCamera().viewportWidth,
+                    cameraController.getCamera().viewportHeight);
+            rayHandler.updateAndRender();
         }
     }
 
@@ -377,30 +388,31 @@ public class MapRenderer {
         calculateOffsets();
     }
 
-    private void renderCampfire(SpriteBatch batch, float delta, float offsetX, float offsetY) {
-        if (mapa.getCampFire() != null) {
-            Vector2 campfirePos = mapa.getCampFire().getPosition();
-            mapa.getCampFire().update(delta);
-            mapa.getCampFire().render(batch, offsetX, offsetY);
-        }
-    }
-
     public void dispose() {
         if (mapa.getCampFire() != null) {
             mapa.getCampFire().dispose();
+        }
+
+        if (sistemaLuz != null) {
+            sistemaLuz.dispose();
         }
         shapeRenderer.dispose();
         spriteBatch.dispose();
         tileRenderer.dispose();
         playerRenderer.dispose();
-        if (uiStage != null) uiStage.dispose();
-        if (uiSkin != null) uiSkin.dispose();
+        if (uiStage != null)
+            uiStage.dispose();
+        if (uiSkin != null)
+            uiSkin.dispose();
         castorRenderer.dispose();
         ratRenderer.dispose();
         for (Enemy enemy : mapa.getEnemies()) {
             if (enemy instanceof Castor) {
                 ((Castor) enemy).ai.getStateEnemy().dispose();
             }
+        }
+        if (escurecedor != null) {
+            escurecedor.dispose();
         }
     }
 }
