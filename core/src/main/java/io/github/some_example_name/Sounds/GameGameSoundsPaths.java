@@ -9,6 +9,9 @@ public class GameGameSoundsPaths {
         // Combate
         public static final String PARRY_SUCCESS = "parry_success";
 
+        //Passos
+        public static final String FOOTSTEP_GRASS = "passos_grama";
+
         // public static final String MELEE_ATTACK = "melee_attack";
         // public static final String RANGED_ATTACK = "ranged_attack";
         // public static final String RELOAD = "reload";
@@ -36,10 +39,11 @@ public class GameGameSoundsPaths {
 
     // === MÚSICAS ===
     public static class Music {
-        public static final String MAIN_THEME = "main_theme";
-        public static final String BOSS_BATTLE = "boss_battle";
-        public static final String MENU_MUSIC = "menu_music";
-            public static final String FOGUEIRA_SOUND = "fogueira_sound";
+    public static final String MAIN_THEME = "main_theme";
+    public static final String BOSS_BATTLE = "boss_battle";
+    public static final String MENU_MUSIC = "menu_music";
+    public static final String FOOTSTEP_GRASS = "passos_grama";
+            
         
     }
 
@@ -53,8 +57,8 @@ public class GameGameSoundsPaths {
         // === CARREGAR SONS ===
         // Combate
         audio.loadSound(Sounds.PARRY_SUCCESS, "Sounds/Parry.wav");
-        audio.loadAmbient(Ambient.FOGUEIRA_SOUND, "Sounds/fogueiraSound.wav");
-        audio.loadMusic(Music.FOGUEIRA_SOUND, "Sounds/fogueiraSound.wav");
+        audio.loadSound(Sounds.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
+        
         // audio.loadSound(Sounds.MELEE_ATTACK, "sounds/combat/melee_attack.wav");
         // audio.loadSound(Sounds.RANGED_ATTACK, "sounds/combat/ranged_attack.wav");
         // audio.loadSound(Sounds.RELOAD, "sounds/combat/reload.wav");
@@ -65,7 +69,7 @@ public class GameGameSoundsPaths {
         // audio.loadSound(Sounds.PLAYER_DEATH, "sounds/player/player_death.wav");
         // audio.loadSound(Sounds.PLAYER_HEAL, "sounds/player/player_heal.wav");
 
-        // // Inimigos
+        // // Inimigosddddddddddddd
         // audio.loadSound(Sounds.ENEMY_HURT, "sounds/enemies/enemy_hurt.wav");
         // audio.loadSound(Sounds.ENEMY_DEATH, "sounds/enemies/enemy_death.wav");
 
@@ -73,6 +77,7 @@ public class GameGameSoundsPaths {
         // audio.loadSound(Sounds.ITEM_PICKUP, "sounds/environment/item_pickup.wav");
         // audio.loadSound(Sounds.DOOR_OPEN, "sounds/environment/door_open.wav");
         // audio.loadSound(Sounds.CHEST_OPEN, "sounds/environment/chest_open.wav");
+        audio.loadAmbient(Ambient.FOGUEIRA_SOUND, "Sounds/fogueiraSound.wav");
 
         // // UI
         // audio.loadSound(Sounds.UI_SELECT, "sounds/ui/select.wav");
@@ -83,6 +88,7 @@ public class GameGameSoundsPaths {
         // audio.loadMusic(Music.MAIN_THEME, "music/main_theme.mp3");
         // audio.loadMusic(Music.BOSS_BATTLE, "music/boss_battle.mp3");
         // audio.loadMusic(Music.MENU_MUSIC, "music/menu_music.mp3");
+         audio.loadMusic(Music.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
 
         Gdx.app.log("ASSETS", "Todos os assets de áudio carregados!");
     }

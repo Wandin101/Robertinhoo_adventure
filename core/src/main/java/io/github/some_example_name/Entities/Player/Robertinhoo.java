@@ -98,6 +98,7 @@ public class Robertinhoo implements ShadowEntity {
     private ShadowComponent shadowComponent;
     public Vector2 dashVelocity;
     private PlayerItemHandler itemHandler;
+    private FootstepSystem footstepSystem;
 
     public Robertinhoo(Mapa map, float x, float y, MapRenderer mapRenderer, PlayerRenderer playerRenderer) {
         this.map = map;
@@ -120,7 +121,9 @@ public class Robertinhoo implements ShadowEntity {
         );
 
         createBody(x, y);
-         this.itemHandler = new PlayerItemHandler(this);
+        this.itemHandler = new PlayerItemHandler(this);
+        this.footstepSystem = new FootstepSystem(this);
+
 
     }
 
@@ -175,6 +178,7 @@ public class Robertinhoo implements ShadowEntity {
         inventoryController.update(deltaTime);
         playerController.update(deltaTime);
         meleeSystem.getParrySystem().update(deltaTime);
+        footstepSystem.update(deltaTime);
         if (isTakingDamage) {
             damageTimer -= deltaTime;
             if (damageTimer <= 0) {

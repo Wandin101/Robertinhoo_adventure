@@ -226,6 +226,14 @@ public void playAmbient(String name) {
             }
         }
     }
+public void stopSound(long soundId) {
+    if (soundId != -1) {
+        for (Sound sound : sounds.values()) {
+            sound.stop();
+        }
+        Gdx.app.log("AUDIO", "Stopped all sounds");
+    }
+}
 
     public void debugAudioState() {
     System.out.println("🎵 DEBUG AUDIO MANAGER:");
