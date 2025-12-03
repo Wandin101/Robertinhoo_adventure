@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -32,9 +33,14 @@ import io.github.some_example_name.Entities.Renderer.Projectile.ProjectileRender
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
+import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.SistemaLuz;
+import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
+import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0TileRenderer;
+import io.github.some_example_name.MapConfig.Rooms.Room0WallRenderer;
+import io.github.some_example_name.MapConfig.Rooms.StaticItem;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
 import io.github.some_example_name.Camera.Camera;
@@ -64,6 +70,8 @@ public class MapRenderer {
     private boolean isRoom0 = false;
     private SistemaLuz sistemaLuz;
     private EscurecedorAmbiente escurecedor;
+    private Room0WallRenderer room0WallRenderer;
+    private Room0Door room0Door;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -115,6 +123,8 @@ public class MapRenderer {
 
         if (isRoom0) {
             this.room0TileRenderer = new Room0TileRenderer(mapa, TILE_SIZE);
+            this.room0WallRenderer = new Room0WallRenderer(mapa, TILE_SIZE);
+            this.room0Door = mapa.getDoor0();
             System.out.println("✅ Room0TileRenderer inicializado para Sala 0");
         }
         this.sistemaLuz = new SistemaLuz();
@@ -138,6 +148,12 @@ public class MapRenderer {
         // Atualiza física do mundo
         mapa.world.step(delta, 6, 2);
 
+        // ✅ ATUALIZAR LIGHT SPHERE DA PORTA (se existir)
+        if (isRoom0 && room0Door != null) {
+            room0Door.updateLightSpherePosition(offsetX, offsetY);
+            room0Door.update(delta); // Importante: atualizar a porta também
+        }
+
         // --- COLETA DE ENTIDADES PARA SOMBRA ---
         List<ShadowEntity> shadowEntities = new ArrayList<>();
         shadowEntities.add(player); // Jogador
@@ -156,11 +172,11 @@ public class MapRenderer {
 
         // 1. RENDERIZAÇÃO DO CHÃO (TILES) - MAIS ESCURO
         spriteBatch.begin();
-        // ✅ APLICA COR ESCURA AOS TILES
-        spriteBatch.setColor(0.5f, 0.5f, 0.5f, 1f);
 
         if (isRoom0 && room0TileRenderer != null) {
             room0TileRenderer.renderFloor(spriteBatch, offsetX, offsetY);
+            room0WallRenderer.renderWalls(spriteBatch, offsetX, offsetY);
+
         } else {
             tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
         }
@@ -169,17 +185,36 @@ public class MapRenderer {
         spriteBatch.setColor(1f, 1f, 1f, 1f);
         spriteBatch.end();
 
+        // 2. RENDERIZAÇÃO DA FOGUEIRA E CABANAS JUNTAS (mesmo SpriteBatch)
         spriteBatch.begin();
+
+        // Renderiza fogueira (código existente)
         if (isRoom0 && mapa.getCampFire() != null) {
             Vector2 campfireTilePos = mapa.getCampFire().getPosition();
-
-            // ✅ POSIÇÃO CORRETA: Usar a mesma lógica de conversão
             float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
             float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
 
             mapa.getCampFire().update(delta);
             mapa.getCampFire().render(spriteBatch, screenX, screenY);
         }
+
+        for (Room0Cabana cabana : mapa.getCabanas()) {
+            Vector2 cabanaTilePos = cabana.getPosition();
+            float screenX = offsetX + cabanaTilePos.x * TILE_SIZE;
+            float screenY = offsetY + cabanaTilePos.y * TILE_SIZE;
+
+            cabana.render(spriteBatch, screenX, screenY);
+        }
+
+        for (StaticItem staticItem : mapa.getStaticItems()) {
+            Vector2 itemTilePos = staticItem.getPosition();
+            float screenX = offsetX + itemTilePos.x * TILE_SIZE;
+            float screenY = offsetY + itemTilePos.y * TILE_SIZE;
+
+            staticItem.update(delta);
+            staticItem.render(spriteBatch, screenX, screenY);
+        }
+
         spriteBatch.end();
 
         // 3. RENDERIZAÇÃO DAS SOMBRAS
@@ -191,8 +226,8 @@ public class MapRenderer {
             destructibleRenderer.render(spriteBatch, mapa.getDestructibles(), offsetX, offsetY);
             projectileRenderer.render(spriteBatch, delta, offsetX, offsetY);
 
-            float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale() - 1) * 8;
-            float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale() - 1) * 8;
+            float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
+            float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
             corpseManager.render(spriteBatch, offsetX, offsetY);
 
             playerRenderer.render(spriteBatch, player, delta, offsetX, offsetY);
@@ -261,32 +296,52 @@ public class MapRenderer {
         }
         spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
 
+        if (isRoom0 && room0Door != null) {
+            room0Door.updateLightSpherePosition(offsetX, offsetY);
+        }
+
+        escurecedor.aplicarEscurecimentoSuave(cameraController.getCamera().combined);
+        spriteBatch.begin();
+        if (isRoom0 && room0Door != null) {
+            room0Door.render(spriteBatch, offsetX, offsetY, cameraController.getCamera().combined);
+        }
+        spriteBatch.end();
+
+        // 4. Quarto: RENDERIZAR SISTEMA LUZ (DEPOIS do escurecedor)
         sistemaLuz.setProjectionMatrix(cameraController.getCamera().combined);
         sistemaLuz.begin();
 
-        // Luz do jogador (suave)
+        // Luz do jogador
         Vector2 playerWorldPos = player.getBody().getPosition();
         float playerScreenX = offsetX + playerWorldPos.x * TILE_SIZE;
         float playerScreenY = offsetY + playerWorldPos.y * TILE_SIZE;
+        sistemaLuz.renderLight(playerScreenX, playerScreenY, 90f, new Color(0.7f, 0.8f, 1.0f, 0.3f));
 
-        sistemaLuz.renderLight(playerScreenX, playerScreenY, 90f,
-                new Color(0.7f, 0.8f, 1.0f, 0.3f));
-
+        // FOGUEIRA
         if (isRoom0 && mapa.getCampFire() != null) {
             Vector2 campfireTilePos = mapa.getCampFire().getPosition();
-
-            // ✅ USAR A MESMA POSIÇÃO DO RENDER - centralizada
             float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
             float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
-
-            // Ajuste para a luz ficar centralizada com o sprite
-            float lightX = screenX + TILE_SIZE / 2f; // Centro do tile
+            float lightX = screenX + TILE_SIZE / 2f;
             float lightY = screenY + TILE_SIZE / 2f;
-
             sistemaLuz.renderFogueira(lightX, lightY, 350f, delta);
         }
 
+        // PORTA - SistemaLuz (agora vai adicionar brilho VISUAL sobre a área já
+        // iluminada)
+        if (isRoom0 && room0Door != null) {
+            room0Door.renderLight(sistemaLuz, offsetX, offsetY);
+        }
+
         sistemaLuz.end();
+
+        if (isRoom0 && room0Door != null && room0Door.getLightSphere() != null) {
+            // ✅ GARANTIR que está adicionada (apenas uma vez)
+            if (!escurecedor.lightSpheres.contains(room0Door.getLightSphere())) {
+                escurecedor.adicionarLightSphere(room0Door.getLightSphere());
+            }
+        }
+
         // --- CONTINUA COM O RESTO DO RENDER ---
         // --- RENDERIZAÇÃO DE FORMAS (MIRA E DEBUG) ---
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
@@ -299,17 +354,6 @@ public class MapRenderer {
         // SUBSTITUÍDO: Todo o debug agora é feito pelo DebugRenderer
         // debugRenderers.renderAllDebug(shapeRenderer, delta, offsetX, offsetY, player,
         // mapa, null);
-
-        // --- RENDERIZAÇÃO DO RAYHANDLER (apenas para preenchimento) ---
-        if (rayHandler != null) {
-            rayHandler.setCombinedMatrix(
-                    cameraController.getCamera().combined,
-                    cameraController.getCamera().position.x,
-                    cameraController.getCamera().position.y,
-                    cameraController.getCamera().viewportWidth,
-                    cameraController.getCamera().viewportHeight);
-            rayHandler.updateAndRender();
-        }
 
         // --- RENDERIZAÇÃO DA INTERFACE ---
         if (player.getInventoryController().GetIsOpen()) {
@@ -353,6 +397,33 @@ public class MapRenderer {
                     cameraController.getCamera().viewportHeight);
             rayHandler.updateAndRender();
         }
+
+        if (mapa.getCabanaInteractionSystem() != null) {
+            CabanaInteractionSystem cabanaSystem = mapa.getCabanaInteractionSystem();
+
+            // 1. Primeiro renderiza o ícone E (com projeção normal da câmera)
+            if (cabanaSystem.shouldShowInteractPrompt()) {
+                spriteBatch.begin();
+                // ✅ MANTER a projeção da câmera para o ícone E
+                spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
+                cabanaSystem.renderInteractPrompt(spriteBatch, offsetX, offsetY);
+                spriteBatch.end();
+
+                System.out.println("🎯 Ícone E renderizado com offsets: " + offsetX + ", " + offsetY);
+            }
+
+            // 2. Depois renderiza a transição (sobre TUDO, com projeção de tela)
+            if (cabanaSystem.isTransitioning()) {
+                spriteBatch.begin();
+                // ✅ TRANSIÇÃO usa projeção de tela completa
+                spriteBatch.setProjectionMatrix(
+                        new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+                cabanaSystem.renderTransitionEffect(spriteBatch);
+                spriteBatch.end();
+
+                System.out.println("⬛ Transição renderizada sobre tudo");
+            }
+        }
     }
 
     private boolean detectIfRoom0(Mapa mapa) {
@@ -391,6 +462,10 @@ public class MapRenderer {
     public void dispose() {
         if (mapa.getCampFire() != null) {
             mapa.getCampFire().dispose();
+        }
+
+        if (room0WallRenderer != null) {
+            room0WallRenderer.dispose();
         }
 
         if (sistemaLuz != null) {

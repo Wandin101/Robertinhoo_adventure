@@ -5,9 +5,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 
 import io.github.some_example_name.Entities.Player.Robertinhoo;
+import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Interface.DebugHUD;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.Interface.WeaponHUD;
@@ -34,6 +36,8 @@ public class GameScreen extends CatScreen {
     private boolean debugEnabled = true;
     private AudioManager audioManager;
     private RoomManager roomManager = RoomManager.getInstance();
+    private CabanaInteractionSystem cabanaInteraction;
+    private com.badlogic.gdx.graphics.Texture blackPixelTexture;
 
     public GameScreen(Game game) {
         super(game);
@@ -48,8 +52,11 @@ public class GameScreen extends CatScreen {
         mapa = roomManager.createRoom0();
         robertinhoo = mapa.robertinhoo;
         renderer = new MapRenderer(mapa);
+        cabanaInteraction = mapa.getCabanaInteractionSystem();
+        createBlackPixelTexture();
 
-        // Resto do código permanece igual...
+        
+
         hudBatch = new SpriteBatch();
         hudCamera = new OrthographicCamera();
         hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -148,6 +155,17 @@ public class GameScreen extends CatScreen {
 
         System.out.println("[RESIZE] Tela: " + width + "x" + height);
     }
+
+        private void createBlackPixelTexture() {
+        com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, 
+                com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 1);
+        pixmap.fill();
+        blackPixelTexture = new com.badlogic.gdx.graphics.Texture(pixmap);
+        pixmap.dispose();
+    }
+
+
 
     @Override
     public void hide() {

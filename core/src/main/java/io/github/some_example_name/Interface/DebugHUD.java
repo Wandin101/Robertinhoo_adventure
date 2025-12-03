@@ -138,6 +138,10 @@ public class DebugHUD implements Disposable {
         return enabled;
     }
 
+    public BitmapFont getFont(){
+        return font;
+    }
+
     @Override
     public void dispose() {
         font.dispose();

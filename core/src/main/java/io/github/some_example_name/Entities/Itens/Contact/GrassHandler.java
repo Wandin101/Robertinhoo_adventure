@@ -5,6 +5,8 @@ import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.Fixture;
 
 import io.github.some_example_name.Entities.Itens.CenarioItens.Grass;
+import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Grass;
+import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Flower;
 
 public class GrassHandler implements ContactHandler {
 
@@ -20,7 +22,7 @@ public class GrassHandler implements ContactHandler {
         short otherCategory = 0;
 
         // Identifica qual fixture é a grama
-        if (userDataA instanceof Grass) {
+        if (userDataA instanceof Grass || userDataA instanceof Room0Grass || userDataA instanceof Room0Flower) {
             grass = (Grass) userDataA;
             otherCategory = categoryB;
         } else if (userDataB instanceof Grass) {
