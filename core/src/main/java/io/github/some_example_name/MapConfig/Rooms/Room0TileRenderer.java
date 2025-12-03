@@ -10,15 +10,18 @@ import io.github.some_example_name.MapConfig.Mapa;
 public class Room0TileRenderer {
     private Mapa mapa;
     private Texture floorTexture;
+    private Texture pathTexture;
     private int tileSize;
+
     
     public Room0TileRenderer(Mapa mapa, int tileSize) {
         this.mapa = mapa;
         this.tileSize = tileSize;
         loadFloorTexture();
+        loadPathTexture();
     }
     
-   private void loadFloorTexture() {
+    private void loadFloorTexture() {
         try {
             floorTexture = new Texture(Gdx.files.internal("sala_0/SOLO_125PX.png"));
             System.out.println("✅ Textura do chão da sala 0 carregada: " + 
@@ -29,9 +32,19 @@ public class Room0TileRenderer {
             createPlaceholderTexture();
         }
     }
+
+    private void loadPathTexture() {
+        try {
+            pathTexture = new Texture(Gdx.files.internal("sala_0/solo_pedra.png")); // Sua nova textura
+            System.out.println("✅ Textura da trilha carregada: " + 
+                pathTexture.getWidth() + "x" + pathTexture.getHeight());
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar textura da trilha: " + e.getMessage());
+            createPathPlaceholderTexture();
+        }
+    }
     
     private void createPlaceholderTexture() {
-        // Cria um placeholder simples
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(125, 125, 
             com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
         pixmap.setColor(0.2f, 0.2f, 0.3f, 1f); // Azul escuro para diferenciar
@@ -39,13 +52,22 @@ public class Room0TileRenderer {
         floorTexture = new Texture(pixmap);
         pixmap.dispose();
     }
+
+    private void createPathPlaceholderTexture() {
+        com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(125, 125, 
+            com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pixmap.setColor(0.36f, 0.25f, 0.22f, 1f);
+        pixmap.fill();
+        pathTexture = new Texture(pixmap);
+        pixmap.dispose();
+    }
     
     /**
      * Renderiza APENAS o chão da sala 0 (sobrescrevendo o chão padrão)
      */
- public void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
-        if (floorTexture == null) {
-            System.err.println("❌ floorTexture é null!");
+    public void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
+        if (floorTexture == null || pathTexture == null) {
+            System.err.println("❌ floorTexture ou pathTexture é null!");
             return;
         }
         
@@ -57,16 +79,20 @@ public class Room0TileRenderer {
                     float screenX = offsetX + worldPos.x * tileSize - tileSize/2;
                     float screenY = offsetY + worldPos.y * tileSize - tileSize/2;
                     
+                    // Primeiro desenha o chão base
                     batch.draw(floorTexture, screenX, screenY, tileSize, tileSize);
+                    
                 }
             }
         }
-        
     }
     
     public void dispose() {
         if (floorTexture != null) {
             floorTexture.dispose();
+        }
+        if (pathTexture != null) {
+            pathTexture.dispose();
         }
     }
 }

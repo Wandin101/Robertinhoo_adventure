@@ -21,6 +21,7 @@ public class GameContactListener implements ContactListener {
         handlers.add(new EnemyHandler(player));
         handlers.add(new BarrelHandler());
         handlers.add(new GrassHandler());
+         handlers.add(new DoorHandler());
     }
 
     public void addHandler(ContactHandler handler) {

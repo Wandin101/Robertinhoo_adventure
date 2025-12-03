@@ -10,5 +10,6 @@ public class Constants {
     public static final short BIT_ITEM = 32;
     public static final short BIT_OBJECT = 64; 
     public static final short BIT_WALL = 128;
+    public static final short BIT_DOOR = 256;
     
 }

@@ -38,9 +38,13 @@ import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
+import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
+import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
+import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0LayoutLoader;
+import io.github.some_example_name.MapConfig.Rooms.StaticItem;
 import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
 import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
@@ -56,7 +60,11 @@ public class Mapa {
     private List<Item> craftItems = new ArrayList<>();
     private List<Runnable> pendingActions = new ArrayList<>();
     private List<Rectangle> rooms = new ArrayList<>();
-    public static final float BOX2D_SCALE = 1/64f;
+    public static final float BOX2D_SCALE = 1 / 64f;
+    private List<Room0Cabana> cabanas = new ArrayList<>();
+    private CabanaInteractionSystem cabanaInteraction;
+    private List<StaticItem> staticItems = new ArrayList<>();
+    private Room0Door room0Door;
 
     public PathfindingSystem pathfindingSystem;
     private CampFire campFire;
@@ -134,7 +142,7 @@ public class Mapa {
             agruparEPCriarParedes();
             addRandomEntities();
             generateProceduralMap(mapWidth, mapHeight, mapGenerator);
-            
+
         }
 
         world.setContactListener(new GameContactListener(robertinhoo));
@@ -152,101 +160,112 @@ public class Mapa {
         agruparEPCriarParedes();
     }
 
-private void setupRoom0() {
-    System.out.println("Inicializando Sala 0 - Com Layout da Imagem");
-    
-    // PRIMEIRO carrega o layout da imagem para definir o tamanho
-    loadRoom0LayoutFromImage("sala_0/layoyt_sala_0.png");
-    
-    // DEPOIS cria o Robertinhoo
-    Vector2 worldStartPos = tileToWorld((int)startPosition.x, (int)startPosition.y);
-    robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
-    
-    // AGORA carrega os elementos específicos (fogueira) ANTES de criar o MapRenderer
-    Room0LayoutLoader.loadRoom0Specifics(this, "sala_0/layoyt_sala_0.png");
-    
-    // FINALMENTE cria as paredes físicas
-    agruparEPCriarParedes();
-    
-    System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
-}
+    private void setupRoom0() {
+        System.out.println("Inicializando Sala 0 - Com Layout da Imagem");
 
-private void loadRoom0LayoutFromImage(String imagePath) {
-    try {
-        Pixmap pixmap = new Pixmap(Gdx.files.internal(imagePath));
-        
-        // Define o tamanho da sala pela imagem
-        this.mapWidth = pixmap.getWidth();
-        this.mapHeight = pixmap.getHeight();
-        this.tiles = new int[mapWidth][mapHeight];
-        
-        System.out.println("Definindo tamanho da sala 0 pela imagem: " + mapWidth + "x" + mapHeight);
-        
-        // Preenche com chão por padrão
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                tiles[x][y] = TILE;
-            }
-        }
-        
-        // Adiciona paredes nas bordas (ou você pode definir isso na imagem também)
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
-                    tiles[x][y] = PAREDE;
-                    wallPositions.add(new Vector2(x, y));
-                }
-            }
-        }
-        
-        pixmap.dispose();
-        
-    } catch (Exception e) {
-        System.err.println("Erro ao carregar layout da imagem: " + e.getMessage());
-        // Fallback: tamanho fixo 10x10
-        this.mapWidth = 10;
-        this.mapHeight = 10;
-        this.tiles = new int[mapWidth][mapHeight];
-        
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
-                    tiles[x][y] = PAREDE;
-                    wallPositions.add(new Vector2(x, y));
-                } else {
+        // PRIMEIRO carrega o layout da imagem para definir o tamanho
+        loadRoom0LayoutFromImage("sala_0/layoyt_sala_0.png");
+
+        // DEPOIS cria o Robertinhoo
+        Vector2 worldStartPos = tileToWorld((int) startPosition.x, (int) startPosition.y);
+        robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
+
+        // AGORA carrega os elementos específicos (fogueira) ANTES de criar o
+        // MapRenderer
+        Room0LayoutLoader.loadRoom0Specifics(this, "sala_0/layoyt_sala_0.png");
+
+        // NOVO: Inicializa o sistema de interação com cabana
+        cabanaInteraction = new CabanaInteractionSystem(this, robertinhoo);
+
+        // FINALMENTE cria as paredes físicas
+        agruparEPCriarParedes();
+
+        System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
+    }
+
+    // NOVO: Getter para o sistema de interação
+    public CabanaInteractionSystem getCabanaInteractionSystem() {
+        return cabanaInteraction;
+    }
+
+    private void loadRoom0LayoutFromImage(String imagePath) {
+        try {
+            Pixmap pixmap = new Pixmap(Gdx.files.internal(imagePath));
+
+            // Define o tamanho da sala pela imagem
+            this.mapWidth = pixmap.getWidth();
+            this.mapHeight = pixmap.getHeight();
+            this.tiles = new int[mapWidth][mapHeight];
+
+            System.out.println("Definindo tamanho da sala 0 pela imagem: " + mapWidth + "x" + mapHeight);
+
+            // Preenche com chão por padrão
+            for (int x = 0; x < mapWidth; x++) {
+                for (int y = 0; y < mapHeight; y++) {
                     tiles[x][y] = TILE;
                 }
             }
-        }
-    }
-    
-    // Define posição inicial no centro
-    int startX = mapWidth / 2;
-    int startY = mapHeight / 2;
-    this.startPosition = new Vector2(startX, startY);
-}
-public void initializeLights() {
-    if (rayHandler == null) {
-        try {
-            rayHandler = new RayHandler(world);
-            
-            // ✅ CONFIGURAÇÃO PARA SOMBRAS QUASE IMPERCEPTÍVEIS
-            rayHandler.setAmbientLight(1f, 1f, 1f, 1f); // Um pouco mais claro
-            rayHandler.setShadows(true); // MANTENHA sombras ativas
-    // Blur suaviza as sombras
-            rayHandler.setBlurNum(1);    // Pouco blur para performance
-            
-            // Configurações para sombras mais suaves
-            RayHandler.useDiffuseLight(true);
-            RayHandler.setGammaCorrection(true);
-            
-            lightsInitialized = true;
-            System.out.println("✅ RayHandler com sombras suaves");
+
+            // Adiciona paredes nas bordas (ou você pode definir isso na imagem também)
+            for (int x = 0; x < mapWidth; x++) {
+                for (int y = 0; y < mapHeight; y++) {
+                    if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
+                        tiles[x][y] = PAREDE;
+                        wallPositions.add(new Vector2(x, y));
+                    }
+                }
+            }
+
+            pixmap.dispose();
+
         } catch (Exception e) {
-            System.err.println("❌ Erro no RayHandler: " + e.getMessage());
+            System.err.println("Erro ao carregar layout da imagem: " + e.getMessage());
+            // Fallback: tamanho fixo 10x10
+            this.mapWidth = 10;
+            this.mapHeight = 10;
+            this.tiles = new int[mapWidth][mapHeight];
+
+            for (int x = 0; x < mapWidth; x++) {
+                for (int y = 0; y < mapHeight; y++) {
+                    if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
+                        tiles[x][y] = PAREDE;
+                        wallPositions.add(new Vector2(x, y));
+                    } else {
+                        tiles[x][y] = TILE;
+                    }
+                }
+            }
+        }
+
+        // Define posição inicial no centro
+        int startX = mapWidth / 2;
+        int startY = mapHeight / 2;
+        this.startPosition = new Vector2(startX, startY);
+    }
+
+    public void initializeLights() {
+        if (rayHandler == null) {
+            try {
+                rayHandler = new RayHandler(world);
+
+                // ✅ CONFIGURAÇÃO PARA SOMBRAS QUASE IMPERCEPTÍVEIS
+                rayHandler.setAmbientLight(1f, 1f, 1f, 1f); // Um pouco mais claro
+                rayHandler.setShadows(true); // MANTENHA sombras ativas
+                // Blur suaviza as sombras
+                rayHandler.setBlurNum(1); // Pouco blur para performance
+
+                // Configurações para sombras mais suaves
+                RayHandler.useDiffuseLight(true);
+                RayHandler.setGammaCorrection(true);
+
+                lightsInitialized = true;
+                System.out.println("✅ RayHandler com sombras suaves");
+            } catch (Exception e) {
+                System.err.println("❌ Erro no RayHandler: " + e.getMessage());
+            }
         }
     }
-}
+
     private void addRandomEntities() {
         Random rand = new Random();
         List<Vector2> validRoomPositions = new ArrayList<>();
@@ -427,6 +446,14 @@ public void initializeLights() {
             obstaclesChanged = false;
         }
         checkObstaclesChanges(deltaTime);
+        if (cabanaInteraction != null) {
+            cabanaInteraction.update(deltaTime);
+        }
+
+        if (room0Door != null) {
+        room0Door.update(deltaTime);
+    }
+
     }
 
     public void markObstaclesChanged() {
@@ -468,6 +495,10 @@ public void initializeLights() {
         if (rayHandler != null) {
             rayHandler.dispose();
         }
+        for (StaticItem item : staticItems) {
+            item.dispose();
+        }
+        staticItems.clear();
     }
 
     public PathfindingSystem getPathfindingSystem() {
@@ -607,4 +638,35 @@ public void initializeLights() {
             }
         }
     }
+
+    public List<Room0Cabana> getCabanas() {
+        return cabanas;
+    }
+
+    public void addCabana(Room0Cabana cabana) {
+        this.cabanas.add(cabana);
+    }
+
+    public Vector2 worldToScreen(float worldX, float worldY) {
+        // Implemente conforme sua câmera e viewport
+        // Exemplo simples:
+        return new Vector2(worldX * MapRenderer.TILE_SIZE, worldY * MapRenderer.TILE_SIZE);
+    }
+
+    public void addStaticItem(StaticItem item) {
+        staticItems.add(item);
+    }
+
+    public List<StaticItem> getStaticItems() {
+        return staticItems;
+    }
+
+    public void addDoor(Room0Door door) {
+        this.room0Door = door;
+    }
+
+    public Room0Door getDoor0(){
+        return this.room0Door;
+    }
+
 }

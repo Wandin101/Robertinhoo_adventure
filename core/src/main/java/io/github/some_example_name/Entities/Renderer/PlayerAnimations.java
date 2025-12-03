@@ -1,4 +1,3 @@
-// PlayerAnimations.java
 package io.github.some_example_name.Entities.Renderer;
 
 import com.badlogic.gdx.graphics.g2d.Animation;
@@ -6,13 +5,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 
 import java.util.Arrays;
-
 import com.badlogic.gdx.graphics.Texture;
-// PlayerAnimations.java
-
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Disposable;
-import java.util.Arrays;
 
 public class PlayerAnimations implements Disposable {
     // Categorias de animações
@@ -40,14 +34,14 @@ public class PlayerAnimations implements Disposable {
             idleUp = AnimationLoader.loadAnimation("rober/idle/idle_N-Sheet.png", 0.2f, false, 12);
             idleLeft = AnimationLoader.loadAnimation("rober/idle/idle_E-Sheet.png", 0.2f, true, 12);
             idleRight = AnimationLoader.loadAnimation("rober/idle/idle_E-Sheet.png", 0.2f, false, 12);
-            walkLeft = AnimationLoader.loadAnimation("rober/walk/walk_E-Sheet.png", 0.1f, false, 8);
-            walkRight = AnimationLoader.loadAnimation("rober/walk/walk_E-Sheet.png", 0.1f, false, 8);
-            walkUp = AnimationLoader.loadAnimation("rober/walk/walk_N-Sheet.png", 0.1f, false, 8);
-            walkNortEast = AnimationLoader.loadAnimation("rober/walk/walk_NE-Sheet.png", 0.1f, false, 8);
-            walkNortWast = AnimationLoader.loadAnimation("rober/walk/walk_NE-Sheet.png", 0.1f, true, 8);
-            walkDown = AnimationLoader.loadAnimation("rober/walk/walk_S-Sheet.png", 0.1f, false, 8);
-            walkSE = AnimationLoader.loadAnimation("rober/walk/walk_SE-Sheet.png", 0.1f, false, 8);
-            walkSW = AnimationLoader.loadAnimation("rober/walk/walk_SE-Sheet.png", 0.1f, true, 8);
+            walkLeft = AnimationLoader.loadAnimation("rober/walk/walk_E-Sheet.png", 0.15f, false, 8);
+            walkRight = AnimationLoader.loadAnimation("rober/walk/walk_E-Sheet.png", 0.15f, false, 8);
+            walkUp = AnimationLoader.loadAnimation("rober/walk/walk_N-Sheet.png", 0.15f, false, 8);
+            walkNortEast = AnimationLoader.loadAnimation("rober/walk/walk_NE-Sheet.png", 0.15f, false, 8);
+            walkNortWast = AnimationLoader.loadAnimation("rober/walk/walk_NE-Sheet.png", 0.15f, true, 8);
+            walkDown = AnimationLoader.loadAnimation("rober/walk/walk_S-Sheet.png", 0.15f, false, 8);
+            walkSE = AnimationLoader.loadAnimation("rober/walk/walk_SE-Sheet.png", 0.15f, false, 8);
+            walkSW = AnimationLoader.loadAnimation("rober/walk/walk_SE-Sheet.png", 0.15f, true, 8);
             idleNorthWest = AnimationLoader.loadAnimation("rober/idle/idle_NE-Sheet.png", 0.2f, true, 12);
             idleNorthEast = AnimationLoader.loadAnimation("rober/idle/idle_NE-Sheet.png", 0.2f, false, 12);
             idleSouthWest = AnimationLoader.loadAnimation("rober/idle/idle_SE-Sheet.png", 0.2f, true, 12);
@@ -194,10 +188,92 @@ public class PlayerAnimations implements Disposable {
         }
     }
 
-    // Instâncias das categorias
+    public static class NoArmorAnimations {
+    public final Animation<TextureRegion> idleDown;
+    public final Animation<TextureRegion> idleUp;
+    public final Animation<TextureRegion> idleLeft;
+    public final Animation<TextureRegion> idleRight;
+    public final Animation<TextureRegion> walkDown;
+    public final Animation<TextureRegion> walkUp;
+    public final Animation<TextureRegion> walkLeft;
+    public final Animation<TextureRegion> walkRight;
+
+    public NoArmorAnimations() {
+        // Carrega o spritesheet único
+        Texture spritesheet = AnimationLoader.loadTexture("rober/no_armor/robertinho_no_armor.png");
+
+        int frameWidth = spritesheet.getWidth() / 7;  // 7 colunas
+        int frameHeight = spritesheet.getHeight() / 5; // 5 linhas (corrigido para 5)
+
+        TextureRegion[][] allFrames = TextureRegion.split(spritesheet, frameWidth, frameHeight);
+
+        // ANIMAÇÕES IDLE - 7 frames cada (linhas 0, 1, 2)
+        // Linha 0: Idle Sul (7 frames)
+        idleDown = createAnimationFromRow(allFrames[0], 0.2f, false, 7);
+        
+        // Linha 1: Idle Esquerda (7 frames)
+        idleLeft = createAnimationFromRow(allFrames[1], 0.2f, false, 7);
+        // Idle Direita é a mesma linha espelhada
+        idleRight = createAnimationFromRow(allFrames[1], 0.2f, true, 7);
+        
+        // Linha 2: Idle Norte (7 frames)  
+        idleUp = createAnimationFromRow(allFrames[2], 0.2f, false, 7);
+
+        // ANIMAÇÕES WALK - Estrutura complexa (linhas 3 e 4)
+        // Linha 3: Walk Sul (4 frames) + Walk Esquerda (3 frames)
+        // Linha 4: Walk Esquerda (1 frame) + Walk Norte (4 frames) + 2 vazios
+        
+        // Walk Sul: Linha 3, frames 0-3 (4 frames)
+        walkDown = createAnimationFromRange(allFrames[3], 0, 3, 0.15f, false);
+        
+        // Walk Esquerda: Linha 3 frames 4-6 (3 frames) + Linha 4 frame 0 (1 frame) = 4 frames
+        TextureRegion[] walkLeftFrames = new TextureRegion[4];
+        walkLeftFrames[0] = allFrames[3][4];
+        walkLeftFrames[1] = allFrames[3][5];
+        walkLeftFrames[2] = allFrames[3][6];
+        walkLeftFrames[3] = allFrames[4][0];
+        walkLeft = new Animation<>(0.15f, walkLeftFrames);
+        
+        // Walk Direita: mesma sequência do Walk Esquerda, mas espelhada
+        TextureRegion[] walkRightFrames = new TextureRegion[4];
+        for (int i = 0; i < walkLeftFrames.length; i++) {
+            walkRightFrames[i] = new TextureRegion(walkLeftFrames[i]);
+            walkRightFrames[i].flip(true, false);
+        }
+        walkRight = new Animation<>(0.15f, walkRightFrames);
+        
+        // Walk Norte: Linha 4, frames 1-4 (4 frames)
+        walkUp = createAnimationFromRange(allFrames[4], 1, 4, 0.15f, false);
+    }
+
+    private Animation<TextureRegion> createAnimationFromRow(TextureRegion[] row, float frameDuration, boolean flip, int frameCount) {
+        TextureRegion[] frames = new TextureRegion[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = new TextureRegion(row[i]);
+            if (flip) {
+                frames[i].flip(true, false);
+            }
+        }
+        return new Animation<>(frameDuration, frames);
+    }
+
+    private Animation<TextureRegion> createAnimationFromRange(TextureRegion[] row, int start, int end, float frameDuration, boolean flip) {
+        int frameCount = end - start + 1;
+        TextureRegion[] frames = new TextureRegion[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = new TextureRegion(row[start + i]);
+            if (flip) {
+                frames[i].flip(true, false);
+            }
+        }
+        return new Animation<>(frameDuration, frames);
+    }
+}
+
     public final BasicAnimations basic;
     public final WeaponAnimations weapon;
     public final SpecialAnimations special;
+    public final NoArmorAnimations noArmor;
 
     private final Array<Texture> loadedTextures = new Array<>();
 
@@ -209,6 +285,7 @@ public class PlayerAnimations implements Disposable {
         basic = new BasicAnimations();
         weapon = new WeaponAnimations();
         special = new SpecialAnimations();
+        noArmor = new NoArmorAnimations();
     }
 
     private void loadAllTextures() {
@@ -233,7 +310,8 @@ public class PlayerAnimations implements Disposable {
                 "rober/roll/roll-Sheet.png",
                 "rober/roll/roll_NEW.png",
                 "rober/corpo_a_corpo/ataque_sheet.png",
-                "rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png"
+                "rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png",
+                "rober/no_armor/robertinho_no_armor.png"
         };
 
         // Carregar e armazenar texturas

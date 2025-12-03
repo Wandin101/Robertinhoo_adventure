@@ -27,6 +27,7 @@ public class CampFire {
     private Body body;
     private Mapa mapa;
     private AudioManager audioManager;
+    private Texture campfireFloorTexture;
 
     public CampFire(Mapa mapa, float tileX, float tileY) {
         this.mapa = mapa;
@@ -37,9 +38,9 @@ public class CampFire {
         System.out.println("🔥 Fogueira COM COLISÃO criada em Tile: " + position);
 
         loadSpriteSheet();
+        loadCampfireFloorTexture();
         createPhysicsBody();
         startAmbientSound();
-         testAudioFile();
     }
 
     private void loadSpriteSheet() {
@@ -79,21 +80,16 @@ public class CampFire {
 
     public void update(float deltaTime) {
         stateTime += deltaTime;
-       
+
     }
 
     public void render(SpriteBatch batch, float screenX, float screenY) {
-        if (animation != null) {
-            TextureRegion currentFrame = animation.getKeyFrame(stateTime, true);
-
-            float renderSize = 128;
-            float centeredX = screenX - (renderSize - 64) / 2f;
-            float centeredY = screenY - (renderSize - 64) / 2f;
-
-            batch.draw(currentFrame, centeredX, centeredY, renderSize, renderSize);
-        }
+        // Primeiro renderiza o SOLO (embaixo)
+        //  nrenderCampfireFloor(batch, screenX, screenY);
+        
+        // Depois renderiza a FOGUEIRA (em cima)
+        renderFire(batch, screenX, screenY);
     }
-
     private void createPhysicsBody() {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
@@ -137,42 +133,26 @@ public class CampFire {
         return position;
     }
 
-private void startAmbientSound() {
-    // ✅ USAR postRunnable PARA GARANTIR CONTEXTO
-    Gdx.app.postRunnable(new Runnable() {
-        @Override
-        public void run() {
-            try {
-                System.out.println("🎵 Iniciando som da fogueira no thread principal...");
-                
-                // Pequeno delay para garantir que o áudio está pronto
+    private void startAmbientSound() {
+        // ✅ USAR postRunnable PARA GARANTIR CONTEXTO
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
                 try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {}
-                
-                audioManager.playAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
-                System.out.println("🔊 Som ambiente da fogueira - Chamada completada");
-                
-            } catch (Exception e) {
-                System.err.println("❌ Erro crítico no som: " + e.getMessage());
-            }
-        }
-    });
-}
+                    System.out.println("🎵 Iniciando som da fogueira no thread principal...");
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                    }
 
-      private void testAudioFile() {
-        // ✅ VERIFICAR SE O ARQUIVO EXISTE
-        boolean exists = Gdx.files.internal("Sounds/fogueiraSound.ogg").exists();
-        System.out.println("🔊 Arquivo fogueiraSound.ogg existe: " + exists);
-        
-        if (exists) {
-            try {
-                long fileSize = Gdx.files.internal("Sounds/fogueiraSound.ogg").length();
-                System.out.println("🔊 Tamanho do arquivo: teste wandin " + fileSize + " bytes");
-            } catch (Exception e) {
-                System.err.println("❌ Erro ao verificar arquivo: " + e.getMessage());
+                    audioManager.playAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
+                    System.out.println("🔊 Som ambiente da fogueira - Chamada completada");
+
+                } catch (Exception e) {
+                    System.err.println("❌ Erro crítico no som: " + e.getMessage());
+                }
             }
-        }
+        });
     }
 
     private void stopAmbientSound() {
@@ -202,9 +182,58 @@ private void startAmbientSound() {
         }
     }
 
+    private void loadCampfireFloorTexture() {
+        try {
+            campfireFloorTexture = new Texture(Gdx.files.internal("sala_0/FLOR_FOGUEIRA.png"));
+            System.out.println("✅ Textura do solo da fogueira carregada: " +
+                    campfireFloorTexture.getWidth() + "x" + campfireFloorTexture.getHeight());
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar textura do solo da fogueira: " + e.getMessage());
+            createCampfireFloorPlaceholder();
+        }
+    }
+
+
+        private void createCampfireFloorPlaceholder() {
+        // Placeholder para o solo da fogueira (marrom queimado)
+        com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(254, 254,
+                com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        pixmap.setColor(0.55f, 0.27f, 0.07f, 1f); // Marrom queimado
+        pixmap.fill();
+        campfireFloorTexture = new Texture(pixmap);
+        pixmap.dispose();
+    }
+
+        private void renderCampfireFloor(SpriteBatch batch, float screenX, float screenY) {
+        if (campfireFloorTexture != null) {
+            // Centraliza o solo de 254px (que é maior que o tile de 125px)
+            float floorSize = 454f; // Tamanho do solo especial
+            float floorX = screenX - (floorSize - 64f) / 2f;
+            float floorY = screenY - (floorSize - 64f) / 2f;
+            
+            batch.draw(campfireFloorTexture, floorX, floorY -48F, floorSize, floorSize);
+        }
+    }
+
+        private void renderFire(SpriteBatch batch, float screenX, float screenY) {
+        if (animation != null) {
+            TextureRegion currentFrame = animation.getKeyFrame(stateTime, true);
+
+            float renderSize = 128f;
+            float centeredX = screenX - (renderSize - 64f) / 2f;
+            float centeredY = screenY - (renderSize - 64f) / 2f;
+
+            batch.draw(currentFrame, centeredX, centeredY, renderSize, renderSize);
+        }
+    }
+
+
     public void dispose() {
         if (spriteSheet != null) {
             spriteSheet.dispose();
+        }
+        if (campfireFloorTexture != null) {
+            campfireFloorTexture.dispose();
         }
         stopAmbientSound();
     }

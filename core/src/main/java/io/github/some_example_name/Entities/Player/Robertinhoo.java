@@ -60,6 +60,8 @@ public class Robertinhoo implements ShadowEntity {
     public static final int SOUTH_EAST = 13;
     public static final int MELEE_ATTACK = 14;
 
+    public boolean hasArmor = true; 
+
     private float meleeAttackTime = 0;
     private float meleeAttackDuration = 0.616f;
     public int meleeDirection = DOWN;
@@ -167,7 +169,7 @@ public class Robertinhoo implements ShadowEntity {
         fixtureDef.filter.categoryBits = Constants.BIT_PLAYER;
        fixtureDef.filter.maskBits = Constants.BIT_OBJECT | Constants.BIT_PLAYER_ATTACK | 
                           Constants.BIT_ENEMY | Constants.BIT_PROJECTILE | 
-                          Constants.BIT_ITEM | Constants.BIT_WALL;
+                          Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR;
 
         body.createFixture(fixtureDef);
         body.setAngularDamping(2f);
