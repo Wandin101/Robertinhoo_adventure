@@ -120,12 +120,7 @@ public class EscurecedorAmbiente {
     Gdx.gl.glDisable(GL20.GL_STENCIL_TEST);
     Gdx.gl.glStencilMask(0xFF);
     Gdx.gl.glStencilFunc(GL20.GL_ALWAYS, 0, 0xFF);
-    
-    // ✅ DEBUG: Mostrar informações
-    Gdx.app.log("ESCURECEDOR_DEBUG", 
-        "Tela: " + Gdx.graphics.getWidth() + "x" + Gdx.graphics.getHeight() +
-        " | Escuridão: " + intensidadeEscuro + 
-        " | Luzes: " + activeLights);
+
 }
     public void setIntensidade(float intensidade) {
         this.intensidadeEscuro = Math.max(0f, Math.min(1f, intensidade));

@@ -16,18 +16,60 @@ public class PlayerRenderer {
     private Animation<TextureRegion> currentAnimation;
     private final PlayerWeaponSystem weaponSystem;
 
+    private boolean isPlayingDeathAnimation = false;
+    private float deathAnimationTime = 0f;
+    private boolean deathAnimationFinished = false;
+    private Animation<TextureRegion> deathAnimation;
+
     public PlayerRenderer(PlayerWeaponSystem weaponSystem) {
         this.weaponSystem = weaponSystem;
         animations = new PlayerAnimations();
         currentAnimation = null;
     }
 
+ public void startDeathAnimation() {
+        System.out.println("🎬 [PlayerRenderer.startDeathAnimation] INICIANDO");
+        System.out.println("   - Animação disponível: " + (animations.death != null));
+        System.out.println("   - Animação deathAnimation: " + (animations.death.deathAnimation != null));
+        
+        isPlayingDeathAnimation = true;
+        deathAnimationTime = 0f;
+        deathAnimationFinished = false;
+        deathAnimation = animations.death.deathAnimation;
+        currentAnimation = deathAnimation;
+        animationTime = 0f;
+        
+        if (deathAnimation != null) {
+            System.out.println("   ✅ Animação configurada:");
+            System.out.println("   - Duração total: " + deathAnimation.getAnimationDuration() + "s");
+            System.out.println("   - Frames: " + deathAnimation.getKeyFrames().length);
+            System.out.println("   - PlayMode: " + deathAnimation.getPlayMode());
+        } else {
+            System.err.println("❌ deathAnimation é null!");
+        }
+    }
+
+    public boolean isDeathAnimationComplete() {
+        return deathAnimationFinished;
+    }
+    public void resetDeathAnimation() {
+        isPlayingDeathAnimation = false;
+        deathAnimationTime = 0f;
+        deathAnimationFinished = false;
+        currentAnimation = null;
+        animationTime = 0f;
+    }
+
     private Animation<TextureRegion> selectAnimation(Robertinhoo player) {
-        // VERIFICA SE ESTÁ SEM ARMADURA
+       if (isPlayingDeathAnimation) {
+            return animations.death.deathAnimation;
+        }
         if (!player.hasArmor) {
             return selectNoArmorAnimation(player);
         }
-        
+        if (player.isTakingDamage) {
+            return animations.damage.ritDamage;
+        }
         // CÓDIGO ORIGINAL (com armadura)
         if (player.state == Robertinhoo.MELEE_ATTACK) {
             return getMeleeAnimation(player);
@@ -36,7 +78,7 @@ public class PlayerRenderer {
         Weapon equippedWeapon = player.getInventory().getEquippedWeapon();
         boolean isReloading = equippedWeapon != null &&
                 equippedWeapon.getCurrentState() == Weapon.WeaponState.RELOADING;
-        
+
         if (player.state == Robertinhoo.DASH) {
             return getDashAnimation(player);
         }
@@ -48,25 +90,26 @@ public class PlayerRenderer {
                 return animations.weapon.idleDown;
             }
         }
-        
+
         if (weaponSystem.isAiming() && player.getInventory().getEquippedWeapon() != null) {
             return getAimedAnimation(player, (player.dir != Robertinhoo.IDLE));
         }
-        
+
         if (player.dir != Robertinhoo.IDLE) {
             return getMovementAnimation(player);
         }
-        
+
         return getIdleAnimation(player);
     }
 
-        private Animation<TextureRegion> selectNoArmorAnimation(Robertinhoo player) {
+    private Animation<TextureRegion> selectNoArmorAnimation(Robertinhoo player) {
         if (player.dir != Robertinhoo.IDLE) {
             return getNoArmorMovementAnimation(player);
         }
         return getNoArmorIdleAnimation(player);
     }
-       private Animation<TextureRegion> getNoArmorIdleAnimation(Robertinhoo player) {
+
+    private Animation<TextureRegion> getNoArmorIdleAnimation(Robertinhoo player) {
         switch (player.lastDir) {
             case Robertinhoo.UP:
                 return animations.noArmor.idleUp;
@@ -80,32 +123,33 @@ public class PlayerRenderer {
                 return animations.noArmor.idleDown;
         }
     }
-    
-private Animation<TextureRegion> getNoArmorMovementAnimation(Robertinhoo player) {
-    // Mapeia direções diagonais para as 4 direções principais
-    int normalizedDir = player.dir;
-    
-    // Converte diagonais para direções cardinais
-    if (normalizedDir == Robertinhoo.NORTH_EAST || normalizedDir == Robertinhoo.NORTH_WEST) {
-        normalizedDir = Robertinhoo.UP;
-    } else if (normalizedDir == Robertinhoo.SOUTH_EAST || normalizedDir == Robertinhoo.SOUTH_WEST) {
-        normalizedDir = Robertinhoo.DOWN;
+
+    private Animation<TextureRegion> getNoArmorMovementAnimation(Robertinhoo player) {
+        // Mapeia direções diagonais para as 4 direções principais
+        int normalizedDir = player.dir;
+
+        // Converte diagonais para direções cardinais
+        if (normalizedDir == Robertinhoo.NORTH_EAST || normalizedDir == Robertinhoo.NORTH_WEST) {
+            normalizedDir = Robertinhoo.UP;
+        } else if (normalizedDir == Robertinhoo.SOUTH_EAST || normalizedDir == Robertinhoo.SOUTH_WEST) {
+            normalizedDir = Robertinhoo.DOWN;
+        }
+        // LEFT e RIGHT permanecem os mesmos
+
+        switch (normalizedDir) {
+            case Robertinhoo.UP:
+                return animations.noArmor.walkUp;
+            case Robertinhoo.DOWN:
+                return animations.noArmor.walkDown;
+            case Robertinhoo.LEFT:
+                return animations.noArmor.walkLeft;
+            case Robertinhoo.RIGHT:
+                return animations.noArmor.walkRight;
+            default:
+                return animations.noArmor.walkDown;
+        }
     }
-    // LEFT e RIGHT permanecem os mesmos
-    
-    switch (normalizedDir) {
-        case Robertinhoo.UP:
-            return animations.noArmor.walkUp;
-        case Robertinhoo.DOWN:
-            return animations.noArmor.walkDown;
-        case Robertinhoo.LEFT:
-            return animations.noArmor.walkLeft;
-        case Robertinhoo.RIGHT:
-            return animations.noArmor.walkRight;
-        default:
-            return animations.noArmor.walkDown;
-    }
-}
+
     private Animation<TextureRegion> getIdleAnimation(Robertinhoo player) {
         if (weaponSystem.isAiming() && player.getInventory().getEquippedWeapon() != null) {
             return getAimedAnimation(player, false);
@@ -277,7 +321,16 @@ private Animation<TextureRegion> getNoArmorMovementAnimation(Robertinhoo player)
         return areOpposite(movementDir, aimingDir);
     }
 
-public void render(SpriteBatch batch, Robertinhoo player, float delta, float offsetX, float offsetY) {
+   public void render(SpriteBatch batch, Robertinhoo player, float delta, float offsetX, float offsetY) {
+
+    if (isPlayingDeathAnimation) {
+            deathAnimationTime += delta;
+            // Verifica se a animação terminou
+            if (animations.death.deathAnimation.isAnimationFinished(deathAnimationTime)) {
+                deathAnimationFinished = true;
+            }
+        }
+        
     animationTime += delta;
 
     Animation<TextureRegion> selectedAnimation = selectAnimation(player);
@@ -292,26 +345,25 @@ public void render(SpriteBatch batch, Robertinhoo player, float delta, float off
         effectiveTime = totalDuration - (animationTime % totalDuration);
     }
 
-    TextureRegion frame = currentAnimation.getKeyFrame(effectiveTime, true);
+    TextureRegion frame = currentAnimation.getKeyFrame(effectiveTime, player.isTakingDamage ? false : true);
 
     float originalWidth = player.bounds.width * MapRenderer.TILE_SIZE;
     float originalHeight = player.bounds.height * MapRenderer.TILE_SIZE;
 
-    // ✅ NOVO: Escalas diferentes para com/sem armadura
     float scale;
-    if (!player.hasArmor) {
-       
-        scale = 0.9f; 
-        
-    
+    if (player.isTakingDamage) {
+        scale = 1.1f;
+        float pulse = (float) Math.sin(animationTime * 10f) * 0.1f;
+        scale += pulse;
+    } else if (!player.hasArmor) {
+        scale = 0.9f;
         if (currentAnimation == animations.noArmor.walkDown ||
             currentAnimation == animations.noArmor.idleDown ||
             currentAnimation == animations.noArmor.walkUp ||
             currentAnimation == animations.noArmor.idleUp) {
-            scale = 0.9f; 
+            scale = 0.9f;
         }
     } else {
-        // Escala normal para com armadura (código original)
         scale = 1.4f;
         if (currentAnimation == animations.basic.walkDown ||
             currentAnimation == animations.basic.idleDown ||
@@ -320,43 +372,48 @@ public void render(SpriteBatch batch, Robertinhoo player, float delta, float off
             scale = 1.2f;
         }
     }
-        float scaledWidth = originalWidth * scale;
-        float scaledHeight = originalHeight * scale;
+    
+    float scaledWidth = originalWidth * scale;
+    float scaledHeight = originalHeight * scale;
 
-        float x = offsetX + (player.bounds.x * MapRenderer.TILE_SIZE) - (scaledWidth - originalWidth) / 2;
-        float y = offsetY + (player.bounds.y * MapRenderer.TILE_SIZE) - (scaledHeight - originalHeight) / 2;
+    float x = offsetX + (player.bounds.x * MapRenderer.TILE_SIZE) - (scaledWidth - originalWidth) / 2;
+    float y = offsetY + (player.bounds.y * MapRenderer.TILE_SIZE) - (scaledHeight - originalHeight) / 2;
 
-        boolean shouldFlip = false;
-        if (currentAnimation == animations.basic.walkLeft ||
-                (currentAnimation == animations.special.rollSide && player.dashDirection == Robertinhoo.LEFT)) {
-            shouldFlip = true;
-        } else if (currentAnimation == animations.weapon.idleDown) {
-            float aimAngle = player.applyAimRotation();
-            shouldFlip = (aimAngle > 90 && aimAngle < 270);
-        } else if (currentAnimation == animations.weapon.idleUp) {
-            float aimAngle = player.applyAimRotation();
-            shouldFlip = (aimAngle < 270 && aimAngle > 90);
-        } else if (currentAnimation == animations.weapon.runDown) {
-            float aimAngle = player.applyAimRotation();
-            shouldFlip = (aimAngle < 270 && aimAngle > 90);
-        } else if (currentAnimation == animations.weapon.runUp) {
-            float aimAngle = player.applyAimRotation();
-            shouldFlip = (aimAngle < 270 && aimAngle > 90);
-        }
-
-        this.currentFlipState = shouldFlip;
-
-        if (player.isTakingDamage) {
-            float alpha = (float) (Math.sin(animationTime * 30) + 1) / 2;
-            batch.setColor(1, 1, 1, alpha);
-        }
-
-        batch.draw(frame,
-                shouldFlip ? x + scaledWidth : x,
-                y,
-                shouldFlip ? -scaledWidth : scaledWidth,
-                scaledHeight);
+    // Durante dano, aplica efeito visual de flash vermelho
+    if (player.isTakingDamage) {
+        float flashAlpha = 0.7f + (float) Math.sin(animationTime * 10f) * 0.3f;
+        batch.setColor(1.0f, 0.3f, 0.3f, flashAlpha); // Tom vermelho
     }
+
+    boolean shouldFlip = false;
+    if (currentAnimation == animations.basic.walkLeft ||
+            (currentAnimation == animations.special.rollSide && player.dashDirection == Robertinhoo.LEFT)) {
+        shouldFlip = true;
+    } else if (currentAnimation == animations.weapon.idleDown) {
+        float aimAngle = player.applyAimRotation();
+        shouldFlip = (aimAngle > 90 && aimAngle < 270);
+    } else if (currentAnimation == animations.weapon.idleUp) {
+        float aimAngle = player.applyAimRotation();
+        shouldFlip = (aimAngle < 270 && aimAngle > 90);
+    } else if (currentAnimation == animations.weapon.runDown) {
+        float aimAngle = player.applyAimRotation();
+        shouldFlip = (aimAngle < 270 && aimAngle > 90);
+    } else if (currentAnimation == animations.weapon.runUp) {
+        float aimAngle = player.applyAimRotation();
+        shouldFlip = (aimAngle < 270 && aimAngle > 90);
+    }
+
+    this.currentFlipState = shouldFlip;
+    batch.draw(frame,
+            shouldFlip ? x + scaledWidth : x,
+            y,
+            shouldFlip ? -scaledWidth : scaledWidth,
+            scaledHeight);
+            
+    if (player.isTakingDamage) {
+        batch.setColor(1, 1, 1, 1);
+    }
+}
 
     private boolean currentFlipState;
 
@@ -364,33 +421,35 @@ public void render(SpriteBatch batch, Robertinhoo player, float delta, float off
         return currentFlipState;
     }
 
-public float getRenderScale(Robertinhoo player) {
-    if (currentAnimation == null)
-        return player.hasArmor ? 1.4f : 0.9f; // ✅ Diferente para sem armadura
+    public float getRenderScale(Robertinhoo player) {
+        if (currentAnimation == null)
+            return player.hasArmor ? 1.4f : 0.9f; // ✅ Diferente para sem armadura
 
-    if (!player.hasArmor) {
-        // Escalas para sem armadura
-        if (currentAnimation == animations.noArmor.walkDown ||
-            currentAnimation == animations.noArmor.idleDown ||
-            currentAnimation == animations.noArmor.walkUp ||
-            currentAnimation == animations.noArmor.idleUp) {
+        if (!player.hasArmor) {
+            // Escalas para sem armadura
+            if (currentAnimation == animations.noArmor.walkDown ||
+                    currentAnimation == animations.noArmor.idleDown ||
+                    currentAnimation == animations.noArmor.walkUp ||
+                    currentAnimation == animations.noArmor.idleUp) {
+                return 0.9f;
+            }
             return 0.9f;
+        } else {
+            // Escalas para com armadura (original)
+            if (currentAnimation == animations.basic.walkDown ||
+                    currentAnimation == animations.basic.idleDown ||
+                    currentAnimation == animations.basic.walkUp ||
+                    currentAnimation == animations.basic.idleUp) {
+                return 1.2f;
+            }
+            return 1.4f;
         }
-        return 0.9f;
-    } else {
-        // Escalas para com armadura (original)
-        if (currentAnimation == animations.basic.walkDown ||
-            currentAnimation == animations.basic.idleDown ||
-            currentAnimation == animations.basic.walkUp ||
-            currentAnimation == animations.basic.idleUp) {
-            return 1.2f;
-        }
-        return 1.4f;
     }
-}
-
     
-
+  public float getDeathAnimationProgress() {
+        if (deathAnimation == null) return 0f;
+        return Math.min(1.0f, deathAnimationTime / deathAnimation.getAnimationDuration());
+    }
     public void dispose() {
         animations.dispose();
     }

@@ -41,6 +41,9 @@ import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.MapConfig.Generator.MapGenerator;
+import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
 import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0LayoutLoader;
@@ -49,7 +52,7 @@ import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
 import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
 
-public class Mapa {
+public class Mapa implements RoomTransitionManager {
 
     private List<Enemy> enemies;
     private List<Weapon> weapons;
@@ -62,9 +65,13 @@ public class Mapa {
     private List<Rectangle> rooms = new ArrayList<>();
     public static final float BOX2D_SCALE = 1 / 64f;
     private List<Room0Cabana> cabanas = new ArrayList<>();
-    private CabanaInteractionSystem cabanaInteraction;
+    public CabanaInteractionSystem cabanaInteraction;
     private List<StaticItem> staticItems = new ArrayList<>();
     private Room0Door room0Door;
+    private boolean isRoom0;
+    private RoomTransitionListener roomTransitionListener;
+    private final int mapaId;
+    private static int mapaCounter = 0;
 
     public PathfindingSystem pathfindingSystem;
     private CampFire campFire;
@@ -74,7 +81,7 @@ public class Mapa {
     public MapGenerator mapGenerator;
 
     public static int TILE = 0x000000; // #000000 (tiles normais)
-    static int START = 0xFF0000; // #FF0000 (ponto de início)
+    public static int START = 0xFF0000; // #FF0000 (ponto de início)
     public static int PAREDE = 0x00FFF4; // #00FFF4 (paredes)
     public static int ENEMY = 0X913d77; // #913d77 (inimigos)
     public static int REVOLVER = 0X22ff00; // #22ff00
@@ -98,6 +105,8 @@ public class Mapa {
     private int previousDestructiblesCount = 0;
     private Set<Vector2> previousBarrelPositions = new HashSet<>();
 
+    private GameContactListener contactListener;
+
     public void setRayHandler(RayHandler rayHandler) {
         this.rayHandler = rayHandler;
     }
@@ -107,7 +116,6 @@ public class Mapa {
     }
 
     public Mapa(boolean isRoom0) {
-        // Inicializações básicas
         world = new World(new Vector2(0, 0), true);
         enemies = new ArrayList<>();
         weapons = new ArrayList<>();
@@ -118,6 +126,14 @@ public class Mapa {
         craftItems = new ArrayList<>();
         pendingActions = new ArrayList<>();
         rooms = new ArrayList<>();
+        this.isRoom0 = isRoom0;
+        mapaCounter++;
+        mapaId = mapaCounter;
+
+        System.out.println("\n🗺️ [Mapa#" + mapaId + "] CONSTRUTOR INICIADO");
+        System.out.println("   - isRoom0: " + isRoom0);
+        System.out.println("   - World criado: " + world);
+        System.out.println("   - World hashCode: " + System.identityHashCode(world));
 
         agruparParedes = new WallOtimizations(this);
         this.pathfindingSystem = new PathfindingSystem(this);
@@ -126,11 +142,9 @@ public class Mapa {
         initializeLights();
 
         if (isRoom0) {
-            // Configuração específica para a Sala 0
             setupRoom0();
         } else {
-            // Código normal do mapa procedural (seu código original)
-            this.mapGenerator = new MapGenerator(50, 50);
+            this.mapGenerator = new MapGenerator(50, 50, true);
             this.mapWidth = mapGenerator.getMapWidth();
             this.mapHeight = mapGenerator.getMapHeight();
             this.tiles = mapGenerator.getTiles();
@@ -144,8 +158,6 @@ public class Mapa {
             generateProceduralMap(mapWidth, mapHeight, mapGenerator);
 
         }
-
-        world.setContactListener(new GameContactListener(robertinhoo));
     }
 
     private void generateProceduralMap(int width, int height, MapGenerator mapGenerator) {
@@ -162,24 +174,13 @@ public class Mapa {
 
     private void setupRoom0() {
         System.out.println("Inicializando Sala 0 - Com Layout da Imagem");
-
-        // PRIMEIRO carrega o layout da imagem para definir o tamanho
         loadRoom0LayoutFromImage("sala_0/layoyt_sala_0.png");
-
-        // DEPOIS cria o Robertinhoo
         Vector2 worldStartPos = tileToWorld((int) startPosition.x, (int) startPosition.y);
         robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
-
-        // AGORA carrega os elementos específicos (fogueira) ANTES de criar o
-        // MapRenderer
         Room0LayoutLoader.loadRoom0Specifics(this, "sala_0/layoyt_sala_0.png");
-
-        // NOVO: Inicializa o sistema de interação com cabana
         cabanaInteraction = new CabanaInteractionSystem(this, robertinhoo);
-
-        // FINALMENTE cria as paredes físicas
         agruparEPCriarParedes();
-
+        setupContactListener(robertinhoo);
         System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
     }
 
@@ -198,15 +199,11 @@ public class Mapa {
             this.tiles = new int[mapWidth][mapHeight];
 
             System.out.println("Definindo tamanho da sala 0 pela imagem: " + mapWidth + "x" + mapHeight);
-
-            // Preenche com chão por padrão
             for (int x = 0; x < mapWidth; x++) {
                 for (int y = 0; y < mapHeight; y++) {
                     tiles[x][y] = TILE;
                 }
             }
-
-            // Adiciona paredes nas bordas (ou você pode definir isso na imagem também)
             for (int x = 0; x < mapWidth; x++) {
                 for (int y = 0; y < mapHeight; y++) {
                     if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1) {
@@ -220,7 +217,6 @@ public class Mapa {
 
         } catch (Exception e) {
             System.err.println("Erro ao carregar layout da imagem: " + e.getMessage());
-            // Fallback: tamanho fixo 10x10
             this.mapWidth = 10;
             this.mapHeight = 10;
             this.tiles = new int[mapWidth][mapHeight];
@@ -247,14 +243,10 @@ public class Mapa {
         if (rayHandler == null) {
             try {
                 rayHandler = new RayHandler(world);
+                rayHandler.setAmbientLight(1f, 1f, 1f, 1f);
+                rayHandler.setShadows(true);
 
-                // ✅ CONFIGURAÇÃO PARA SOMBRAS QUASE IMPERCEPTÍVEIS
-                rayHandler.setAmbientLight(1f, 1f, 1f, 1f); // Um pouco mais claro
-                rayHandler.setShadows(true); // MANTENHA sombras ativas
-                // Blur suaviza as sombras
-                rayHandler.setBlurNum(1); // Pouco blur para performance
-
-                // Configurações para sombras mais suaves
+                rayHandler.setBlurNum(1);
                 RayHandler.useDiffuseLight(true);
                 RayHandler.setGammaCorrection(true);
 
@@ -269,51 +261,113 @@ public class Mapa {
     private void addRandomEntities() {
         Random rand = new Random();
         List<Vector2> validRoomPositions = new ArrayList<>();
+
         for (Rectangle room : rooms) {
+            // Verifica configuração da sala
+            boolean roomAllowsEnemies = roomAllowsEnemies(room);
+            boolean roomAllowsItems = roomAllowsItems(room);
+
             for (int x = (int) room.x + 1; x < room.x + room.width - 1; x++) {
                 for (int y = (int) room.y + 1; y < room.y + room.height - 1; y++) {
                     if (tiles[x][y] == TILE) {
+                        // Não spawna na posição inicial do jogador
                         if (x != (int) startPosition.x || y != (int) startPosition.y) {
                             validRoomPositions.add(new Vector2(x, y));
                         }
                     }
                 }
             }
+
+            // Se sala não permite inimigos, remove posições para inimigos
+            if (!roomAllowsEnemies) {
+                // Remover posições desta sala para spawn de inimigos
+                // (vamos lidar com isso depois, no loop de inimigos)
+            }
+
+            // Se sala não permite itens, remove posições para itens
+            if (!roomAllowsItems) {
+                // Remover posições desta sala para spawn de itens
+                // (vamos lidar com isso depois, no loop de itens)
+            }
         }
 
         java.util.Collections.shuffle(validRoomPositions, rand);
 
-        for (int i = 0; i < 3 && i < validRoomPositions.size(); i++) {
+        // Spawn de armas/munição (respeitando configurações de sala)
+        int itemsSpawned = 0;
+        for (int i = 0; i < validRoomPositions.size() && itemsSpawned < 3; i++) {
             Vector2 tilePos = validRoomPositions.get(i);
-            Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+            Rectangle room = findRoomContainingTile(tilePos);
 
-            if (rand.nextBoolean()) {
-                weapons.add(new Pistol(this, worldPos.x, worldPos.y, robertinhoo.getInventory()));
-            } else {
-                ammo.add(new Ammo9mm(this, worldPos.x, worldPos.y));
+            if (room != null && roomAllowsItems(room)) {
+                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+
+                if (rand.nextBoolean()) {
+                    weapons.add(new Pistol(this, worldPos.x, worldPos.y, robertinhoo.getInventory()));
+                } else {
+                    ammo.add(new Ammo9mm(this, worldPos.x, worldPos.y));
+                }
+                itemsSpawned++;
             }
         }
 
+        // Spawn de ratos (respeitando configurações de sala)
         int ratsAdded = 0;
         for (int i = 0; i < validRoomPositions.size() && ratsAdded < 14; i++) {
-            Vector2 tilePos = validRoomPositions.get(i);
-            Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-            Rectangle ratRoom = findRoomContainingTile(tilePos);
-            enemies.add(new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, ratRoom));
-            ratsAdded++;
+        Vector2 tilePos = validRoomPositions.get(i);
+        Rectangle room = findRoomContainingTile(tilePos);
+
+        if (room != null && roomAllowsEnemies(room)) {
+        Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+        enemies.add(new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room));
+        ratsAdded++;
+        }
         }
 
+        // Spawn de castores (respeitando configurações de sala)
         int castoresAdded = 0;
-        for (int i = 8; i < validRoomPositions.size() && castoresAdded < 4; i++) {
-            Vector2 tilePos = validRoomPositions.get(i);
-            Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-            enemies.add(new Castor(this, worldPos.x, worldPos.y, robertinhoo));
-            castoresAdded++;
+        for (int i = 0; i < validRoomPositions.size() && castoresAdded < 4; i++) {
+        Vector2 tilePos = validRoomPositions.get(i);
+        Rectangle room = findRoomContainingTile(tilePos);
+
+        if (room != null && roomAllowsEnemies(room)) {
+        Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+        enemies.add(new Castor(this, worldPos.x, worldPos.y, robertinhoo));
+        castoresAdded++;
+        }
         }
 
+        // Spawn de barris e grama (já ajustados para respeitar configurações)
         BarrelSpawner.spawnBarrels(this, 10);
         GrassSpawner.spawnGrass(this, 80);
+    }
 
+    private boolean roomAllowsEnemies(Rectangle room) {
+        if (mapGenerator == null)
+            return true;
+
+        if (mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
+            FixedRoom spawnRoom = mapGenerator.getSpawnRoom();
+            if (spawnRoom != null) {
+                return spawnRoom.getConfiguration().hasEnemies();
+            }
+            return false;
+        }
+        return true; // Salas aleatórias têm inimigos
+    }
+
+    private boolean roomAllowsItems(Rectangle room) {
+        if (mapGenerator == null)
+            return true;
+
+        if (mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
+            FixedRoom spawnRoom = mapGenerator.getSpawnRoom();
+            if (spawnRoom != null) {
+                return false;
+            }
+            return false;
+        }
+        return true;
     }
 
     public Rectangle findRoomContainingTile(Vector2 tilePos) {
@@ -451,8 +505,9 @@ public class Mapa {
         }
 
         if (room0Door != null) {
-        room0Door.update(deltaTime);
-    }
+            room0Door.update(deltaTime);
+        }
+        checkRoomTransition();
 
     }
 
@@ -484,7 +539,26 @@ public class Mapa {
     }
 
     public void addCraftItem(Item item) {
+        System.out.println("📦 [Mapa#" + mapaId + "] ADICIONANDO craftItem: " + item);
+        System.out.println("   - HashCode: " + System.identityHashCode(item));
+        System.out.println("   - Lista antes: " + craftItems.size() + " itens");
         craftItems.add(item);
+        System.out.println("   - Lista depois: " + craftItems.size() + " itens");
+
+        // Verifique se o item já está em outra lista
+        if (weapons.contains(item)) {
+            System.out.println("⚠️ Item também está na lista weapons!");
+        }
+        if (ammo.contains(item)) {
+            System.out.println("⚠️ Item também está na lista ammo!");
+        }
+        if (polvoras != null && polvoras.contains(item)) {
+            System.out.println("⚠️ Item também está na lista polvoras!");
+        }
+    }
+
+    public void removeCraftItem(Item item) {
+        craftItems.remove(item);
     }
 
     public List<Item> getCraftItems() {
@@ -665,8 +739,236 @@ public class Mapa {
         this.room0Door = door;
     }
 
-    public Room0Door getDoor0(){
+    public Room0Door getDoor0() {
         return this.room0Door;
     }
 
+    public interface RoomTransitionListener {
+        void onRoomTransition(boolean toRoom0);
+    }
+
+    public interface RoomTransitionManager {
+        void transitionToRoom1();
+
+        void transitionToRoom0();
+    }
+
+    public void setRoomTransitionListener(RoomTransitionListener listener) {
+        this.roomTransitionListener = listener;
+    }
+
+    @Override
+    public void transitionToRoom1() {
+        System.out.println("🎯 MÉTODO transitionToRoom1 EXECUTADO");
+        System.out.println("🎯 Condições: isRoom0=" + isRoom0 +
+                ", listener=" + (roomTransitionListener != null));
+
+        if (isRoom0 && roomTransitionListener != null) {
+            System.out.println("✅ Condições satisfeitas - Chamando listener...");
+            roomTransitionListener.onRoomTransition(false);
+        } else {
+            System.out.println("❌ Condições NÃO satisfeitas!");
+            if (!isRoom0)
+                System.out.println("❌ Não é Sala 0!");
+            if (roomTransitionListener == null)
+                System.out.println("❌ Listener é null!");
+        }
+    }
+
+    @Override
+    public void transitionToRoom0() {
+        if (!isRoom0 && roomTransitionListener != null) {
+            System.out.println("🚪 Transicionando para Sala 0...");
+            roomTransitionListener.onRoomTransition(true); // true = para Sala 0
+        }
+    }
+
+    private void checkRoomTransition() {
+        if (isRoom0 && room0Door != null && room0Door.isPlayerInteracting()) {
+            transitionToRoom1();
+        }
+
+    }
+
+    public void disposeSafely() {
+        System.out.println("🧹 [Mapa] disposeSafely iniciado");
+
+        // 1. Limpar contact listener
+        this.roomTransitionListener = null;
+
+        // 2. Parar todos os sons
+        AudioManager.getInstance().stopAllAmbientSounds();
+
+        // 3. Destruir corpos de todos os itens ANTES de destruir o mundo
+        System.out.println("💥 Destruindo corpos de todos os itens...");
+
+        // CraftItems
+        for (Item item : craftItems) {
+            if (item.getBody() != null) {
+                try {
+                    item.destroyBody();
+                } catch (Exception e) {
+                    System.err.println("Erro ao destruir corpo de craftItem: " + e.getMessage());
+                }
+            }
+        }
+
+        // Weapons
+        for (Weapon weapon : weapons) {
+            if (weapon.getBody() != null) {
+                try {
+                    weapon.destroyBody();
+                } catch (Exception e) {
+                    System.err.println("Erro ao destruir corpo de weapon: " + e.getMessage());
+                }
+            }
+        }
+
+        // Ammo
+        for (Ammo ammo : ammo) {
+            if (ammo.getBody() != null) {
+                try {
+                    ammo.destroyBody();
+                } catch (Exception e) {
+                    System.err.println("Erro ao destruir corpo de ammo: " + e.getMessage());
+                }
+            }
+        }
+
+        // 4. Destruir RayHandler
+        if (rayHandler != null) {
+            try {
+                rayHandler.dispose();
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao dispor rayHandler: " + e.getMessage());
+            }
+            rayHandler = null;
+        }
+
+        // 5. Destruir o World (isso vai destruir quaisquer corpos restantes)
+        if (world != null) {
+            System.out.println("💥 Destruindo World...");
+            try {
+                world.dispose();
+                System.out.println("✅ World destruído");
+            } catch (Exception e) {
+                System.err.println("❌ ERRO ao dispor world: " + e.getMessage());
+            }
+            world = null;
+        }
+
+        // 6. Limpar todas as listas
+        clearAllLists();
+
+        System.out.println("✅ disposeSafely completo");
+    }
+
+    /**
+     * Limpa todas as listas de forma segura
+     */
+    private void clearAllLists() {
+
+        if (campFire != null) {
+            campFire.dispose();
+            campFire = null;
+        }
+        // Limpa enemies
+        if (enemies != null) {
+            for (Enemy enemy : enemies) {
+                // Remove referência ao body, mas não destrói aqui
+                enemy.getBody().setUserData(null);
+            }
+            enemies.clear();
+        }
+
+        // Limpa weapons
+        if (weapons != null) {
+            for (Weapon weapon : weapons) {
+                if (weapon.getBody() != null) {
+                    weapon.getBody().setUserData(null);
+                }
+            }
+            weapons.clear();
+        }
+
+        // Limpa ammo
+        if (ammo != null) {
+            for (Ammo ammoItem : ammo) {
+                if (ammoItem.getBody() != null) {
+                    ammoItem.getBody().setUserData(null);
+                }
+            }
+            ammo.clear();
+        }
+
+        // Limpa projectiles
+        if (projectiles != null) {
+            for (Projectile projectile : projectiles) {
+                if (projectile.getBody() != null) {
+                    projectile.getBody().setUserData(null);
+                }
+            }
+            projectiles.clear();
+        }
+
+        // Limpa destructibles
+        if (destructibles != null) {
+            for (Destructible destructible : destructibles) {
+                if (destructible.getBody() != null) {
+                    destructible.getBody().setUserData(null);
+                }
+            }
+            destructibles.clear();
+        }
+        if (polvoras != null)
+            polvoras.clear();
+        if (craftItems != null)
+            craftItems.clear();
+        if (pendingActions != null)
+            pendingActions.clear();
+        if (rooms != null)
+            rooms.clear();
+        if (cabanas != null)
+            cabanas.clear();
+        if (staticItems != null)
+            staticItems.clear();
+        if (wallPositions != null)
+            wallPositions.clear();
+    }
+
+    public void setupContactListener(Robertinhoo player) {
+        if (contactListener != null) {
+            System.out.println("⚠️ ContactListener já existe, atualizando...");
+            contactListener.updatePlayerReference(player);
+        } else {
+            System.out.println("🎯 Criando novo ContactListener...");
+            contactListener = new GameContactListener(player);
+        }
+
+        world.setContactListener(contactListener);
+        System.out.println("✅ ContactListener configurado no mundo");
+    }
+
+    /**
+     * Atualiza a referência do jogador no ContactListener
+     */
+    public void updatePlayerInContactListener(Robertinhoo newPlayer) {
+        if (contactListener != null) {
+            contactListener.updatePlayerReference(newPlayer);
+        } else {
+            // Se não existe, cria um novo
+            setupContactListener(newPlayer);
+        }
+    }
+
+    public FixedRoom getSpawnRoom() {
+        if (mapGenerator != null) {
+            return mapGenerator.getSpawnRoom();
+        }
+        return null;
+    }
+
+    public GameContactListener getContactListener() {
+        return contactListener;
+    }
 }

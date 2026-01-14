@@ -7,15 +7,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
+
 public class CabanaInteractionSystem {
     private final Mapa mapa;
-    private final Robertinhoo player;
+    private  Robertinhoo player;
     private BitmapFont font;
     private boolean showInteractPrompt = false;
     private Room0Cabana nearbyCabana = null;
@@ -224,4 +224,9 @@ public class CabanaInteractionSystem {
     public boolean isTransitioning() {
         return isTransitioning;
     }
+    public void setPlayer(Robertinhoo player) {
+    this.player = player;
+    System.out.println("✅ Jogador atualizado no CabanaInteractionSystem: " + 
+                      (player != null ? player.hashCode() : "null"));
+}
 }

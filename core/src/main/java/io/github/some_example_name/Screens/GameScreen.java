@@ -2,6 +2,7 @@ package io.github.some_example_name.Screens;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -15,15 +16,17 @@ import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.Screens.ScreenEffects.DeathSystem;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.MapConfig.RoomManager;
+import com.badlogic.gdx.utils.Timer;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Cursor;
 
-public class GameScreen extends CatScreen {
+public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener {
 
     private Mapa mapa;
     private MapRenderer renderer;
@@ -38,6 +41,11 @@ public class GameScreen extends CatScreen {
     private RoomManager roomManager = RoomManager.getInstance();
     private CabanaInteractionSystem cabanaInteraction;
     private com.badlogic.gdx.graphics.Texture blackPixelTexture;
+    private DeathSystem deathSystem;
+    private boolean isRespawning = false;
+    private float respawnTimer = 0f;
+    private static final float RESPAWN_TRANSITION_DURATION = 1.5f;
+    private int currentRoom = 0;
 
     public GameScreen(Game game) {
         super(game);
@@ -49,14 +57,8 @@ public class GameScreen extends CatScreen {
         GameGameSoundsPaths.loadAllAssets();
 
         // CARREGA A SALA 0 (SALA INICIAL)
-        mapa = roomManager.createRoom0();
-        robertinhoo = mapa.robertinhoo;
-        renderer = new MapRenderer(mapa);
-        cabanaInteraction = mapa.getCabanaInteractionSystem();
-        createBlackPixelTexture();
-
-        
-
+        loadRoom0();
+        deathSystem = new DeathSystem(this, renderer.getPlayerRenderer());
         hudBatch = new SpriteBatch();
         hudCamera = new OrthographicCamera();
         hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -83,33 +85,57 @@ public class GameScreen extends CatScreen {
         Gdx.graphics.setCursor(blankCursor);
     }
 
+    // No GameScreen.java, modifique o método render:
     @Override
     public void render(float delta) {
         long startTime = TimeUtils.nanoTime();
 
-        float gameplayDelta = ScreenFreezeSystem.getGameplayDelta(); // Inimigos, projéteis
-        float playerDelta = ScreenFreezeSystem.getPlayerDelta(); // Player (sempre normal)
-        float animationDelta = ScreenFreezeSystem.getAnimationDelta(); // Animações (sempre normal)
-
+        float gameplayDelta = ScreenFreezeSystem.getGameplayDelta();
+        float playerDelta = ScreenFreezeSystem.getPlayerDelta();
+        float animationDelta = ScreenFreezeSystem.getAnimationDelta();
         ScreenFreezeSystem.update(delta);
-
         gameplayDelta = Math.min(0.06f, gameplayDelta);
         playerDelta = Math.min(0.06f, playerDelta);
         animationDelta = Math.min(0.06f, animationDelta);
+        deathSystem.update(delta, robertinhoo, mapa);
 
+        if (deathSystem.isPlayingDeathAnimation()) {
+            gameplayDelta = 0;
+            playerDelta = 0;
+        }
+        if (deathSystem.isPlayerDead()) {
+            Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            renderer.render(animationDelta, robertinhoo);
+            hudBatch.begin();
+            deathSystem.render(hudBatch, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            hudBatch.end();
+
+            return;
+        }
+        if (isRespawning) {
+            if (deathSystem != null) {
+                deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer());
+                System.out.println("✅ DeathSystem atualizado com PlayerRenderer da Sala 1");
+            } else {
+                System.err.println("❌ ERRO: deathSystem é null na Sala 1!");
+                deathSystem = new DeathSystem(this, renderer.getPlayerRenderer());
+            }
+            updateRespawnTransition(delta);
+            return;
+        }
+
+        // JOGO NORMAL
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // UPDATE:
         long updateStart = TimeUtils.nanoTime();
-        robertinhoo.update(playerDelta); // Player sempre atualiza normalmente
-        mapa.update(gameplayDelta); // Inimigos e projéteis congelam durante freeze
-        float updateTime = (TimeUtils.nanoTime() - updateStart) / 1000000f;
+        robertinhoo.update(playerDelta);
+        mapa.update(gameplayDelta);
 
         // RENDER:
-        long renderStart = TimeUtils.nanoTime();
-        renderer.render(animationDelta, robertinhoo); // Animações sempre normais
-        float renderTime = (TimeUtils.nanoTime() - renderStart) / 1000000f;
+        renderer.render(animationDelta, robertinhoo);
 
         // HUD:
         weaponHUD.update(animationDelta);
@@ -131,22 +157,158 @@ public class GameScreen extends CatScreen {
             debugEnabled = !debugEnabled;
         }
 
-         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F10)) {
-        AudioManager.getInstance().debugAudioState();
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F10)) {
+            AudioManager.getInstance().debugAudioState();
+        }
+
+        // TESTE: Tecla F1 para forçar morte
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.F1)) {
+            System.out.println("🔫 TESTE: Forçando morte do player...");
+            forceDeath();
+        }
     }
+
+    private void updateRespawnTransition(float delta) {
+        respawnTimer += delta;
+
+        // Limpa a tela
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Renderiza o jogo durante a transição
+        renderer.render(delta, robertinhoo);
+
+        // Renderiza HUD durante transição
+        weaponHUD.update(delta);
+        robertinhoFaceHUD.update(delta);
+
+        hudBatch.begin();
+        weaponHUD.draw();
+        robertinhoFaceHUD.draw(hudBatch, delta);
+
+        // Overlay de fade out
+        float alpha = 1f - (respawnTimer / RESPAWN_TRANSITION_DURATION);
+        hudBatch.setColor(0, 0, 0, alpha);
+
+        hudBatch.setColor(1, 1, 1, 1);
+        hudBatch.end();
+
+        if (respawnTimer >= RESPAWN_TRANSITION_DURATION) {
+            isRespawning = false;
+            respawnTimer = 0f;
+            deathSystem.reset();
+
+            System.out.println("✅ Transição de respawn completa! Jogador vivo.");
+        }
+    }
+
+    private void loadRoom0() {
+        AudioManager.getInstance().stopAllAmbientSounds();
+        Robertinhoo currentPlayer = (mapa != null) ? mapa.robertinhoo : robertinhoo;
+        if (mapa != null) {
+            try {
+                mapa.disposeSafely();
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
+            }
+        }
+        mapa = roomManager.createOrResetRoom0(currentPlayer);
+        robertinhoo = mapa.robertinhoo;
+        renderer = new MapRenderer(mapa);
+        cabanaInteraction = mapa.getCabanaInteractionSystem();
+        mapa.setRoomTransitionListener(this);
+    }
+
+    private void loadRoom1() {
+        System.out.println("=== INICIANDO LOAD ROOM 1 ===");
+        currentRoom = 1;
+        AudioManager.getInstance().stopAllAmbientSounds();
+        Robertinhoo currentPlayer = null;
+        if (mapa != null) {
+            System.out.println("📝 Mapa atual existe, obtendo jogador...");
+            currentPlayer = mapa.robertinhoo;
+            System.out.println("📝 Jogador obtido: " + (currentPlayer != null));
+        } else {
+            System.out.println("📝 Mapa atual é null, usando robertinhoo: " + (robertinhoo != null));
+            currentPlayer = robertinhoo;
+        }
+
+        if (mapa != null) {
+            System.out.println("🗑️ Destruindo mapa antigo...");
+            try {
+                mapa.disposeSafely();
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
+                System.err.println("⚠️ Continuando mesmo com erro...");
+            }
+            mapa = null;
+            System.out.println("🗑️ Mapa antigo destruído");
+        }
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            // Ignora
+        }
+        mapa = createRoom1ReusingPlayer(currentPlayer);
+
+        robertinhoo = mapa.robertinhoo;
+        renderer = new MapRenderer(mapa);
+        if (deathSystem != null) {
+            deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer());
+            System.out.println("✅ DeathSystem atualizado com PlayerRenderer da Sala 1");
+        } else {
+            System.err.println("❌ ERRO: deathSystem é null na Sala 1!");
+            deathSystem = new DeathSystem(this, renderer.getPlayerRenderer());
+        }
+        cabanaInteraction = null;
+        mapa.setRoomTransitionListener(this);
+    }
+
+    private Mapa createRoom1ReusingPlayer(Robertinhoo existingPlayer) {
+        System.out.println("🔧 Criando Sala 1 com jogador existente: " + (existingPlayer != null));
+
+        // Cria sala 1 normalmente
+        Mapa room1 = new Mapa(false);
+
+        // Se temos um jogador existente, reutiliza
+        if (existingPlayer != null) {
+            System.out.println("👤 Reutilizando jogador existente...");
+            if (room1.robertinhoo != null && room1.robertinhoo.getBody() != null) {
+                room1.world.destroyBody(room1.robertinhoo.getBody());
+                System.out.println("🗑️ Jogador automático removido");
+            }
+            Vector2 worldStartPos = room1.getMapGenerator().getWorldStartPosition(room1.mapHeight);
+            existingPlayer.switchToNewMap(room1, worldStartPos);
+            room1.robertinhoo = existingPlayer;
+            room1.setupContactListener(existingPlayer);
+
+            System.out.println("✅ Jogador reutilizado e ContactListener configurado");
+        } else {
+            System.out.println("👤 Usando jogador novo da Sala 1");
+            room1.setupContactListener(room1.robertinhoo);
+        }
+
+        return room1;
+    }
+
+    @Override
+    public void onRoomTransition(boolean toRoom0) {
+        if (toRoom0) {
+            loadRoom0();
+        } else {
+            loadRoom1();
+        }
+        renderer.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     @Override
     public void resize(int width, int height) {
-        // Atualize PRIMEIRO a câmera do jogo principal
         renderer.resize(width, height);
 
-        // Atualize AGORA a câmera HUD (método antigo que funcionava)
         hudCamera.setToOrtho(false, width, height);
         hudCamera.update();
         hudBatch.setProjectionMatrix(hudCamera.combined);
 
-        // Atualize os elementos HUD
         if (weaponHUD != null) {
             weaponHUD.resize(width, height);
         }
@@ -156,20 +318,44 @@ public class GameScreen extends CatScreen {
         System.out.println("[RESIZE] Tela: " + width + "x" + height);
     }
 
-        private void createBlackPixelTexture() {
-        com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(1, 1, 
-                com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
-        pixmap.setColor(0, 0, 0, 1);
-        pixmap.fill();
-        blackPixelTexture = new com.badlogic.gdx.graphics.Texture(pixmap);
-        pixmap.dispose();
-    }
-
-
-
     @Override
     public void hide() {
 
+    }
+
+    public void onPlayerRespawn() {
+        System.out.println("🔄 GameScreen: Iniciando respawn...");
+        isRespawning = true;
+        respawnTimer = 0f;
+        loadRoom0();
+        applyRespawnPenalties();
+        System.out.println("🏠 Jogador respawnado na Sala 0");
+    }
+
+    private void applyRespawnPenalties() {
+        if (robertinhoo == null)
+            return;
+
+        // 1. Vida parcial (70% da vida máxima)
+        int maxLife = robertinhoo.getMaxLife();
+        int respawnLife = (int) (maxLife * 0.7f);
+        System.out.println("   - Vida após respawn: " + respawnLife + "/" + maxLife);
+
+        // 4. Efeito de invulnerabilidade temporária pós-respawn
+        robertinhoo.setInvulnerable(true);
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                robertinhoo.setInvulnerable(false);
+                System.out.println("   - Invulnerabilidade pós-respawn terminada");
+            }
+        }, 3f); // 3 segundos de invulnerabilidade
+    }
+
+    public void forceDeath() {
+        if (robertinhoo != null && !deathSystem.isPlayerDead()) {
+            robertinhoo.takeDamage(robertinhoo.getLife()); // Dano fatal
+        }
     }
 
     @Override
@@ -192,6 +378,10 @@ public class GameScreen extends CatScreen {
 
         if (audioManager != null) {
             audioManager.dispose();
+        }
+
+        if (mapa != null) {
+            mapa.setRoomTransitionListener(null);
         }
     }
 }

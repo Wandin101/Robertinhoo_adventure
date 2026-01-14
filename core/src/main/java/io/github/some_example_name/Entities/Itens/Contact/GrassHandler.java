@@ -22,7 +22,7 @@ public class GrassHandler implements ContactHandler {
         short otherCategory = 0;
 
         // Identifica qual fixture é a grama
-        if (userDataA instanceof Grass || userDataA instanceof Room0Grass || userDataA instanceof Room0Flower) {
+        if (userDataA instanceof Grass) {
             grass = (Grass) userDataA;
             otherCategory = categoryB;
         } else if (userDataB instanceof Grass) {

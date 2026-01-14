@@ -9,8 +9,6 @@ import io.github.some_example_name.Entities.Itens.Weapon.Missile;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Enemies.Enemy;
-import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
-import io.github.some_example_name.Entities.Inventory.Item;
 
 public class ProjectileHandler implements ContactHandler {
     private final Robertinhoo player;
@@ -24,7 +22,6 @@ public class ProjectileHandler implements ContactHandler {
         Object dataA = fixtureA.getBody().getUserData();
         Object dataB = fixtureB.getBody().getUserData();
 
-        Gdx.app.log("ProjectileHandler", "Contato detectado entre: " + dataA + " e " + dataB);
 
         if (player.getMeleeAttackSystem().getParrySystem().isParryActive() &&
                 ((dataA instanceof Missile && "PLAYER".equals(dataB)) ||

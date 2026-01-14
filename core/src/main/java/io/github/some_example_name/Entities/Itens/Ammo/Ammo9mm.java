@@ -77,4 +77,9 @@ public class Ammo9mm extends Ammo {
     public String getName() {
         return "9mm Ammo";
     }
+    @Override
+    public Body getBody() {
+        
+        return body;
+    }
 }

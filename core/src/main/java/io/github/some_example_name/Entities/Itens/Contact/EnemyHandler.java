@@ -28,7 +28,7 @@ public class EnemyHandler implements ContactHandler {
             handleEnemyCollision((Enemy) dataA, (Enemy) dataB);
         }
 
-        return false; // Continua o processamento com outros handlers
+        return false;
     }
 
     private void handleEnemyAttack(Enemy enemy) {

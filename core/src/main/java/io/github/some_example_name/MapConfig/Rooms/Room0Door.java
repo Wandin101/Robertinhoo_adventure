@@ -16,19 +16,24 @@ import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.EsferaDeLuz;
 import io.github.some_example_name.Luz.SistemaLuz;
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.MapConfig.RoomTransitionManager;
 
 public class Room0Door {
     private Mapa mapa;
     private Vector2 position;
     private Texture doorSpriteSheet;
     private int tileSize;
-    private boolean debugMode = false;
+
     private boolean lightEnabled = false;
-    private float lightStateTime = 0;
+
     private EsferaDeLuz lightSphere;
-    private float lightIntensity = 0f;
+
     private static final float LIGHT_SPHERE_RADIUS = 200f;
     private static final float LIGHT_TRANSITION_SPEED = 2f;
+    private boolean playerInteracting = false;
+
+    private float interactionCooldown = 0;
+    private static final float INTERACTION_DELAY = 0.5f;
 
     // Estados da porta
     public enum DoorState {
@@ -66,7 +71,6 @@ public class Room0Door {
         this.stateTime = 0;
         this.playerInContact = false;
         this.contactCount = 0;
-        this.lightStateTime = 0;
         this.lightEnabled = false;
 
         loadSpriteSheet();
@@ -196,6 +200,11 @@ public class Room0Door {
         stateTime += delta;
         updateState();
 
+        if (interactionCooldown > 0) {
+            interactionCooldown -= delta;
+        }
+        checkDoorInteraction();
+
         if (lightSphere != null) {
             lightSphere.update(delta);
 
@@ -260,18 +269,10 @@ public class Room0Door {
     private void checkPlayerDistanceFallback() {
         if (mapa.robertinhoo == null)
             return;
-
-        // Usar a posição do corpo do jogador no mundo
         com.badlogic.gdx.math.Vector2 playerBodyPos = mapa.robertinhoo.getBody().getPosition();
-
-        // Converter a posição da porta para coordenadas mundiais
         Vector2 doorWorldPos = convertTileToWorldPosition((int) position.x, (int) position.y);
-
         float distance = Vector2.dst(doorWorldPos.x, doorWorldPos.y, playerBodyPos.x, playerBodyPos.y);
-
         boolean shouldBeInContact = distance <= MAX_DISTANCE_FOR_CONTACT;
-
-        // Se o estado de contato não corresponde à distância real, corrigir
         if (shouldBeInContact && !playerInContact) {
             System.out.println("🚪 [FALLBACK] Correção: Player deveria estar em contato (distância: " + distance + ")");
             onPlayerEnter();
@@ -281,11 +282,8 @@ public class Room0Door {
         }
     }
 
-    // Métodos chamados pelo DoorHandler
     public void onPlayerEnter() {
         contactCount++;
-
-        // Só processa se não estava em contato antes
         if (!playerInContact) {
             playerInContact = true;
             System.out.println("🚪 onPlayerEnter() - Contatos: " + contactCount + ", Estado: " + currentState);
@@ -300,8 +298,6 @@ public class Room0Door {
 
     public void onPlayerExit() {
         contactCount = Math.max(0, contactCount - 1);
-
-        // Só processa se não há mais contatos
         if (contactCount <= 0 && playerInContact) {
             playerInContact = false;
             contactCount = 0;
@@ -325,18 +321,12 @@ public class Room0Door {
         float screenX = offsetX + worldPos.x * tileSize - tileSize / 2;
         float screenY = offsetY + worldPos.y * tileSize - tileSize / 2;
 
-        // ✅ EFEITO DE ILUMINAÇÃO DINÂMICA BASEADO NA LUZ
         if (lightSphere != null && lightSphere.isActive()) {
-            // Quando a luz está ativa: usar cor CLARA baseada na intensidade
             float intensity = lightSphere.getIntensity();
-
-            // Interpolar entre escuro (0.5f) e claro (1.0f) baseado na intensidade
-            float brightness = 0.5f + (0.5f * intensity); // Varia de 0.5 a 1.0
+            float brightness = 0.5f + (0.5f * intensity);
 
             batch.setColor(brightness, brightness, brightness, 1f);
-
-            // ✅ DEBUG: Log da transição (opcional)
-            if (Math.random() < 0.01f) { // Apenas 1% dos frames para não sobrecarregar
+            if (Math.random() < 0.01f) {
                 Gdx.app.log("DOOR_BRIGHTNESS",
                         "Intensidade: " + intensity +
                                 " | Brilho: " + brightness +
@@ -348,7 +338,7 @@ public class Room0Door {
         }
 
         batch.draw(currentFrame, screenX, screenY, tileSize, tileSize);
-        batch.setColor(1f, 1f, 1f, 1f); // ✅ SEMPRE restaurar cor normal
+        batch.setColor(1f, 1f, 1f, 1f);
     }
 
     private TextureRegion getCurrentFrame() {
@@ -401,20 +391,34 @@ public class Room0Door {
 
     public void updateLightSpherePosition(float offsetX, float offsetY) {
         if (lightSphere != null) {
-            // ✅ POSIÇÃO SIMPLES: usar a mesma lógica da renderização da porta
             Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
             float screenX = offsetX + worldPos.x * tileSize;
             float screenY = offsetY + worldPos.y * tileSize;
 
-            // ✅ AJUSTE: subir um pouco a luz para ficar na caveira
             screenY += tileSize;
 
             lightSphere.setPosition(screenX, screenY - 35f);
+        }
+    }
+private void checkDoorInteraction() {
+    if (currentState == DoorState.ABERTA && playerInContact && interactionCooldown <= 0) {
+        if (isInteractKeyPressed()) {
+            System.out.println("🚪 Jogador interagiu com a porta!");
+            playerInteracting = true;
+            triggerRoomTransition();
+            interactionCooldown = INTERACTION_DELAY;
+        }
+    } else {
+        playerInteracting = false;
+    }
+}
+    private boolean isInteractKeyPressed() {
+        return com.badlogic.gdx.Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.E);
+    }
 
-            // Debug simples
-            if (lightEnabled) {
-                Gdx.app.log("DOOR_LIGHT", "Luz posicionada em: " + screenX + ", " + screenY);
-            }
+    private void triggerRoomTransition() {
+        if (mapa instanceof RoomTransitionManager) {
+            ((RoomTransitionManager) mapa).transitionToRoom1();
         }
     }
 
@@ -438,6 +442,10 @@ public class Room0Door {
 
     public EsferaDeLuz getLightSphere() {
         return lightSphere;
+    }
+
+    public boolean isPlayerInteracting() {
+        return playerInteracting;
     }
 
 }

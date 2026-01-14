@@ -38,7 +38,6 @@ public class Barrel extends BaseDestructible implements ShadowEntity, Obstacle {
         super(x, y, intactTexture, destroyedTexture);
         this.mapa = mapa;
         this.health = 2;
-        Gdx.app.log("Barrel", "Instanciando Barrel em " + x + "," + y);
         this.loadAssets();
         createPhysicsBody();
         this.shadowComponent = new ShadowComponent(

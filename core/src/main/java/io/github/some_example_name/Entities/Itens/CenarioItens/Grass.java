@@ -101,9 +101,6 @@ public class Grass extends BaseDestructible {
 
         this.destructionAnimation = new Animation<>(0.08f, destructionFrames);
         this.destroyedTexture = destructionFrames[4];
-
-        Gdx.app.log("Grass", "Animações carregadas: Caminhada(" + walkFrames.length + " frames), Destruição("
-                + destructionFrames.length + " frames)");
     }
 
     private void createPhysicsBody() {

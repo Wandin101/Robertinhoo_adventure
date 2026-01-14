@@ -7,34 +7,46 @@ import com.badlogic.gdx.Gdx;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
-
 public class MeleeAttackSystem {
     private final Robertinhoo player;
     private Body meleeHitboxBody;
     private boolean attackInProgress;
     private float attackDuration;
-    private final World world;
     private final ParrySystem parrySystem;
     private Timer.Task endAttackTask;
     private boolean isParryExtended = false;
-     private boolean hitboxCreated = false;
+    private boolean hitboxCreated = false;
 
     public MeleeAttackSystem(Robertinhoo player) {
         this.player = player;
-        this.world = player.getMap().world;
         this.attackInProgress = false;
         this.attackDuration = player.getMeleeAttackDuration();
         this.parrySystem = new ParrySystem(player);
     }
+    
+    // MÉTODO AUXILIAR para obter o World atual
+    private World getCurrentWorld() {
+        if (player != null && player.getMap() != null) {
+            return player.getMap().world;
+        }
+        return null;
+    }
 
-     public void startAttack(int direction) {
+    public void startAttack(int direction) {
         if (attackInProgress) {
+            return;
+        }
+
+        // VERIFICAÇÃO DE SEGURANÇA
+        World currentWorld = getCurrentWorld();
+        if (currentWorld == null) {
+            System.err.println("❌ ERRO: Não há World válido para criar ataque!");
             return;
         }
 
         attackInProgress = true;
         isParryExtended = false;
-        hitboxCreated = false; // RESET
+        hitboxCreated = false;
         parrySystem.activateParry();
         cancelExistingTimers();
 
@@ -46,18 +58,25 @@ public class MeleeAttackSystem {
                 scheduleEndAttackTimer();
             }
         }, 0.1f);
-           AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.PARRY_SUCCESS);
-    }
-       public void extendAttackForParry() {
-        if (attackInProgress && !isParryExtended) {
-            isParryExtended = true;
-            if (hitboxCreated) {
-                scheduleEndAttackTimer();
-            }
-        }
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.PARRY_SUCCESS);
     }
 
     private void createMeleeHitbox(int direction) {
+        // Obter o World atual
+        World world = getCurrentWorld();
+        if (world == null) {
+            System.err.println("❌ ERRO: World é null ao criar hitbox de ataque!");
+            return;
+        }
+        
+        // Verificar se o body do jogador é válido
+        if (player.body == null || player.body.getWorld() == null) {
+            System.err.println("❌ ERRO: Body do jogador inválido para criar hitbox!");
+            return;
+        }
+
+        System.out.println("⚔️ Criando hitbox de ataque no mundo atual...");
+        
         // Criar definição do corpo
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
@@ -98,23 +117,29 @@ public class MeleeAttackSystem {
         fd.filter.maskBits = Constants.BIT_ENEMY | Constants.BIT_OBJECT;
         meleeHitboxBody.createFixture(fd);
         shape.dispose();
+        
     }
 
-private void endAttack() {
-    Gdx.app.log("MELEE_DEBUG", "=== FINALIZANDO ATAQUE ===");
-    
-    parrySystem.resetParrySuccess();
-    
-    if (meleeHitboxBody != null) {
-        world.destroyBody(meleeHitboxBody);
-        meleeHitboxBody = null;
-        Gdx.app.log("MELEE_DEBUG", "Hitbox destruída");
+    private void endAttack() {
+        System.out.println("⚔️ Finalizando ataque...");
+        
+        parrySystem.resetParrySuccess();
+        
+        if (meleeHitboxBody != null) {
+            World world = meleeHitboxBody.getWorld();
+            if (world != null) {
+                try {
+                    world.destroyBody(meleeHitboxBody);
+                    System.out.println("✅ Hitbox destruída");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Erro ao destruir hitbox: " + e.getMessage());
+                }
+            }
+            meleeHitboxBody = null;
+        }
+        attackInProgress = false;
+        isParryExtended = false;
     }
-    attackInProgress = false;
-    isParryExtended = false;
-    
-    Gdx.app.log("MELEE_DEBUG", "Ataque finalizado. attackInProgress: " + attackInProgress);
-}
 
     public boolean isAttacking() {
         return attackInProgress;
@@ -132,16 +157,17 @@ private void endAttack() {
         boolean success = parrySystem.isParrySuccess();
         return success;
     }
-        private void cancelExistingTimers() {
+
+    private void cancelExistingTimers() {
         if (endAttackTask != null) {
             endAttackTask.cancel();
             endAttackTask = null;
         }
     }
 
-        private void scheduleEndAttackTimer() {
+    private void scheduleEndAttackTimer() {
         cancelExistingTimers();
-        
+
         float duration;
         if (parrySystem.isParrySuccess()) {
             duration = 0.616f;
@@ -156,5 +182,16 @@ private void endAttack() {
             }
         }, duration);
     }
+
+
+        public void extendAttackForParry() {
+        if (attackInProgress && !isParryExtended) {
+            isParryExtended = true;
+            if (hitboxCreated) {
+                scheduleEndAttackTimer();
+            }
+        }
+    }
+
 
 }

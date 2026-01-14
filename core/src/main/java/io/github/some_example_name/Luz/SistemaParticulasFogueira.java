@@ -61,33 +61,24 @@ public class SistemaParticulasFogueira {
     
     private void spawnParticle(float x, float y, float time) {
         Particle p = new Particle();
-        
-        // Posição inicial com pequena variação
         p.position.set(
             x + MathUtils.random(-8f, 15f),
             y + MathUtils.random(-5f, 15f)
         );
         
-        // Velocidade - fagulhas subindo com variação
         p.velocity.set(
             MathUtils.random(-15f, 15f),
             MathUtils.random(40f, 100f)
         );
         
-        // Vida da partícula
         p.life = p.maxLife = MathUtils.random(0.8f, 1.5f);
-        
-        // Cor - varia entre amarelo, laranja e vermelho
         float colorChoice = MathUtils.random();
        if (colorChoice < 0.7f) {
         p.color.set(0.886f, 1.0f, 0.290f, 1f); // #e2ff4a predominante
     } else {
         p.color.set(0.118f, 0.956f, 0.169f, 1f); // #1ef42b
     }
-        
-        // Tamanho
-        p.size = MathUtils.random(2f, 6f);
-        
+        p.size = MathUtils.random(2f, 6f);        
         particles.add(p);
     }
     
@@ -102,8 +93,6 @@ public class SistemaParticulasFogueira {
                 p.position.x - p.size/2, p.position.y - p.size/2,
                 p.size, p.size);
         }
-        
-        // Restaura blending normal
         batch.setBlendFunction(com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA, 
                               com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
     }

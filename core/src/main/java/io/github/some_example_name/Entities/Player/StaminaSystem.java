@@ -7,7 +7,7 @@ public class StaminaSystem {
     private float exhaustedRegenRate;
     private boolean isExhausted;
     private float exhaustionRecoveryThreshold;
-    private float lastConsumptionAmount = 0;
+    private float tolerancePercentage = 0.1f; // 10% de tolerância
 
     public StaminaSystem(float maxStamina, float normalRegenRate, float exhaustedRegenRate, 
                         float exhaustionRecoveryThreshold) {
@@ -21,50 +21,79 @@ public class StaminaSystem {
 
     public void update(float deltaTime) {
         if (isExhausted) {
-            // Regeneração mais lenta durante exaustão
             currentStamina += exhaustedRegenRate * deltaTime;
-            
-            // Sai da exaustão apenas quando atingir o limiar de recuperação
             if (currentStamina >= maxStamina * exhaustionRecoveryThreshold) {
                 isExhausted = false;
             }
         } else {
-            // Regeneração normal
             currentStamina += normalRegenRate * deltaTime;
         }
-        
-        // Garante que a stamina não ultrapasse o máximo
         currentStamina = Math.min(currentStamina, maxStamina);
-            
-        // // DEBUG: Mostrar estado atual
-        // System.err.println("Stamina: " + currentStamina + "/" + maxStamina + 
-        //                     " Exhausted: " + isExhausted);
     }
 
     public boolean consumeStamina(float amount) {
-        System.err.println("Consuming stamina: " + amount);
+        System.err.println("Tentando consumir stamina: " + amount + " | Current: " + currentStamina + " | Exhausted: " + isExhausted);
         
+        // Se já está exausto, não permite nenhuma ação
         if (isExhausted) {
+            System.err.println("Ação negada: já está exausto");
             return false;
         }
-        boolean actionAllowed = true;
-        lastConsumptionAmount = amount;
         
-        if (currentStamina < amount) {
+        // Calcula a tolerância (mínimo de stamina necessário para tentar a ação)
+        float toleranceAmount = maxStamina * tolerancePercentage;
+        
+        // Verifica se tem stamina suficiente OU se está dentro da tolerância
+        if (currentStamina >= amount) {
+            // Tem stamina suficiente - consome normalmente
+            currentStamina -= amount;
+            System.err.println("Stamina consumida normalmente. Nova stamina: " + currentStamina);
+        } else if (currentStamina >= toleranceAmount) {
+            // Está dentro da tolerância - consome o que tem e entra em exaustão
+            System.err.println("Dentro da tolerância - consumindo última stamina");
             currentStamina = 0;
             isExhausted = true;
         } else {
-            // Consome normalmente
-            currentStamina -= amount;
-            
-            // Entra em exaustão se ficar com menos de 5% de stamina
-            if (currentStamina <= maxStamina * 0.001f) {
-                isExhausted = true;
+            // Abaixo da tolerância - não permite a ação e já está/entra em exaustão
+            System.err.println("Abaixo da tolerância mínima - ação negada");
+            if (currentStamina > 0) {
+                currentStamina = 0;
             }
+            isExhausted = true;
+            return false;
         }
         
-        return actionAllowed;
+        // Verifica se entrou em exaustão após o consumo
+        if (currentStamina <= 0) {
+            isExhausted = true;
+        }
+        
+        return true;
     }
+
+    // Método auxiliar para verificar se PODE tentar uma ação (não garante execução)
+    public boolean canAttemptAction(float amount) {
+        if (isExhausted) return false;
+        
+        float toleranceAmount = maxStamina * tolerancePercentage;
+        return currentStamina >= toleranceAmount;
+    }
+
+    // Método para ações que DEVEM ter stamina suficiente (como rolls)
+    public boolean consumeStaminaStrict(float amount) {
+        if (isExhausted || currentStamina < amount) {
+            return false;
+        }
+        
+        currentStamina -= amount;
+        
+        if (currentStamina <= 0) {
+            isExhausted = true;
+        }
+        
+        return true;
+    }
+
 
     public float getCurrentStamina() {
         return currentStamina;

@@ -147,6 +147,7 @@ public class PlayerController {
                 System.out.println("[DEBUG] Pegando item: " + player.itemToPickup);
                 player.inventoryController.enterPlacementMode(player.itemToPickup);
                 player.clearItemToPickup();
+                player.getMap().removeCraftItem(player.itemToPickup);
             } else {
                 System.out.println("[DEBUG] Nenhum item para pegar!");
             }

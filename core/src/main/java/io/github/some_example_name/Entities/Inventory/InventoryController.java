@@ -20,7 +20,7 @@ import java.util.List;
 public class InventoryController {
     private final Robertinhoo player;
     public final Inventory inventory;
-    private final Mapa mapa;
+    public  Mapa mapa;
     private InventoryMouseController mouseController;
 
     private boolean isOpen = false;
@@ -129,7 +129,7 @@ public class InventoryController {
         boolean isVisible = getContextMenu().isVisible();
         System.out.println("isVisible: " + isVisible);
         if (isVisible)
-         return;
+            return;
         int gridCols = inventory.gridCols;
         int gridRows = inventory.gridRows;
 
@@ -241,7 +241,6 @@ public class InventoryController {
 
     private void updatePlacementMode() {
 
-
         if (Gdx.input.isKeyJustPressed(Keys.R)) {
             rotateItem();
         }
@@ -299,7 +298,7 @@ public class InventoryController {
     }
 
     public void dropItem(Item item) {
-        
+
         if (inventory.removeItem(item)) {
             player.IsUsingOneHandWeapon = false;
             if (item instanceof Weapon && inventory.getEquippedWeapon() == item) {
@@ -348,9 +347,70 @@ public class InventoryController {
     }
 
     public void enterPlacementMode(Item item) {
+
+        System.out.println("\n=== 🎯 ENTER PLACEMENT MODE (DEBUG DETALHADO) ===");
+        System.out.println("   - Item: " + item);
+        System.out.println("   - Item class: " + item.getClass().getName());
+        System.out.println("   - Item hashCode: " + System.identityHashCode(item));
+
+        // DEBUG DO MAPA
+        System.out.println("\n🔍 DEBUG DO MAPA:");
+        System.out.println("   - mapa reference: " + mapa);
+        System.out.println("   - mapa hashCode: " + System.identityHashCode(mapa));
+        System.out.println("   - mapa.world field: " + mapa.world);
+        System.out.println("   - mapa.getWorld() method: " + (mapa != null ? mapa.world : "mapa é null"));
+
+        // DEBUG DO MUNDO
+        if (mapa != null && mapa.world != null) {
+            System.out.println("   - mapa.world is NOT null");
+            System.out.println("   - mapa.world hashCode: " + System.identityHashCode(mapa.world));
+            System.out.println("   - mapa.world.getBodyCount(): " + mapa.world.getBodyCount());
+        } else {
+            System.out.println("   - ⚠️ mapa.world É NULL!");
+        }
+
+        // DEBUG DO ITEM
+        System.out.println("\n🔍 DEBUG DO ITEM:");
+        System.out.println("   - item.getBody(): " + item.getBody());
+        if (item.getBody() != null) {
+            System.out.println("   - item.getBody().getWorld(): " + item.getBody().getWorld());
+            System.out.println("   - item.getBody().getWorld() hashCode: " +
+                    System.identityHashCode(item.getBody().getWorld()));
+
+            // Verificar se o mundo do item ainda é válido
+            try {
+                System.out.println("   - item.getBody().getWorld().getBodyCount(): " +
+                        item.getBody().getWorld().getBodyCount());
+            } catch (Exception e) {
+                System.out.println("   - ❌ ERRO ao acessar mundo do item: " + e.getMessage());
+            }
+        } else {
+            System.out.println("   - item.getBody() É NULL!");
+        }
+
+        // COMPARAÇÃO
+        System.out.println("\n🔍 COMPARAÇÃO DOS MUNDOS:");
+        if (mapa != null && mapa.world != null && item.getBody() != null) {
+            boolean worldsEqual = (item.getBody().getWorld() == mapa.world);
+            System.out.println("   - São o MESMO mundo? " + worldsEqual);
+            System.out.println("   - item world: " + item.getBody().getWorld());
+            System.out.println("   - mapa world: " + mapa.world);
+            System.out.println("   - São iguais por equals()? " +
+                    item.getBody().getWorld().equals(mapa.world));
+        } else {
+            System.out.println("   - ⚠️ Não é possível comparar (alguma referência é null)");
+        }
         if (item != null) {
             placementMode = true;
             currentPlacementItem = item;
+
+            boolean isInCorrectWorld = false;
+            if (item.getBody() != null) {
+                isInCorrectWorld = (item.getBody().getWorld() == mapa.world);
+                System.out.println("   - Item no mundo correto? " + isInCorrectWorld);
+                System.out.println("   - Mundo do item: " + item.getBody().getWorld());
+                System.out.println("   - Mundo do mapa: " + mapa.world);
+            }
 
             if (item instanceof Weapon) {
                 mapa.getWeapons().remove(item);
@@ -510,5 +570,4 @@ public class InventoryController {
         this.inventoryContextMenu = contextMenu;
     }
 
-    
 }

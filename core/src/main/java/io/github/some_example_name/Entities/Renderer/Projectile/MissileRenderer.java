@@ -51,9 +51,6 @@ public class MissileRenderer {
         float explosionFrameDuration = EXPLOSION_TOTAL_DURATION / EXPLOSION_FRAMES;
         explosionAnimation = new Animation<>(explosionFrameDuration, explosionFrames);
         explosionAnimation.setPlayMode(Animation.PlayMode.NORMAL);
-
-        Gdx.app.log("MissileRenderer", "✅ Renderizador inicializado - Explosão: " +
-                EXPLOSION_FRAMES + " frames, " + EXPLOSION_TOTAL_DURATION + "s, Tamanho: " + EXPLOSION_SIZE);
     }
 
     public void render(SpriteBatch batch, Missile missile, float offsetX, float offsetY) {
@@ -76,13 +73,10 @@ public class MissileRenderer {
                     1f, 1f,
                     missile.getAngle());
 
-            // 🔥 CORREÇÃO: Armazenar posição atual para explosão
             explosionPositions.put(missile, new Vector2(position));
         } else {
-            // 🔥 CORREÇÃO: Inicializar tempo da explosão se necessário
             if (!explosionStartTimes.containsKey(missile)) {
                 explosionStartTimes.put(missile, 0f);
-                Gdx.app.log("MissileRenderer", "💥 Iniciando animação de explosão");
             }
 
             float explosionTime = explosionStartTimes.get(missile) + delta;
@@ -97,11 +91,7 @@ public class MissileRenderer {
             float explosionY = offsetY + explosionPosition.y * TILE_SIZE;
 
             TextureRegion explosionFrame = explosionAnimation.getKeyFrame(explosionTime, false);
-
-            // 🔥 SIMPLIFICAÇÃO: Tamanho fixo maior para a explosão
             float explosionSize = EXPLOSION_SIZE;
-
-            // 🔥 CORREÇÃO: Centralizar a explosão
             float drawX = explosionX - explosionSize / 2f;
             float drawY = explosionY - explosionSize / 2f;
 
@@ -115,14 +105,11 @@ public class MissileRenderer {
                 missileStateTimes.remove(missile);
                 explosionPositions.remove(missile);
                 explosionStartTimes.remove(missile);
-                Gdx.app.log("MissileRenderer", "💨 Animação de explosão terminada - " + explosionTime + "s");
             } else {
                 // 🔥 DEBUG: Log do progresso
                 int currentFrame = explosionAnimation.getKeyFrameIndex(explosionTime);
                 float progress = explosionTime / EXPLOSION_TOTAL_DURATION;
                 if (currentFrame % 2 == 0) { // Log a cada 2 frames
-                    Gdx.app.log("MissileRenderer", "💥 Explosão - Frame: " + currentFrame +
-                            "/" + (EXPLOSION_FRAMES - 1) + " Progresso: " + (int) (progress * 100) + "%");
                 }
             }
         }
@@ -131,6 +118,5 @@ public class MissileRenderer {
     public void dispose() {
         missileTexture.dispose();
         explosionTexture.dispose();
-        Gdx.app.log("MissileRenderer", "♻️ Renderizador descartado");
     }
 }
