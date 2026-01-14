@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Fixture;
@@ -14,6 +13,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.BaseDestructible;
 import io.github.some_example_name.MapConfig.Mapa;
+
 public class Room0Grass extends BaseDestructible {
 
     private static Texture staticTexture;
@@ -31,7 +31,7 @@ public class Room0Grass extends BaseDestructible {
         this.mapa = mapa;
         this.destroyed = false;
         this.isAnimating = false;
-        
+
         loadAssets();
         createPhysicsBody();
     }
@@ -43,7 +43,7 @@ public class Room0Grass extends BaseDestructible {
                 staticTexture = new Texture(Gdx.files.internal("sala_0/grama/grama_sala_0.png"));
                 staticTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             }
-            
+
             if (walkSheet == null) {
                 walkSheet = new Texture(Gdx.files.internal("sala_0/grama/animation_grama.png"));
                 walkSheet.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -52,7 +52,7 @@ public class Room0Grass extends BaseDestructible {
             System.err.println("❌ Texturas da sala 0 não encontradas: " + e.getMessage());
             throw new RuntimeException("Texturas da sala 0 obrigatórias não encontradas");
         }
-        
+
         setupAnimations();
     }
 
@@ -60,7 +60,6 @@ public class Room0Grass extends BaseDestructible {
         this.grassTexture = new TextureRegion(staticTexture);
         this.intactTexture = grassTexture;
 
-        // Configuração específica para sala 0: 3 colunas, 1 linha
         int columns = 3;
         int rows = 1;
         int frameWidth = walkSheet.getWidth() / columns;
@@ -71,18 +70,16 @@ public class Room0Grass extends BaseDestructible {
             walkFrames[col] = new TextureRegion(
                     walkSheet,
                     col * frameWidth,
-                    0, // Apenas uma linha
+                    0,
                     frameWidth,
                     frameHeight);
         }
-        
-        this.walkAnimation = new Animation<>(0.15f, walkFrames);
-        
+
+        this.walkAnimation = new Animation<>(0.1f, walkFrames);
+
         // Sala 0 não tem animação de destruição
         this.destructionAnimation = null;
         this.destroyedTexture = null;
-
-        Gdx.app.log("Room0Grass", "✅ Animação Sala 0 carregada: Caminhada(" + walkFrames.length + " frames)");
     }
 
     private void createPhysicsBody() {
@@ -93,14 +90,13 @@ public class Room0Grass extends BaseDestructible {
         body = mapa.world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(0.4f, 0.4f);
+        shape.setAsBox(0.1f, 0.1f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.isSensor = true;
-        fixtureDef.filter.categoryBits = Constants.BIT_OBJECT;
-        fixtureDef.filter.maskBits = Constants.BIT_PLAYER | Constants.BIT_ENEMY; // Sem BIT_PLAYER_ATTACK
-
+        fixtureDef.filter.categoryBits = Constants.BIT_ROOM0_PLANT; 
+        fixtureDef.filter.maskBits = Constants.BIT_PLAYER;
         Fixture fixture = body.createFixture(fixtureDef);
         fixture.setUserData(this);
         shape.dispose();

@@ -74,4 +74,9 @@ public class PolvoraBruta extends Polvora{
     public String getName() { 
         return "Polvora Bruta";
     }
+
+    @Override
+    public Body getBody() {
+        return body;
+    }
 }

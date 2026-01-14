@@ -189,91 +189,150 @@ public class PlayerAnimations implements Disposable {
     }
 
     public static class NoArmorAnimations {
-    public final Animation<TextureRegion> idleDown;
-    public final Animation<TextureRegion> idleUp;
-    public final Animation<TextureRegion> idleLeft;
-    public final Animation<TextureRegion> idleRight;
-    public final Animation<TextureRegion> walkDown;
-    public final Animation<TextureRegion> walkUp;
-    public final Animation<TextureRegion> walkLeft;
-    public final Animation<TextureRegion> walkRight;
+        public final Animation<TextureRegion> idleDown;
+        public final Animation<TextureRegion> idleUp;
+        public final Animation<TextureRegion> idleLeft;
+        public final Animation<TextureRegion> idleRight;
+        public final Animation<TextureRegion> walkDown;
+        public final Animation<TextureRegion> walkUp;
+        public final Animation<TextureRegion> walkLeft;
+        public final Animation<TextureRegion> walkRight;
 
-    public NoArmorAnimations() {
-        // Carrega o spritesheet único
-        Texture spritesheet = AnimationLoader.loadTexture("rober/no_armor/robertinho_no_armor.png");
+        public NoArmorAnimations() {
+            // Carrega o spritesheet único
+            Texture spritesheet = AnimationLoader.loadTexture("rober/no_armor/robertinho_no_armor.png");
 
-        int frameWidth = spritesheet.getWidth() / 7;  // 7 colunas
-        int frameHeight = spritesheet.getHeight() / 5; // 5 linhas (corrigido para 5)
+            int frameWidth = spritesheet.getWidth() / 7; // 7 colunas
+            int frameHeight = spritesheet.getHeight() / 5; // 5 linhas (corrigido para 5)
 
-        TextureRegion[][] allFrames = TextureRegion.split(spritesheet, frameWidth, frameHeight);
+            TextureRegion[][] allFrames = TextureRegion.split(spritesheet, frameWidth, frameHeight);
 
-        // ANIMAÇÕES IDLE - 7 frames cada (linhas 0, 1, 2)
-        // Linha 0: Idle Sul (7 frames)
-        idleDown = createAnimationFromRow(allFrames[0], 0.2f, false, 7);
-        
-        // Linha 1: Idle Esquerda (7 frames)
-        idleLeft = createAnimationFromRow(allFrames[1], 0.2f, false, 7);
-        // Idle Direita é a mesma linha espelhada
-        idleRight = createAnimationFromRow(allFrames[1], 0.2f, true, 7);
-        
-        // Linha 2: Idle Norte (7 frames)  
-        idleUp = createAnimationFromRow(allFrames[2], 0.2f, false, 7);
+            // ANIMAÇÕES IDLE - 7 frames cada (linhas 0, 1, 2)
+            // Linha 0: Idle Sul (7 frames)
+            idleDown = createAnimationFromRow(allFrames[0], 0.2f, false, 7);
 
-        // ANIMAÇÕES WALK - Estrutura complexa (linhas 3 e 4)
-        // Linha 3: Walk Sul (4 frames) + Walk Esquerda (3 frames)
-        // Linha 4: Walk Esquerda (1 frame) + Walk Norte (4 frames) + 2 vazios
-        
-        // Walk Sul: Linha 3, frames 0-3 (4 frames)
-        walkDown = createAnimationFromRange(allFrames[3], 0, 3, 0.15f, false);
-        
-        // Walk Esquerda: Linha 3 frames 4-6 (3 frames) + Linha 4 frame 0 (1 frame) = 4 frames
-        TextureRegion[] walkLeftFrames = new TextureRegion[4];
-        walkLeftFrames[0] = allFrames[3][4];
-        walkLeftFrames[1] = allFrames[3][5];
-        walkLeftFrames[2] = allFrames[3][6];
-        walkLeftFrames[3] = allFrames[4][0];
-        walkLeft = new Animation<>(0.15f, walkLeftFrames);
-        
-        // Walk Direita: mesma sequência do Walk Esquerda, mas espelhada
-        TextureRegion[] walkRightFrames = new TextureRegion[4];
-        for (int i = 0; i < walkLeftFrames.length; i++) {
-            walkRightFrames[i] = new TextureRegion(walkLeftFrames[i]);
-            walkRightFrames[i].flip(true, false);
+            // Linha 1: Idle Esquerda (7 frames)
+            idleLeft = createAnimationFromRow(allFrames[1], 0.2f, false, 7);
+            // Idle Direita é a mesma linha espelhada
+            idleRight = createAnimationFromRow(allFrames[1], 0.2f, true, 7);
+
+            // Linha 2: Idle Norte (7 frames)
+            idleUp = createAnimationFromRow(allFrames[2], 0.2f, false, 7);
+
+            // ANIMAÇÕES WALK - Estrutura complexa (linhas 3 e 4)
+            // Linha 3: Walk Sul (4 frames) + Walk Esquerda (3 frames)
+            // Linha 4: Walk Esquerda (1 frame) + Walk Norte (4 frames) + 2 vazios
+
+            // Walk Sul: Linha 3, frames 0-3 (4 frames)
+            walkDown = createAnimationFromRange(allFrames[3], 0, 3, 0.15f, false);
+
+            // Walk Esquerda: Linha 3 frames 4-6 (3 frames) + Linha 4 frame 0 (1 frame) = 4
+            // frames
+            TextureRegion[] walkLeftFrames = new TextureRegion[4];
+            walkLeftFrames[0] = allFrames[3][4];
+            walkLeftFrames[1] = allFrames[3][5];
+            walkLeftFrames[2] = allFrames[3][6];
+            walkLeftFrames[3] = allFrames[4][0];
+            walkLeft = new Animation<>(0.15f, walkLeftFrames);
+
+            // Walk Direita: mesma sequência do Walk Esquerda, mas espelhada
+            TextureRegion[] walkRightFrames = new TextureRegion[4];
+            for (int i = 0; i < walkLeftFrames.length; i++) {
+                walkRightFrames[i] = new TextureRegion(walkLeftFrames[i]);
+                walkRightFrames[i].flip(true, false);
+            }
+            walkRight = new Animation<>(0.15f, walkRightFrames);
+
+            // Walk Norte: Linha 4, frames 1-4 (4 frames)
+            walkUp = createAnimationFromRange(allFrames[4], 1, 4, 0.15f, false);
         }
-        walkRight = new Animation<>(0.15f, walkRightFrames);
-        
-        // Walk Norte: Linha 4, frames 1-4 (4 frames)
-        walkUp = createAnimationFromRange(allFrames[4], 1, 4, 0.15f, false);
+
+        private Animation<TextureRegion> createAnimationFromRow(TextureRegion[] row, float frameDuration, boolean flip,
+                int frameCount) {
+            TextureRegion[] frames = new TextureRegion[frameCount];
+            for (int i = 0; i < frameCount; i++) {
+                frames[i] = new TextureRegion(row[i]);
+                if (flip) {
+                    frames[i].flip(true, false);
+                }
+            }
+            return new Animation<>(frameDuration, frames);
+        }
+
+        private Animation<TextureRegion> createAnimationFromRange(TextureRegion[] row, int start, int end,
+                float frameDuration, boolean flip) {
+            int frameCount = end - start + 1;
+            TextureRegion[] frames = new TextureRegion[frameCount];
+            for (int i = 0; i < frameCount; i++) {
+                frames[i] = new TextureRegion(row[start + i]);
+                if (flip) {
+                    frames[i].flip(true, false);
+                }
+            }
+            return new Animation<>(frameDuration, frames);
+        }
     }
 
-    private Animation<TextureRegion> createAnimationFromRow(TextureRegion[] row, float frameDuration, boolean flip, int frameCount) {
-        TextureRegion[] frames = new TextureRegion[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = new TextureRegion(row[i]);
-            if (flip) {
-                frames[i].flip(true, false);
-            }
-        }
-        return new Animation<>(frameDuration, frames);
-    }
+public static class DeathAnimations {
+    public final Animation<TextureRegion> deathAnimation;
 
-    private Animation<TextureRegion> createAnimationFromRange(TextureRegion[] row, int start, int end, float frameDuration, boolean flip) {
-        int frameCount = end - start + 1;
-        TextureRegion[] frames = new TextureRegion[frameCount];
-        for (int i = 0; i < frameCount; i++) {
-            frames[i] = new TextureRegion(row[start + i]);
-            if (flip) {
-                frames[i].flip(true, false);
+    public DeathAnimations() {
+        // Carrega a textura de morte (5 colunas x 5 linhas = 25 frames)
+        Texture deathTexture = AnimationLoader.loadTexture("rober/death/death-sheet.png");
+        
+        // O spritesheet tem 5 colunas e 5 linhas
+        int frameCols = 6;
+        int frameRows = 5;
+        int frameWidth = deathTexture.getWidth() / frameCols;
+        int frameHeight = deathTexture.getHeight() / frameRows;
+
+        // Divide o spritesheet em uma matriz de TextureRegion
+        TextureRegion[][] tempFrames = TextureRegion.split(deathTexture, frameWidth, frameHeight);
+        
+        // Cria um array com todos os 25 frames (5x5)
+        TextureRegion[] deathFrames = new TextureRegion[frameCols * frameRows];
+        
+        // Preenche o array percorrendo as linhas e colunas
+        int index = 0;
+        for (int row = 0; row < frameRows; row++) {
+            for (int col = 0; col < frameCols; col++) {
+                deathFrames[index++] = tempFrames[row][col];
             }
         }
-        return new Animation<>(frameDuration, frames);
+        
+        // Define a animação com duração total de 2.0 segundos
+        // 25 frames / 2.0s = 0.08s por frame
+        float frameDuration = 3.5f / deathFrames.length; // 2.0 segundos dividido por 25 frames
+        
+        // Cria a animação que NÃO faz loop
+        deathAnimation = new Animation<>(frameDuration, deathFrames);
+        deathAnimation.setPlayMode(Animation.PlayMode.NORMAL); // NORMAL = não faz loop
     }
 }
+
+    public static class DamageAnimations {
+        public final Animation<TextureRegion> ritDamage;
+
+        public DamageAnimations() {
+            Texture ritTexture = AnimationLoader.loadTexture("rober/rit/robertinho_Rit.png");
+
+            int frameWidth = ritTexture.getWidth() / 5; // 5 frames na horizontal
+            int frameHeight = ritTexture.getHeight(); // 1 linha
+
+            TextureRegion[] ritFrames = new TextureRegion[5];
+            for (int i = 0; i < 5; i++) {
+                ritFrames[i] = new TextureRegion(ritTexture, i * frameWidth, 0, frameWidth, frameHeight);
+            }
+            ritDamage = new Animation<>(0.1f, ritFrames);
+        }
+    }
 
     public final BasicAnimations basic;
     public final WeaponAnimations weapon;
     public final SpecialAnimations special;
     public final NoArmorAnimations noArmor;
+    public final DamageAnimations damage;
+    public final DeathAnimations death;
 
     private final Array<Texture> loadedTextures = new Array<>();
 
@@ -286,6 +345,8 @@ public class PlayerAnimations implements Disposable {
         weapon = new WeaponAnimations();
         special = new SpecialAnimations();
         noArmor = new NoArmorAnimations();
+        damage = new DamageAnimations();
+        death = new DeathAnimations();
     }
 
     private void loadAllTextures() {
@@ -311,7 +372,8 @@ public class PlayerAnimations implements Disposable {
                 "rober/roll/roll_NEW.png",
                 "rober/corpo_a_corpo/ataque_sheet.png",
                 "rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png",
-                "rober/no_armor/robertinho_no_armor.png"
+                "rober/no_armor/robertinho_no_armor.png",
+                "rober/death/death-sheet.png"
         };
 
         // Carregar e armazenar texturas

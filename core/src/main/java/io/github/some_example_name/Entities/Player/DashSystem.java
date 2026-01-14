@@ -27,7 +27,7 @@ public class DashSystem {
     private Vector2 dashDirectionCache;
     private Vector2 postDashImpulse;
     private float currentDashDuration;
-    
+
     // Para restaurar os filtros de colisão
     private short originalCategoryBits;
     private short originalMaskBits;
@@ -79,17 +79,17 @@ public class DashSystem {
                 !isDashing &&
                 !isApplyingPostDash &&
                 !moveDir.isZero() &&
-                player.getStaminaSystem().hasStamina(DASH_STAMINA_COST);
+                player.getStaminaSystem().canAttemptAction(DASH_STAMINA_COST);
     }
 
     private void activateDash(Vector2 moveDir) {
         moveDir.nor();
         player.state = Robertinhoo.DASH;
         player.dashDirection = player.dir;
-        
+
         // Guarda os filtros originais ANTES de modificar
         saveOriginalCollisionFilter();
-        
+
         dashDirectionCache = moveDir.cpy();
 
         currentDashDuration = BASIC_ROLL_DURATION;
@@ -115,7 +115,7 @@ public class DashSystem {
             Filter filter = new Filter();
             filter.categoryBits = originalCategoryBits;
             filter.maskBits = (short) (Constants.BIT_GROUND | Constants.BIT_WALL | Constants.BIT_OBJECT);
-            
+
             player.body.getFixtureList().first().setFilterData(filter);
         }
     }

@@ -3,6 +3,7 @@ package io.github.some_example_name.Entities.Inventory;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
 
 public interface Item {
     int getGridWidth();
@@ -16,5 +17,6 @@ public interface Item {
     Vector2 getPosition();
     Item copy();
      String getName();
+     Body getBody();
     
 }

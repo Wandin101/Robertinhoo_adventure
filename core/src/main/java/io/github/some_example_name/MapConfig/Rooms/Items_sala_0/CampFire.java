@@ -29,6 +29,9 @@ public class CampFire {
     private AudioManager audioManager;
     private Texture campfireFloorTexture;
 
+    private boolean soundPlaying = false;
+    private boolean disposed = false;
+
     public CampFire(Mapa mapa, float tileX, float tileY) {
         this.mapa = mapa;
         this.position = new Vector2(tileX, tileY);
@@ -85,11 +88,12 @@ public class CampFire {
 
     public void render(SpriteBatch batch, float screenX, float screenY) {
         // Primeiro renderiza o SOLO (embaixo)
-        //  nrenderCampfireFloor(batch, screenX, screenY);
-        
+        // nrenderCampfireFloor(batch, screenX, screenY);
+
         // Depois renderiza a FOGUEIRA (em cima)
         renderFire(batch, screenX, screenY);
     }
+
     private void createPhysicsBody() {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
@@ -133,21 +137,23 @@ public class CampFire {
         return position;
     }
 
-    private void startAmbientSound() {
-        // ✅ USAR postRunnable PARA GARANTIR CONTEXTO
+     private void startAmbientSound() {
+        if (soundPlaying || disposed) {
+            System.out.println("⚠️ Som da fogueira já está tocando ou foi descartado, ignorando...");
+            return;
+        }
+        
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {
                 try {
+                    if (disposed) return; // Verificação dupla
+                    
                     System.out.println("🎵 Iniciando som da fogueira no thread principal...");
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                    }
-
                     audioManager.playAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
+                    soundPlaying = true;
                     System.out.println("🔊 Som ambiente da fogueira - Chamada completada");
-
+                    
                 } catch (Exception e) {
                     System.err.println("❌ Erro crítico no som: " + e.getMessage());
                 }
@@ -156,14 +162,16 @@ public class CampFire {
     }
 
     private void stopAmbientSound() {
+        if (!soundPlaying) return;
+        
         try {
-            audioManager.stopAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
-            System.out.println("🔇 Som ambiente da fogueira parado");
+            audioManager.forceStopAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
+            soundPlaying = false;
         } catch (Exception e) {
             System.err.println("❌ Erro ao parar som ambiente da fogueira: " + e.getMessage());
         }
     }
-
+    
     public void pauseAmbientSound() {
         try {
             audioManager.pauseAmbient(GameGameSoundsPaths.Ambient.FOGUEIRA_SOUND);
@@ -193,8 +201,7 @@ public class CampFire {
         }
     }
 
-
-        private void createCampfireFloorPlaceholder() {
+    private void createCampfireFloorPlaceholder() {
         // Placeholder para o solo da fogueira (marrom queimado)
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(254, 254,
                 com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -204,18 +211,18 @@ public class CampFire {
         pixmap.dispose();
     }
 
-        private void renderCampfireFloor(SpriteBatch batch, float screenX, float screenY) {
+    private void renderCampfireFloor(SpriteBatch batch, float screenX, float screenY) {
         if (campfireFloorTexture != null) {
             // Centraliza o solo de 254px (que é maior que o tile de 125px)
             float floorSize = 454f; // Tamanho do solo especial
             float floorX = screenX - (floorSize - 64f) / 2f;
             float floorY = screenY - (floorSize - 64f) / 2f;
-            
-            batch.draw(campfireFloorTexture, floorX, floorY -48F, floorSize, floorSize);
+
+            batch.draw(campfireFloorTexture, floorX, floorY - 48F, floorSize, floorSize);
         }
     }
 
-        private void renderFire(SpriteBatch batch, float screenX, float screenY) {
+    private void renderFire(SpriteBatch batch, float screenX, float screenY) {
         if (animation != null) {
             TextureRegion currentFrame = animation.getKeyFrame(stateTime, true);
 
@@ -227,14 +234,20 @@ public class CampFire {
         }
     }
 
-
     public void dispose() {
+        if (disposed) return;
+        
+        System.out.println("🧹 CampFire.dispose() chamado");
+        disposed = true;
+        stopAmbientSound();
+        
         if (spriteSheet != null) {
             spriteSheet.dispose();
+            spriteSheet = null;
         }
         if (campfireFloorTexture != null) {
             campfireFloorTexture.dispose();
+            campfireFloorTexture = null;
         }
-        stopAmbientSound();
     }
 }

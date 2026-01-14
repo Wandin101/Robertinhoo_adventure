@@ -14,6 +14,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 
@@ -33,6 +34,7 @@ import io.github.some_example_name.Entities.Renderer.Shadow.ShadowComponent;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
+import com.badlogic.gdx.utils.Array;
 
 import com.badlogic.gdx.graphics.Color;
 
@@ -60,7 +62,7 @@ public class Robertinhoo implements ShadowEntity {
     public static final int SOUTH_EAST = 13;
     public static final int MELEE_ATTACK = 14;
 
-    public boolean hasArmor = true; 
+    public boolean hasArmor = true;
 
     private float meleeAttackTime = 0;
     private float meleeAttackDuration = 0.616f;
@@ -78,7 +80,7 @@ public class Robertinhoo implements ShadowEntity {
     private boolean isInvulnerable = false;
     public static boolean IsUsingOneHandWeapon = false;
 
-    public final Mapa map;
+    public Mapa map;
     public final Rectangle bounds = new Rectangle();
     public final Vector2 pos = new Vector2();
 
@@ -123,9 +125,7 @@ public class Robertinhoo implements ShadowEntity {
         );
 
         createBody(x, y);
-        this.itemHandler = new PlayerItemHandler(this);
         this.footstepSystem = new FootstepSystem(this);
-
 
     }
 
@@ -149,6 +149,14 @@ public class Robertinhoo implements ShadowEntity {
     }
 
     private void createBody(float x, float y) {
+        if (body != null && body.getWorld() != null) {
+            try {
+                body.getWorld().destroyBody(body);
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao destruir body antigo: " + e.getMessage());
+            }
+        }
+
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyType.DynamicBody;
         bodyDef.position.set(x, y);
@@ -167,9 +175,9 @@ public class Robertinhoo implements ShadowEntity {
         body.setUserData("PLAYER");
         System.out.println("[DEBUG] Criando corpo do Robertinho em (" + x + ", " + y + ")");
         fixtureDef.filter.categoryBits = Constants.BIT_PLAYER;
-       fixtureDef.filter.maskBits = Constants.BIT_OBJECT | Constants.BIT_PLAYER_ATTACK | 
-                          Constants.BIT_ENEMY | Constants.BIT_PROJECTILE | 
-                          Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR;
+        fixtureDef.filter.maskBits = Constants.BIT_OBJECT | Constants.BIT_PLAYER_ATTACK |
+                Constants.BIT_ENEMY | Constants.BIT_PROJECTILE |
+                Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR | Constants.BIT_ROOM0_PLANT;
 
         body.createFixture(fixtureDef);
         body.setAngularDamping(2f);
@@ -244,8 +252,10 @@ public class Robertinhoo implements ShadowEntity {
                 @Override
                 public void run() {
                     setInvulnerable(false);
+                    isTakingDamage = false;
+                    System.out.println("✅ Efeito de dano terminado");
                 }
-            }, 1f);
+            }, 0.5f);
         }
     }
 
@@ -322,9 +332,10 @@ public class Robertinhoo implements ShadowEntity {
         this.itemToPickup = null;
     }
 
-public void setInvulnerable(boolean invulnerable) {
-    this.isInvulnerable = invulnerable;
-}
+    public void setInvulnerable(boolean invulnerable) {
+        this.isInvulnerable = invulnerable;
+    }
+
     @Override
     public Vector2 getPosition() {
         return body.getPosition();
@@ -368,10 +379,161 @@ public void setInvulnerable(boolean invulnerable) {
     }
 
     public PlayerItemHandler getItemHandler() {
-        return itemHandler;
+        if (map != null && map.getContactListener() != null) {
+            return map.getContactListener().getPlayerItemHandler();
+        }
+        return null;
     }
+
     public Body getBody() {
         return body;
     }
 
+    public void copyBasicStateFrom(Robertinhoo other) {
+        if (other == null) {
+            System.out.println("⚠️ Nenhum jogador anterior para copiar estado");
+            return;
+        }
+        this.life = other.life;
+        this.maxLife = other.maxLife;
+
+        System.out.println("❤️ Vida copiada: " + this.life + "/" + this.maxLife);
+    }
+
+    public void resetForNewRoom(Vector2 newPosition, Mapa newMap, float lifePercentage) {
+        System.out.println("🔄 resetForNewRoom - APENAS atualizando referências");
+
+        // 1. NÃO destruir o body! O Box2D cuidará disso quando o mundo antigo for
+        // destruído
+        // Apenas limpar a referência
+        body = null;
+
+        // 2. Atualizar referências
+        this.map = newMap;
+        this.pos.set(newPosition);
+
+        // 3. Criar novo corpo NO NOVO MUNDO
+        createBody(newPosition.x, newPosition.y);
+
+        // 4. Atualizar vida
+        this.life = maxLife * lifePercentage;
+
+        System.out.println("✅ Player resetado sem destruir body antigo");
+    }
+
+    public void resetForRespawn(Vector2 respawnPosition, Mapa respawnMap) {
+        resetForNewRoom(respawnPosition, respawnMap, 0.7f);
+
+    }
+
+    public void updateInventoryControllerMap() {
+        if (inventoryController != null && map != null) {
+            try {
+                inventoryController.mapa = this.map;
+            } catch (Exception e) {
+                System.err.println("❌ Erro ao atualizar mapa: " + e.getMessage());
+            }
+        }
+    }
+
+    public void switchToNewMap(Mapa newMap, Vector2 newPosition) {
+        System.out.println("🔄 switchToNewMap - Transição suave");
+
+        // NÃO destruir body aqui também
+        body = null;
+
+        this.map = newMap;
+        this.pos.set(newPosition);
+        updateInventoryControllerMap();
+        createBody(newPosition.x, newPosition.y);
+        // Mantém a vida atual
+    }
+
+    public void safeDestroyBody() {
+        System.out.println("🔧 INICIANDO safeDestroyBody()");
+
+        if (body == null) {
+            System.out.println("   ℹ️ Body já é null, nada a fazer");
+            return;
+        }
+
+        try {
+            // 1. Mostrar estado atual ANTES de destruir
+            debugBodyState();
+
+            // 2. Verificar se o world ainda existe
+            if (body.getWorld() == null) {
+                System.out.println("   ⚠️ Body já não está em um mundo");
+                System.out.println("   ⚠️ Apenas limpando referência...");
+                body = null;
+                return;
+            }
+
+            // 3. Verificar SE HÁ FIXTURES ÓRFÃS
+            com.badlogic.gdx.utils.Array<Fixture> fixtures = body.getFixtureList();
+            System.out.println("   🔍 Verificando " + fixtures.size + " fixtures...");
+
+            for (int i = 0; i < fixtures.size; i++) {
+                Fixture fixture = fixtures.get(i);
+
+                // VERIFICAÇÃO CRÍTICA: A fixture pertence a este body?
+                if (fixture.getBody() != body) {
+                    System.err.println("   ❌❌❌ FIXTURE ÓRFÃ DETECTADA!");
+                    System.err.println("      Índice: " + i);
+                    System.err.println("      Fixture hash: " + System.identityHashCode(fixture));
+                    System.err.println("      Body da fixture: " + System.identityHashCode(fixture.getBody()));
+                    System.err.println("      Body atual: " + System.identityHashCode(body));
+
+                    // NÃO tente destruir esta fixture - já não pertence a este body
+                    continue;
+                }
+
+                System.out.println("   ✓ Fixture " + i + " pertence ao body correto");
+            }
+
+            // 4. Destruir o body (Box2D destruirá as fixtures automaticamente)
+            System.out.println("   🗑️ Destruindo body no mundo Box2D...");
+            body.getWorld().destroyBody(body);
+            System.out.println("   ✅ Body destruído com sucesso");
+
+        } catch (Exception e) {
+            System.err.println("   ❌ ERRO em safeDestroyBody: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            body = null;
+            System.out.println("   🧹 Referência do body limpa");
+        }
+    }
+
+    public void debugBodyState() {
+        if (body == null) {
+            System.out.println("🚨 Body: NULL");
+            return;
+        }
+
+        System.out.println("=== DIAGNÓSTICO DO BODY DO PLAYER ===");
+        System.out.println("🔵 Body hash: " + System.identityHashCode(body));
+        System.out.println("🔵 Body world: " + (body.getWorld() != null ? "VÁLIDO" : "NULL"));
+        System.out.println("🔵 Body ativo: " + body.isActive());
+        System.out.println("🔵 Body acordado: " + body.isAwake());
+
+        com.badlogic.gdx.utils.Array<Fixture> fixtures = body.getFixtureList();
+        System.out.println("🔵 Número de fixtures: " + fixtures.size);
+
+        for (int i = 0; i < fixtures.size; i++) {
+            Fixture fixture = fixtures.get(i);
+            System.out.println("   Fixture " + i + ":");
+            System.out.println("     - Hash: " + System.identityHashCode(fixture));
+            System.out.println("     - Body da fixture: " + System.identityHashCode(fixture.getBody()));
+            System.out.println("     - Sensor: " + fixture.isSensor());
+
+            // Verificar se o corpo da fixture é o mesmo do body
+            if (fixture.getBody() != body) {
+                System.err.println("     ❌❌❌ PROBLEMA: Fixture não pertence a este body!");
+                System.err.println("         Body esperado: " + System.identityHashCode(body));
+                System.err.println("         Body real: " + System.identityHashCode(fixture.getBody()));
+            }
+        }
+        System.out.println("===================================");
+    }
 }

@@ -1,4 +1,3 @@
-// FootstepSystem.java - VERSÃO COM MUSIC (PARADA PRECISA)
 package io.github.some_example_name.Entities.Player;
 
 import com.badlogic.gdx.Gdx;

@@ -36,6 +36,7 @@ import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.SistemaLuz;
+import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
 import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0TileRenderer;
@@ -43,6 +44,7 @@ import io.github.some_example_name.MapConfig.Rooms.Room0WallRenderer;
 import io.github.some_example_name.MapConfig.Rooms.StaticItem;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
+import io.github.some_example_name.Entities.Renderer.SpawnRoomRenderer;
 import io.github.some_example_name.Camera.Camera;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -72,6 +74,7 @@ public class MapRenderer {
     private EscurecedorAmbiente escurecedor;
     private Room0WallRenderer room0WallRenderer;
     private Room0Door room0Door;
+    private SpawnRoomRenderer spawnRoomRenderer;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -126,6 +129,14 @@ public class MapRenderer {
             this.room0WallRenderer = new Room0WallRenderer(mapa, TILE_SIZE);
             this.room0Door = mapa.getDoor0();
             System.out.println("✅ Room0TileRenderer inicializado para Sala 0");
+        } else {
+            if (mapa.getMapGenerator() != null) {
+                FixedRoom spawnRoom = mapa.getMapGenerator().getSpawnRoom();
+                if (spawnRoom != null && spawnRoom.getBounds() != null) {
+                    System.out.println("🎨 Criando SpawnRoomRenderer para sala fixa");
+                    spawnRoomRenderer = new SpawnRoomRenderer(spawnRoom, mapa, TILE_SIZE);
+                }
+            }
         }
         this.sistemaLuz = new SistemaLuz();
         this.escurecedor = new EscurecedorAmbiente();
@@ -179,13 +190,11 @@ public class MapRenderer {
 
         } else {
             tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
+            tileRenderer.setSpawnRoomBounds(mapa.getSpawnRoom().getBounds());
+            spawnRoomRenderer.render(spriteBatch, offsetX, offsetY);
         }
-
-        // ✅ RESTAURA COR NORMAL
         spriteBatch.setColor(1f, 1f, 1f, 1f);
         spriteBatch.end();
-
-        // 2. RENDERIZAÇÃO DA FOGUEIRA E CABANAS JUNTAS (mesmo SpriteBatch)
         spriteBatch.begin();
 
         // Renderiza fogueira (código existente)
@@ -336,24 +345,16 @@ public class MapRenderer {
         sistemaLuz.end();
 
         if (isRoom0 && room0Door != null && room0Door.getLightSphere() != null) {
-            // ✅ GARANTIR que está adicionada (apenas uma vez)
             if (!escurecedor.lightSpheres.contains(room0Door.getLightSphere())) {
                 escurecedor.adicionarLightSphere(room0Door.getLightSphere());
             }
         }
-
-        // --- CONTINUA COM O RESTO DO RENDER ---
-        // --- RENDERIZAÇÃO DE FORMAS (MIRA E DEBUG) ---
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
 
         // Renderiza mira apenas se jogador estiver com arma equipada
         if (player.getInventory().getEquippedWeapon() != null) {
             player.getWeaponSystem().renderMiraArma(shapeRenderer);
         }
-
-        // SUBSTITUÍDO: Todo o debug agora é feito pelo DebugRenderer
-        // debugRenderers.renderAllDebug(shapeRenderer, delta, offsetX, offsetY, player,
-        // mapa, null);
 
         // --- RENDERIZAÇÃO DA INTERFACE ---
         if (player.getInventoryController().GetIsOpen()) {
@@ -408,8 +409,6 @@ public class MapRenderer {
                 spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
                 cabanaSystem.renderInteractPrompt(spriteBatch, offsetX, offsetY);
                 spriteBatch.end();
-
-                System.out.println("🎯 Ícone E renderizado com offsets: " + offsetX + ", " + offsetY);
             }
 
             // 2. Depois renderiza a transição (sobre TUDO, com projeção de tela)
@@ -459,9 +458,17 @@ public class MapRenderer {
         calculateOffsets();
     }
 
+    public PlayerRenderer getPlayerRenderer() {
+        return playerRenderer;
+    }
+
     public void dispose() {
         if (mapa.getCampFire() != null) {
             mapa.getCampFire().dispose();
+        }
+
+        if (spawnRoomRenderer != null) {
+            spawnRoomRenderer.dispose();
         }
 
         if (room0WallRenderer != null) {

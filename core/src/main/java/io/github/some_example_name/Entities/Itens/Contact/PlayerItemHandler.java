@@ -111,4 +111,23 @@ public class PlayerItemHandler implements ContactHandler {
     public boolean isPlayerTouching(Item item) {
         return nearbyItems.contains(item);
     }
+
+
+    public void clearAllItems() {
+    System.out.println("🧹 [PlayerItemHandler] Limpando todos os itens");
+    System.out.println("   - Itens antes: " + nearbyItems.size());
+    
+    // Limpar todas as referências
+    nearbyItems.clear();
+    itemFixtures.clear();
+    
+    System.out.println("   - Itens depois: " + nearbyItems.size());
+    
+    // Limpar a referência no jogador
+    if (player != null) {
+        player.clearItemToPickup();
+        player.clearWeaponToPickup();
+        player.clearAmmoToPickup();
+    }
+}
 }

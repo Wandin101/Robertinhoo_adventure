@@ -23,14 +23,6 @@ public class WeaponAnimations implements Disposable {
     public WeaponAnimations(String weaponType) {
         animations = new Animation[WeaponDirection.values().length][Weapon.WeaponState.values().length];
         loadedTextures = loadWeaponTextures(weaponType);
-
-        for (WeaponDirection dir : WeaponDirection.values()) {
-            for (Weapon.WeaponState state : Weapon.WeaponState.values()) {
-                Animation<TextureRegion> anim = animations[dir.ordinal()][state.ordinal()];
-                Gdx.app.log("ANIM_DEBUG", "Direção: " + dir + " | Estado: " + state +
-                        " | Carregado: " + (anim != null));
-            }
-        }
     }
 
     private Texture[] loadWeaponTextures(String weaponType) {
@@ -78,10 +70,6 @@ public class WeaponAnimations implements Disposable {
             animations[direction.ordinal()][state.ordinal()] = new Animation<>(frameDuration, frames);
 
             texturesList.add(sheet);
-
-            Gdx.app.log("LOAD_DIRECTION", "Carregado: " + path +
-                    " | Estado: " + state +
-                    " | Frames: " + frameCount);
         } catch (Exception e) {
             Gdx.app.error("WeaponAnimations", "Erro ao carregar " + path, e);
         }

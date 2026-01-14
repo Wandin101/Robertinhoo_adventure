@@ -21,7 +21,7 @@ public class WeaponHUD {
     private final Image weaponIcon;
     private final Label ammoLabel;
     private final ProgressBar reloadBar;
-    private final Robertinhoo player;
+    private  Robertinhoo player;
     private final Stage stage;
     private final Skin skin;
 
@@ -111,6 +111,9 @@ public class WeaponHUD {
         stage.getBatch().end();
     }
 
+    public Robertinhoo setPlayer(Robertinhoo rob) {
+      return  player = rob;
+    }
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
     }

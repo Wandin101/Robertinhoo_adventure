@@ -15,15 +15,18 @@ public class GrassSpawner {
         Random rand = new Random();
         int grassSpawned = 0;
 
-        // Usa as salas já geradas pelo MapGenerator
         for (Rectangle room : mapa.getRooms()) {
+            if (!roomAllowsVegetation(mapa, room)) {
+                continue;
+            }
+            
             for (int x = (int) room.x + 1; x < room.x + room.width - 1 && grassSpawned < grassCount; x++) {
                 for (int y = (int) room.y + 1; y < room.y + room.height - 1 && grassSpawned < grassCount; y++) {
 
                     // Verifica se é um tile válido (chão)
                     if (mapa.tiles[x][y] == Mapa.TILE) {
 
-                        // Chance de spawn (30% para não ficar muito denso)
+                        // Chance de spawn (20% para não ficar muito denso)
                         if (rand.nextFloat() < 0.2f) {
                             Vector2 worldPos = mapa.tileToWorld(x, y);
 
@@ -32,16 +35,24 @@ public class GrassSpawner {
                             mapa.getDestructibles().add(grass);
 
                             grassSpawned++;
-                            Gdx.app.log("GrassSpawner", "Grama criada em: " + worldPos);
                         }
                     }
                 }
             }
         }
-
-        Gdx.app.log("GrassSpawner", "Total de gramas spawnadas: " + grassSpawned);
+        
+        Gdx.app.log("GrassSpawner", "✅ " + grassSpawned + " gramas spawnadas");
     }
 
+    
+   private static boolean roomAllowsVegetation(Mapa mapa, Rectangle room) {
+        // Grama não é configurada no RoomConfiguration, mas podemos usar a mesma lógica
+        // para sala de spawn não ter grama
+        if (mapa.mapGenerator != null && mapa.mapGenerator.isSpawnRoomTile((int)room.x, (int)room.y)) {
+            return false; // Sala de spawn não tem grama
+        }
+        return true; // Outras salas têm grama
+    }
     // Método alternativo para spawn mais controlado
     public static void spawnGrassInArea(Mapa mapa, Rectangle area, int density) {
         Random rand = new Random();
@@ -67,6 +78,5 @@ public class GrassSpawner {
             }
         }
 
-        Gdx.app.log("GrassSpawner", "Grama spawnada na área: " + grassInArea);
     }
 }

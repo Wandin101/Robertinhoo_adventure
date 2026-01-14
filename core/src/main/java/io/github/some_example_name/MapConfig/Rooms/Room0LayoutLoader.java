@@ -69,7 +69,7 @@ public class Room0LayoutLoader {
                                 + ") -> mundo: " + worldPos);
 
                         playerCabanaPos = new Vector2(x, y + 1F);
-                        System.out.println("📍 Cabana definida como spawn point: " + x + ", " + y);
+                        System.out.println("📍 Cabana definida como spawn point: " + x + ", " + y + 1F);
                     } else if (colorsMatch(pixelColor, COLOR_RUSTY_SWORD)) {
                         addStaticItem(mapa, x, y, StaticItem.ItemType.RUSTY_SWORD);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
