@@ -8,9 +8,14 @@ public class GameGameSoundsPaths {
     public static class Sounds {
         // Combate
         public static final String PARRY_SUCCESS = "parry_success";
+        public static final String MELEE_ATACK = "melee_attack";
 
         //Passos
         public static final String FOOTSTEP_GRASS = "passos_grama";
+
+        public static final String BLOOD_SPLASH = "blood_splash";
+        public static final String BLOOD_POOL = "blood_pool";
+
 
         // public static final String MELEE_ATTACK = "melee_attack";
         // public static final String RANGED_ATTACK = "ranged_attack";
@@ -58,6 +63,9 @@ public class GameGameSoundsPaths {
         // Combate
         audio.loadSound(Sounds.PARRY_SUCCESS, "Sounds/Parry.wav");
         audio.loadSound(Sounds.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
+        audio.loadSound(Sounds.MELEE_ATACK, "Sounds/melee.wav");
+        audio.loadSound(Sounds.BLOOD_SPLASH, "Sounds/splash.wav");
+        audio.loadSound(Sounds.BLOOD_POOL, "Sounds/pool.wav");
         
         // audio.loadSound(Sounds.MELEE_ATTACK, "sounds/combat/melee_attack.wav");
         // audio.loadSound(Sounds.RANGED_ATTACK, "sounds/combat/ranged_attack.wav");

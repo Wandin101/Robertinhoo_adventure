@@ -31,7 +31,7 @@ public class MainScreen implements Screen {
 
         // Renderiza o menu
         game.batch.begin();
-        font.draw(game.batch, "Aperte qualquer tecla cria", Gdx.graphics.getWidth() / 2f - 100, Gdx.graphics.getHeight() / 2f);
+        font.draw(game.batch, "Aperte qualquer teclaaa cria", Gdx.graphics.getWidth() / 2f - 100, Gdx.graphics.getHeight() / 2f);
         game.batch.end();
 
         if (Gdx.input.isTouched()) {

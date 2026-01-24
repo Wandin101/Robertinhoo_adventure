@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Timer;
 
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
+import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Screens.GameScreen;
 
@@ -31,6 +32,7 @@ public class DeathSystem {
     private float screenAlpha = 0f;
     private float textPulse = 0f;
     private boolean canRespawn = false;
+    private RobertinhoFaceHUD faceHUD;
 
     private BitmapFont deathFont;
     private BitmapFont promptFont;
@@ -47,9 +49,10 @@ public class DeathSystem {
     private static final float DEATH_SCREEN_DURATION = 2.0f;
     private static final float FADE_DURATION = 1.0f;
 
-    public DeathSystem(GameScreen gameScreen, PlayerRenderer playerRenderer) {
+    public DeathSystem(GameScreen gameScreen, PlayerRenderer playerRenderer, RobertinhoFaceHUD faceHUD) {
         this.gameScreen = gameScreen;
         this.playerRenderer = playerRenderer;
+        this.faceHUD = faceHUD;
         loadAssets();
     }
 
@@ -136,69 +139,69 @@ public class DeathSystem {
         }
     }
 
-private void startDeathAnimation() {
-    currentState = DeathState.PLAYING_DEATH_ANIMATION;
-    deathTimer = 0f;
-    screenAlpha = 0f;
-    canRespawn = false;
-    if (playerRenderer != null) {
-        playerRenderer.startDeathAnimation();
-    } else {
-        System.err.println("❌ [DeathSystem] playerRenderer é nulo!");
+    private void startDeathAnimation() {
+        currentState = DeathState.PLAYING_DEATH_ANIMATION;
+        deathTimer = 0f;
+        screenAlpha = 0f;
+        canRespawn = false;
+
+        if (faceHUD != null) {
+            faceHUD.triggerDeathAnimation();
+            System.out.println("✅ [DeathSystem] Animação de morte do HUD iniciada");
+        } else {
+            System.err.println("❌ [DeathSystem] faceHUD é nulo!");
+        }
+
+        if (playerRenderer != null) {
+            playerRenderer.startDeathAnimation();
+            System.out.println("✅ [DeathSystem] Animação de morte do Player iniciada");
+        } else {
+            System.err.println("❌ [DeathSystem] playerRenderer é nulo!");
+        }
+
+        if (player != null && player.body != null) {
+            player.body.setLinearVelocity(0, 0);
+            player.body.setAngularVelocity(0);
+            player.body.setActive(false);
+
+            Vector2 currentPos = player.body.getPosition();
+            player.body.setTransform(currentPos, 0);
+            player.body.applyForceToCenter(new Vector2(0, 0), true);
+            player.body.applyLinearImpulse(new Vector2(0, 0), player.body.getWorldCenter(), true);
+
+            player.dir = Robertinhoo.IDLE;
+            player.body.setLinearVelocity(0, 0);
+        }
+
+        System.out.println("🎬 [DeathSystem] Animação de morte INICIADA");
     }
 
-   
-    if (player != null && player.body != null) {
-        System.out.println("   ❄️ Congelando corpo físico do jogador...");
-        
-        // 1. Para TODAS as velocidades
-        player.body.setLinearVelocity(0, 0);
-        player.body.setAngularVelocity(0);
-        
-        // 2. Desativa o corpo para ignorar física completamente
-        player.body.setActive(false);
-        
-        // 3. Salva a posição atual para garantir que não se mova
-        Vector2 currentPos = player.body.getPosition();
-        player.body.setTransform(currentPos, 0);
-        
-        // 4. Remove todas as forças
-        player.body.applyForceToCenter(new Vector2(0, 0), true);
-        player.body.applyLinearImpulse(new Vector2(0, 0), player.body.getWorldCenter(), true);
-        
-        // 5. Para a movimentação do jogador
-        player.dir = Robertinhoo.IDLE;
-        player.body.setLinearVelocity(0, 0);
-        
-        System.out.println("   ✅ Corpo físico congelado");
-    }
-}
-private void updateDeathAnimation(float delta) {
-    deathTimer += delta;
-    System.out.println("⏱️ [DeathSystem.updateDeathAnimation] deathTimer: " + deathTimer + "/" + DEATH_ANIMATION_DURATION);
+    private void updateDeathAnimation(float delta) {
+        deathTimer += delta;
 
-    // Verifica se a animação de morte terminou
-    if (playerRenderer != null) {
-        boolean isComplete = playerRenderer.isDeathAnimationComplete();
-        System.out.println("🔍 [DeathSystem.updateDeathAnimation] Animação completa? " + isComplete);
-        
-        if (isComplete) {
-            // Transição para o estado de fade da tela
-            currentState = DeathState.DYING;
-            deathTimer = 0f;
-            System.out.println("🎬 [DeathSystem] Animação de morte completa. Iniciando fade para tela de morte...");
+        // Verifica se ambas as animações terminaram
+        boolean playerRendererComplete = false;
+        boolean hudComplete = false;
+
+        if (playerRenderer != null) {
+            playerRendererComplete = playerRenderer.isDeathAnimationComplete();
         }
-    } else {
-        System.err.println("❌ [DeathSystem.updateDeathAnimation] playerRenderer é nulo!");
-        
-        // Fallback: após o tempo esperado, força a transição
-        if (deathTimer >= DEATH_ANIMATION_DURATION) {
-            currentState = DeathState.DYING;
-            deathTimer = 0f;
-            System.out.println("⚠️ [DeathSystem] Fallback: Forçando transição após timeout");
+
+        if (faceHUD != null) {
+            hudComplete = faceHUD.isDeathAnimationComplete();
+        }
+
+        // Espera ambas terminarem OU timeout
+        if ((playerRendererComplete && hudComplete) || deathTimer >= DEATH_ANIMATION_DURATION) {
+            transitionToDeathScreen();
         }
     }
-}
+
+    private void transitionToDeathScreen() {
+        currentState = DeathState.DYING;
+        deathTimer = 0f;
+        System.out.println("🎬 [DeathSystem] Todas animações de morte completas. Iniciando tela de morte...");
+    }
 
     private void updateDying(float delta) {
         deathTimer += delta;
@@ -264,7 +267,7 @@ private void updateDeathAnimation(float delta) {
             renderDeathAnimationOverlay(batch, screenWidth, screenHeight);
             return;
         }
-        
+
         if (currentState == DeathState.ALIVE || currentState == DeathState.RESPAWNING) {
             return;
         }
@@ -281,12 +284,7 @@ private void updateDeathAnimation(float delta) {
     }
 
     private void renderDeathAnimationOverlay(SpriteBatch batch, float screenWidth, float screenHeight) {
-        float progress = deathTimer / DEATH_ANIMATION_DURATION;
-        float overlayAlpha = Math.min(0.2f, progress * 0.3f);
-        Color originalColor = batch.getColor();
-        batch.setColor(0, 0, 0, overlayAlpha);
-        batch.draw(getBlackPixel(), 0, 0, screenWidth, screenHeight);
-        batch.setColor(originalColor);
+
     }
 
     private void renderDeathScreenContent(SpriteBatch batch, float screenWidth, float screenHeight) {
@@ -367,7 +365,7 @@ private void updateDeathAnimation(float delta) {
     public boolean isPlayerDead() {
         return currentState != DeathState.ALIVE && currentState != DeathState.RESPAWNING;
     }
-    
+
     public boolean isPlayingDeathAnimation() {
         return currentState == DeathState.PLAYING_DEATH_ANIMATION;
     }
@@ -385,13 +383,18 @@ private void updateDeathAnimation(float delta) {
         if (playerRenderer != null) {
             playerRenderer.resetDeathAnimation();
         }
+
+        if (faceHUD != null) {
+            faceHUD.resetDeathAnimation();
+        }
     }
 
-    public void updatePlayerRenderer(PlayerRenderer newPlayerRenderer) {
-       
+    public void updatePlayerRenderer(PlayerRenderer newPlayerRenderer, RobertinhoFaceHUD newFaceHUD) {
         this.playerRenderer = newPlayerRenderer;
+        this.faceHUD = newFaceHUD;
+
         if (currentState == DeathState.PLAYING_DEATH_ANIMATION) {
-            System.out.println("   ⚠️ Resetando animação de morte devido a troca de renderer");
+            System.out.println("⚠️ Resetando animação de morte devido a troca de renderer/HUD");
             reset();
         }
     }

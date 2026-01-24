@@ -32,6 +32,7 @@ import io.github.some_example_name.Entities.Renderer.WeaponAnimations;
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowComponent;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
+import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
 import com.badlogic.gdx.utils.Array;
@@ -103,6 +104,7 @@ public class Robertinhoo implements ShadowEntity {
     public Vector2 dashVelocity;
     private PlayerItemHandler itemHandler;
     private FootstepSystem footstepSystem;
+    private RobertinhoFaceHUD faceHUD;
 
     public Robertinhoo(Mapa map, float x, float y, MapRenderer mapRenderer, PlayerRenderer playerRenderer) {
         this.map = map;
@@ -247,6 +249,9 @@ public class Robertinhoo implements ShadowEntity {
             life = life - damage;
             isTakingDamage = true;
             damageTimer = 0.5f;
+            if (faceHUD != null) {
+                faceHUD.triggerHitAnimation();
+            }
             setInvulnerable(true);
             Timer.schedule(new Timer.Task() {
                 @Override
@@ -535,5 +540,9 @@ public class Robertinhoo implements ShadowEntity {
             }
         }
         System.out.println("===================================");
+    }
+
+    public void setFaceHUD(RobertinhoFaceHUD hud) {
+        this.faceHUD = hud;
     }
 }

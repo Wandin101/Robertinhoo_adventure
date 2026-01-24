@@ -202,6 +202,29 @@ public class Ratinho extends Enemy implements Steerable<Vector2>, ShadowEntity {
         damageTimer = damageAnimationDuration;
         isTakingDamage = true;
         state = State.GOT_DAMAGE;
+
+        // CRIAR PARTÍCULAS DE SANGUE
+        // body.getPosition() JÁ RETORNA UNIDADES MUNDO!
+        Vector2 worldPos = body.getPosition(); // Ex: (10.5, 15.3)
+
+        // Direção do sangue (normalizada)
+        Vector2 bloodDirection = new Vector2(
+                MathUtils.random(-1f, 1f),
+                MathUtils.random(0.5f, 1f)).nor(); // IMPORTANTE: normalizar!
+
+        // Força: 1.5-2.5 unidades mundo/segundo (tiles por segundo)
+        float force = MathUtils.random(1.5f, 2.5f);
+
+        // Quantidade de partículas: ajustável
+        int particleCount = MathUtils.random(20, 30);
+
+        // CHAMA COM COORDENADAS DO MUNDO
+        mapa.getBloodParticleSystem().createBloodSplash(
+                worldPos.x, // Já está em unidades mundo
+                worldPos.y, // Já está em unidades mundo
+                bloodDirection,
+                particleCount,
+                force);
     }
 
     public boolean isTakingDamage() {

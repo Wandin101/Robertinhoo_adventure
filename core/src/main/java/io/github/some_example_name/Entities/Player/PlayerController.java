@@ -20,7 +20,7 @@ public class PlayerController {
     // Constantes
     public static final float ACCELERATION = 2.0f;
     private boolean canMeleeAttack = true;
-    public static final float MELEE_COOLDOWN = 0.5f;
+    public static final float MELEE_COOLDOWN = 0.68f;
     public static final float MELEE_STAMINA_COST = 30f;
     public static final float ROLL_STAMINA_COST = 40f;
 

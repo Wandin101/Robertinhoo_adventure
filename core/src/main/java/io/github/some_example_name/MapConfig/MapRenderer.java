@@ -13,6 +13,7 @@ import box2dLight.RayHandler;
 import box2dLight.PointLight;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 
 import io.github.some_example_name.Entities.Debug.DebugRenderers;
 import io.github.some_example_name.Entities.Enemies.Enemy;
@@ -20,6 +21,8 @@ import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Entities.Particulas.BloodParticleRenderer;
+import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.TileRenderer;
 import io.github.some_example_name.Entities.Renderer.AmmoRenderer.AmmoRenderer;
@@ -75,6 +78,8 @@ public class MapRenderer {
     private Room0WallRenderer room0WallRenderer;
     private Room0Door room0Door;
     private SpawnRoomRenderer spawnRoomRenderer;
+    private BloodParticleSystem bloodParticleSystem;
+    private BloodParticleRenderer bloodParticleRenderer;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -87,6 +92,7 @@ public class MapRenderer {
     private Stage uiStage;
     private Skin uiSkin;
     private TileRenderer tileRenderer;
+    private SpriteBatch particleBatch;
 
     public MapRenderer(Mapa mapa) {
         this.mapa = mapa;
@@ -96,6 +102,7 @@ public class MapRenderer {
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         spriteBatch = new SpriteBatch();
+        particleBatch = new SpriteBatch();
         cameraController = new Camera();
 
         // ADICIONADO: Inicialização do DebugRenderer
@@ -140,6 +147,8 @@ public class MapRenderer {
         }
         this.sistemaLuz = new SistemaLuz();
         this.escurecedor = new EscurecedorAmbiente();
+        bloodParticleSystem = mapa.getBloodParticleSystem();
+        bloodParticleRenderer = new BloodParticleRenderer();
 
     }
 
@@ -168,6 +177,11 @@ public class MapRenderer {
         // --- COLETA DE ENTIDADES PARA SOMBRA ---
         List<ShadowEntity> shadowEntities = new ArrayList<>();
         shadowEntities.add(player); // Jogador
+        Vector2 cameraPosWorld = new Vector2(
+                cameraController.getCamera().position.x / TILE_SIZE, // Pixels → Unidades mundo
+                cameraController.getCamera().position.y / TILE_SIZE // Pixels → Unidades mundo
+        );
+        bloodParticleSystem.update(delta, cameraPosWorld);
 
         for (Enemy enemy : mapa.getEnemies()) {
             if (enemy instanceof ShadowEntity) {
@@ -304,6 +318,12 @@ public class MapRenderer {
             craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
         }
         spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
+
+        particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
+        particleBatch.begin();
+        bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
+        bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
+        particleBatch.end();
 
         if (isRoom0 && room0Door != null) {
             room0Door.updateLightSpherePosition(offsetX, offsetY);
@@ -496,5 +516,10 @@ public class MapRenderer {
         if (escurecedor != null) {
             escurecedor.dispose();
         }
+        if (bloodParticleSystem != null) {
+            bloodParticleSystem.clear();
+        }
+        if (particleBatch != null)
+            particleBatch.dispose();
     }
 }

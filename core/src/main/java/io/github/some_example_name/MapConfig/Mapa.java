@@ -9,6 +9,8 @@ import java.util.Set;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -34,6 +36,8 @@ import io.github.some_example_name.Entities.Itens.Contact.GameContactListener;
 import io.github.some_example_name.Entities.Itens.CraftinItens.Polvora;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
+import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
+import io.github.some_example_name.Entities.Particulas.BloodPoolSystem;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
@@ -106,6 +110,8 @@ public class Mapa implements RoomTransitionManager {
     private Set<Vector2> previousBarrelPositions = new HashSet<>();
 
     private GameContactListener contactListener;
+    private BloodParticleSystem bloodParticleSystem;
+    private BloodPoolSystem bloodPoolSystem;
 
     public void setRayHandler(RayHandler rayHandler) {
         this.rayHandler = rayHandler;
@@ -129,6 +135,15 @@ public class Mapa implements RoomTransitionManager {
         this.isRoom0 = isRoom0;
         mapaCounter++;
         mapaId = mapaCounter;
+        Texture bloodTexture = new Texture(Gdx.files.internal("ParticulasSangue/Sangue.png"));
+        Texture bloodPoolTex = new Texture(Gdx.files.internal("ParticulasSangue/Poça.png"));
+        TextureRegion bloodRegion = new TextureRegion(bloodTexture);
+        TextureRegion poolRegion = new TextureRegion(bloodPoolTex);
+        this.bloodPoolSystem = new BloodPoolSystem(poolRegion, 5); // Usa a variável de instância
+        System.out.println("🩸 Sistema de poças criado com " + 5 + " tipos de sprites");
+
+        bloodParticleSystem = new BloodParticleSystem(bloodRegion, 4, this.bloodPoolSystem);
+        System.out.println("💉 Sistema de partículas criado com poças integradas");
 
         System.out.println("\n🗺️ [Mapa#" + mapaId + "] CONSTRUTOR INICIADO");
         System.out.println("   - isRoom0: " + isRoom0);
@@ -314,27 +329,27 @@ public class Mapa implements RoomTransitionManager {
         // Spawn de ratos (respeitando configurações de sala)
         int ratsAdded = 0;
         for (int i = 0; i < validRoomPositions.size() && ratsAdded < 14; i++) {
-        Vector2 tilePos = validRoomPositions.get(i);
-        Rectangle room = findRoomContainingTile(tilePos);
+            Vector2 tilePos = validRoomPositions.get(i);
+            Rectangle room = findRoomContainingTile(tilePos);
 
-        if (room != null && roomAllowsEnemies(room)) {
-        Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-        enemies.add(new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room));
-        ratsAdded++;
-        }
+            if (room != null && roomAllowsEnemies(room)) {
+                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+                enemies.add(new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room));
+                ratsAdded++;
+            }
         }
 
         // Spawn de castores (respeitando configurações de sala)
         int castoresAdded = 0;
         for (int i = 0; i < validRoomPositions.size() && castoresAdded < 4; i++) {
-        Vector2 tilePos = validRoomPositions.get(i);
-        Rectangle room = findRoomContainingTile(tilePos);
+            Vector2 tilePos = validRoomPositions.get(i);
+            Rectangle room = findRoomContainingTile(tilePos);
 
-        if (room != null && roomAllowsEnemies(room)) {
-        Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-        enemies.add(new Castor(this, worldPos.x, worldPos.y, robertinhoo));
-        castoresAdded++;
-        }
+            if (room != null && roomAllowsEnemies(room)) {
+                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
+                enemies.add(new Castor(this, worldPos.x, worldPos.y, robertinhoo));
+                castoresAdded++;
+            }
         }
 
         // Spawn de barris e grama (já ajustados para respeitar configurações)
@@ -970,5 +985,14 @@ public class Mapa implements RoomTransitionManager {
 
     public GameContactListener getContactListener() {
         return contactListener;
+    }
+
+    public BloodParticleSystem getBloodParticleSystem() {
+        return bloodParticleSystem;
+
+    }
+
+    public BloodPoolSystem getBloodPoolSystem() {
+        return bloodPoolSystem;
     }
 }
