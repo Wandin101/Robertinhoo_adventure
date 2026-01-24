@@ -31,6 +31,7 @@ public class Lwjgl3Launcher {
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
         configuration.setAudioConfig(64, 9, 512);
+        configuration.setBackBufferConfig(8, 8, 8, 8, 16, 8, 0);
         return configuration;
     }
 }
