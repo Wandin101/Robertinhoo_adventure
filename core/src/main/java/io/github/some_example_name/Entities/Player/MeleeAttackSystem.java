@@ -1,5 +1,6 @@
 package io.github.some_example_name.Entities.Player;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Timer;
@@ -16,6 +17,9 @@ public class MeleeAttackSystem {
     private Timer.Task endAttackTask;
     private boolean isParryExtended = false;
     private boolean hitboxCreated = false;
+     private static final float MIN_ATTACK_PITCH = 0.8f;
+    private static final float MAX_ATTACK_PITCH = 1.5f;
+    private static final float ATTACK_VOLUME = 0.5f;
 
     public MeleeAttackSystem(Robertinhoo player) {
         this.player = player;
@@ -32,7 +36,7 @@ public class MeleeAttackSystem {
         return null;
     }
 
-    public void startAttack(int direction) {
+  public void startAttack(int direction) {
         if (attackInProgress) {
             return;
         }
@@ -58,9 +62,18 @@ public class MeleeAttackSystem {
                 scheduleEndAttackTimer();
             }
         }, 0.1f);
-        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.PARRY_SUCCESS);
-    }
+        
 
+        float randomPitch = MathUtils.random(MIN_ATTACK_PITCH, MAX_ATTACK_PITCH);
+        AudioManager.getInstance().playSound(
+            GameGameSoundsPaths.Sounds.MELEE_ATACK, 
+            ATTACK_VOLUME, 
+            randomPitch
+        );
+        
+        Gdx.app.debug("AUDIO", "Ataque com pitch: " + randomPitch);
+    }
+    
     private void createMeleeHitbox(int direction) {
         // Obter o World atual
         World world = getCurrentWorld();

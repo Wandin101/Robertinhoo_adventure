@@ -2,6 +2,7 @@ package io.github.some_example_name.Sounds;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.utils.Disposable;
@@ -64,6 +65,26 @@ public class AudioManager implements Disposable {
             return -1;
         }
     }
+
+        public long playSound(String name, float volume, float pitch) {
+        if (!soundEnabled)
+            return -1;
+
+        Sound sound = sounds.get(name);
+        if (sound != null) {
+            // Usa o método play que aceita volume, pitch e pan
+            return sound.play(volume * soundVolume, pitch, 0f);
+        } else {
+            Gdx.app.error("AUDIO", "Som não encontrado: " + name);
+            return -1;
+        }
+    }
+        public long playSoundWithRandomPitch(String name, float volume, float minPitch, float maxPitch) {
+        float randomPitch = MathUtils.random(minPitch, maxPitch);
+        return playSound(name, volume, randomPitch);
+    }
+
+
 
     // === MÚSICA ===
     public void loadMusic(String name, String filePath) {
