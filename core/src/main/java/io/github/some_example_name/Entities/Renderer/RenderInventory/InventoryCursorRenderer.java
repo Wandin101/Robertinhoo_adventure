@@ -7,14 +7,13 @@ import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Inventory.Item;
 
 public class InventoryCursorRenderer {
-    private final ShapeRenderer shapeRenderer;
     private final Inventory inventory;
-    private final Vector2 position;
-    private final int cellSize;
-    
+    private Vector2 position;
+    private int cellSize;
+
     private Color selectionColor = new Color(1f, 0.8f, 0.3f, 1f);
     private Color hoverColor = new Color(0.6f, 0.8f, 1f, 0.8f);
-    
+
     // Variáveis de estado (serão passadas no render)
     private Item selectedItem;
     private int originalGridX;
@@ -26,37 +25,32 @@ public class InventoryCursorRenderer {
         this.inventory = inventory;
         this.position = position;
         this.cellSize = cellSize;
-        this.shapeRenderer = new ShapeRenderer();
     }
 
-    public void render(Item selectedItem, int originalGridX, int originalGridY, 
-                       int cursorGridX, int cursorGridY) {
+    public void render(ShapeRenderer shapeRenderer, Item selectedItem, int originalGridX, int originalGridY,
+            int cursorGridX, int cursorGridY) {
         // Armazenar estado atual
         this.selectedItem = selectedItem;
         this.originalGridX = originalGridX;
         this.originalGridY = originalGridY;
         this.cursorGridX = cursorGridX;
         this.cursorGridY = cursorGridY;
-        
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        
+
         // Obtém o item sob o cursor (para hover)
         Item hoveredItem = inventory.getItemAt(cursorGridX, cursorGridY);
-        
+
         if (hoveredItem != null && hoveredItem != selectedItem) {
-            drawItemHoverEffect(hoveredItem);
+            drawItemHoverEffect(shapeRenderer, hoveredItem);
         }
-        
-        drawCursor();
-        
+
+        drawCursor(shapeRenderer);
+
         if (selectedItem != null) {
-            drawSelectedItem();
+            drawSelectedItem(shapeRenderer);
         }
-        
-        shapeRenderer.end();
     }
 
-    private void drawItemHoverEffect(Item item) {
+    private void drawItemHoverEffect(ShapeRenderer shapeRenderer, Item item) {
         int width = item.getGridWidth();
         int height = item.getGridHeight();
 
@@ -68,24 +62,22 @@ public class InventoryCursorRenderer {
 
         // Linha superior
         shapeRenderer.rectLine(
-            baseX, 
-            baseY + height * cellSize,
-            baseX + width * cellSize, 
-            baseY + height * cellSize,
-            2
-        );
+                baseX,
+                baseY + height * cellSize,
+                baseX + width * cellSize,
+                baseY + height * cellSize,
+                2);
 
         // Linha inferior
         shapeRenderer.rectLine(
-            baseX, 
-            baseY,
-            baseX + width * cellSize, 
-            baseY,
-            2
-        );
+                baseX,
+                baseY,
+                baseX + width * cellSize,
+                baseY,
+                2);
     }
 
-    private void drawCursor() {
+    private void drawCursor(ShapeRenderer shapeRenderer) {
         Item hoveredItem = inventory.getItemAt(cursorGridX, cursorGridY);
         int width = 1;
         int height = 1;
@@ -105,24 +97,22 @@ public class InventoryCursorRenderer {
 
         // Linha superior
         shapeRenderer.rectLine(
-            baseX - 2, 
-            baseY + height * cellSize + 2,
-            baseX + width * cellSize + 2, 
-            baseY + height * cellSize + 2,
-            3
-        );
+                baseX - 2,
+                baseY + height * cellSize + 2,
+                baseX + width * cellSize + 2,
+                baseY + height * cellSize + 2,
+                3);
 
         // Linha inferior
         shapeRenderer.rectLine(
-            baseX - 2, 
-            baseY - 2,
-            baseX + width * cellSize + 2, 
-            baseY - 2,
-            3
-        );
+                baseX - 2,
+                baseY - 2,
+                baseX + width * cellSize + 2,
+                baseY - 2,
+                3);
     }
 
-    private void drawSelectedItem() {
+    private void drawSelectedItem(ShapeRenderer shapeRenderer) {
         int width = selectedItem.getGridWidth();
         int height = selectedItem.getGridHeight();
 
@@ -134,20 +124,18 @@ public class InventoryCursorRenderer {
         shapeRenderer.setColor(1f, 0.5f, 0f, 0.4f);
 
         shapeRenderer.rectLine(
-            baseX - 2, 
-            baseY + height * cellSize + 2,
-            baseX + width * cellSize + 2, 
-            baseY + height * cellSize + 2,
-            3 * pulse
-        );
+                baseX - 2,
+                baseY + height * cellSize + 2,
+                baseX + width * cellSize + 2,
+                baseY + height * cellSize + 2,
+                3 * pulse);
 
         shapeRenderer.rectLine(
-            baseX - 2, 
-            baseY - 2,
-            baseX + width * cellSize + 2, 
-            baseY - 2,
-            3 * pulse
-        );
+                baseX - 2,
+                baseY - 2,
+                baseX + width * cellSize + 2,
+                baseY - 2,
+                3 * pulse);
     }
 
     public void setSelectionColor(Color color) {
@@ -158,7 +146,12 @@ public class InventoryCursorRenderer {
         this.hoverColor = color;
     }
 
+    public void updateSize(Vector2 newPosition, int newCellSize) {
+        this.position = newPosition;
+        this.cellSize = newCellSize;
+    }
+
     public void dispose() {
-        shapeRenderer.dispose();
+
     }
 }

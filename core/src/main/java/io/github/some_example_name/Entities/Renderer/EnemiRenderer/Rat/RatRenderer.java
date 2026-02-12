@@ -25,6 +25,7 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
     private final Texture deathSheet;
     private final Animation<TextureRegion> meleeDeathAnimation;
     private final Animation<TextureRegion> projectileDeathAnimation;
+    private final Animation<TextureRegion> highCaliberDeathAnimation;
     private static final float TILE_SIZE = 64f;
 
     private static final float RAT_WIDTH = TILE_SIZE;
@@ -43,8 +44,9 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
         gotDamageAnimation = createAnimation(4, 4, 0.1f);
         prepareDashAnimation = createAnimation(1, 6, 0.17f);
         dashAnimation = createAnimation(0, 6, 0.08f);
-        meleeDeathAnimation = createDeathAnimation(0, 7, 0.1f);
-        projectileDeathAnimation = createDeathAnimation(1, 7, 0.1f);
+        meleeDeathAnimation = createDeathAnimation(1, 7, 0.1f);
+        highCaliberDeathAnimation = createDeathAnimation(2, 7, 0.1f);
+        projectileDeathAnimation = createDeathAnimation(0, 7, 0.1f);
     }
 
     private Animation<TextureRegion> createAnimation(int row, int frames, float speed) {
@@ -66,8 +68,7 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
     private Animation<TextureRegion> createDeathAnimation(int row, int frames, float speed) {
         TextureRegion[] regions = new TextureRegion[frames];
         int frameWidth = deathSheet.getWidth() / 7;
-        int frameHeight = deathSheet.getHeight() / 2;
-
+        int frameHeight = deathSheet.getHeight() / 3;
         for (int i = 0; i < frames; i++) {
             regions[i] = new TextureRegion(
                     deathSheet,
@@ -113,13 +114,13 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
     }
 
     private boolean shouldFlip(Ratinho rat) {
-        // CORREÇÃO: Incluir estados de morte na lógica de flip
         boolean shouldFlip = rat.getDirectionX() < 0 &&
                 (rat.getState() == State.RUNNING_HORIZONTAL ||
                         rat.getState() == State.PREPARING_DASH ||
                         rat.getState() == State.DASHING ||
                         rat.getState() == State.MELEE_DEATH ||
-                        rat.getState() == State.PROJECTILE_DEATH);
+                        rat.getState() == State.PROJECTILE_DEATH ||
+                        rat.getState() == State.HIGH_CALIBER_DEATH);
         return shouldFlip;
     }
 
@@ -135,6 +136,8 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
                 case PROJECTILE_DEATH:
                     originalFrame = projectileDeathAnimation.getKeyFrame(rat.getDeathAnimationTime(), true);
                     break;
+                case HIGH_CALIBER_DEATH:
+                    originalFrame = highCaliberDeathAnimation.getKeyFrame(rat.getDeathAnimationTime(), true);
             }
         }
 
@@ -212,9 +215,11 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
 
         switch (rat.getDeathType()) {
             case MELEE:
-                return meleeDeathAnimation.getKeyFrames()[6]; // Último frame (índice 6)
+                return meleeDeathAnimation.getKeyFrames()[6];
             case PROJECTILE:
-                return projectileDeathAnimation.getKeyFrames()[6]; // Último frame (índice 6)
+                return projectileDeathAnimation.getKeyFrames()[6];
+            case HIGH_CALIBER:
+                return highCaliberDeathAnimation.getKeyFrames()[6];
             default:
                 return idleAnimation.getKeyFrames()[0];
         }
@@ -226,6 +231,10 @@ public class RatRenderer implements CorpseManager.CorpseRenderer {
 
     public float getMeleeDeathDuration() {
         return meleeDeathAnimation.getAnimationDuration();
+    }
+
+    public float getHighCaliberDeathDuration() {
+        return highCaliberDeathAnimation.getAnimationDuration();
     }
 
     public float getProjectileDeathDuration() {

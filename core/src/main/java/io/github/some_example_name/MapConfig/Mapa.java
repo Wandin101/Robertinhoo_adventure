@@ -35,7 +35,9 @@ import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Contact.GameContactListener;
 import io.github.some_example_name.Entities.Itens.CraftinItens.Polvora;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
+import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraReforcada;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
+import io.github.some_example_name.Entities.Itens.Weapon.Calibre12.Calibre12;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Particulas.BloodPoolSystem;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
@@ -196,6 +198,9 @@ public class Mapa implements RoomTransitionManager {
         cabanaInteraction = new CabanaInteractionSystem(this, robertinhoo);
         agruparEPCriarParedes();
         setupContactListener(robertinhoo);
+        addTestWeaponsToRoom0();
+        // addTestRatsToRoom0();
+
         System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
     }
 
@@ -319,6 +324,7 @@ public class Mapa implements RoomTransitionManager {
 
                 if (rand.nextBoolean()) {
                     weapons.add(new Pistol(this, worldPos.x, worldPos.y, robertinhoo.getInventory()));
+                    weapons.add(new Calibre12(this, worldPos.x + 1.2f, worldPos.y, robertinhoo.getInventory()));
                 } else {
                     ammo.add(new Ammo9mm(this, worldPos.x, worldPos.y));
                 }
@@ -990,6 +996,95 @@ public class Mapa implements RoomTransitionManager {
     public BloodParticleSystem getBloodParticleSystem() {
         return bloodParticleSystem;
 
+    }
+
+    private void addTestWeaponsToRoom0() {
+        System.out.println("🔫 Adicionando armas de teste na Sala 0...");
+
+        Vector2 pistolPos = tileToWorld(3, 3);
+        Vector2 calibre12Pos = tileToWorld(6, 3);
+
+        // Adicionar Pistol
+        Pistol pistol = new Pistol(this, pistolPos.x, pistolPos.y, robertinhoo.getInventory());
+        weapons.add(pistol);
+        System.out.println("✅ Pistol adicionada em: " + pistolPos);
+
+        // Adicionar Calibre12
+        Calibre12 calibre12 = new Calibre12(this, calibre12Pos.x, calibre12Pos.y, robertinhoo.getInventory());
+        weapons.add(calibre12);
+        System.out.println("✅ Calibre12 adicionada em: " + calibre12Pos);
+
+        // Adicionar munição
+        Vector2 ammoPos1 = tileToWorld(3, 5);
+        Vector2 ammoPos2 = tileToWorld(6, 5);
+
+        Ammo9mm ammo1 = new Ammo9mm(this, ammoPos1.x, ammoPos1.y);
+        Ammo9mm ammo2 = new Ammo9mm(this, ammoPos2.x, ammoPos2.y);
+
+        ammo.add(ammo1);
+        ammo.add(ammo2);
+        System.out.println("✅ Munição 9mm adicionada para teste");
+        // 🔥 TESTE: adicionar 4 Polvoras Reforçadas
+        for (int i = 0; i < 4; i++) {
+            Vector2 polvoraPos = tileToWorld(4 + i, 7);
+
+            PolvoraReforcada polvora = new PolvoraReforcada(
+                    this.world,
+                    polvoraPos.x,
+                    polvoraPos.y);
+
+            polvora.createBody(polvoraPos);
+            addCraftItem(polvora);
+
+            System.out.println("🧪 Polvora Reforçada adicionada em: " + polvoraPos);
+        }
+
+        // 🔥 TESTE: adicionar 4 Polvoras Brutas
+        for (int i = 0; i < 4; i++) {
+            Vector2 polvoraPos = tileToWorld(4 + i, 8);
+
+            PolvoraBruta polvora = new PolvoraBruta(
+                    this.world,
+                    polvoraPos.x,
+                    polvoraPos.y);
+
+            polvora.createBody(polvoraPos);
+            addCraftItem(polvora);
+
+            System.out.println("🧪 Polvora Bruta adicionada em: " + polvoraPos);
+        }
+
+    }
+
+    private void addTestRatsToRoom0() {
+        System.out.println("🐀 Adicionando ratos de teste na Sala 0");
+
+        // Define a sala 0 como um retângulo que cobre toda a área jogável
+        Rectangle room0Rect = new Rectangle(1, 1, mapWidth - 2, mapHeight - 2);
+
+        // Adiciona alguns ratos em posições específicas (evitando o centro)
+        float[][] ratPositions = {
+                { startPosition.x + 3, startPosition.y + 2 }, // Leste do spawn
+                { startPosition.x - 3, startPosition.y - 2 }, // Oeste do spawn
+                { startPosition.x + 2, startPosition.y - 3 }, // Sudeste
+                { startPosition.x - 2, startPosition.y + 3 } // Noroeste
+        };
+
+        for (float[] pos : ratPositions) {
+            int tileX = (int) pos[0];
+            int tileY = (int) pos[1];
+
+            // Verifica se a posição é válida (não é parede)
+            if (tileX > 0 && tileX < mapWidth - 1 &&
+                    tileY > 0 && tileY < mapHeight - 1 &&
+                    tiles[tileX][tileY] == TILE) {
+
+                Vector2 worldPos = tileToWorld(tileX, tileY);
+                Ratinho rat = new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room0Rect);
+                enemies.add(rat);
+                System.out.println("✅ Rato adicionado em: (" + tileX + ", " + tileY + ")");
+            }
+        }
     }
 
     public BloodPoolSystem getBloodPoolSystem() {

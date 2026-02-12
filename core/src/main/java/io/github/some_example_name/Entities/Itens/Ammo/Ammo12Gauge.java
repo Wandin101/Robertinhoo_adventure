@@ -14,20 +14,20 @@ import io.github.some_example_name.MapConfig.Mapa;
 
 import com.badlogic.gdx.graphics.Texture;
 
-public class Ammo9mm extends Ammo {
+public class Ammo12Gauge extends Ammo {
     private Body body;
 
     protected Vector2 setWorldPosition;
 
-    public Ammo9mm(Mapa mapa, float x, float y) {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
+    public Ammo12Gauge(Mapa mapa, float x, float y) {
+        super("12gauge", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/12-gauge.png")), 2, 1);
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         createBody(this.position);
     }
 
-    public Ammo9mm() {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
+    public Ammo12Gauge() {
+        super("12gauge", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/12-gauge.png")), 2, 1);
         this.position = new Vector2();
         this.mapa = null;
         this.body = null;
@@ -35,7 +35,7 @@ public class Ammo9mm extends Ammo {
 
     public void createBody(Vector2 position) {
         if (mapa == null) {
-            throw new IllegalStateException("Mapa não definido para Ammo9mm");
+            throw new IllegalStateException("Mapa não definido para 12Gauge");
         }
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyType.StaticBody;
@@ -66,7 +66,7 @@ public class Ammo9mm extends Ammo {
 
     @Override
     public Item copy() {
-        Ammo9mm copy = new Ammo9mm();
+        Ammo12Gauge copy = new Ammo12Gauge();
         copy.setQuantity(this.quantity);
         copy.setMapa(this.mapa);
         copy.setPosition(this.position.cpy());
@@ -75,7 +75,7 @@ public class Ammo9mm extends Ammo {
 
     @Override
     public String getName() {
-        return "9mm Ammo";
+        return "12 Gauge";
     }
 
     @Override

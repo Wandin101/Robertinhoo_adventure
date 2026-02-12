@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 
 import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.MapConfig.Mapa;
+
 public class Missile extends Projectile {
     private static final float MISSILE_SPEED = 5f;
     private static final float MISSILE_DAMAGE = 25f;
@@ -16,7 +17,7 @@ public class Missile extends Projectile {
     private Vector2 pendingReflectionDirection = null;
 
     public Missile(Mapa mapa, Vector2 position, Vector2 direction, Castor owner) {
-        super(mapa, position, direction.scl(MISSILE_SPEED), MISSILE_DAMAGE);
+        super(mapa, position, direction.scl(MISSILE_SPEED), MISSILE_DAMAGE, "Missile");
         this.owner = owner;
         this.lifespan = MISSILE_LIFESPAN;
     }
@@ -59,7 +60,7 @@ public class Missile extends Projectile {
     private void applyReflection() {
         if (body != null && pendingReflectionDirection != null) {
             isFrozen = false; // Descongela antes de refletir
-            
+
             float newSpeed = MISSILE_SPEED * 1.5f;
             body.setLinearVelocity(pendingReflectionDirection.scl(newSpeed));
             isReflected = true;
@@ -87,17 +88,16 @@ public class Missile extends Projectile {
         return isFrozen;
     }
 
-
-
     public Castor getOwner() {
         return owner;
     }
+
     public Vector2 getPosition() {
-    if (body != null) {
-        return body.getPosition();
+        if (body != null) {
+            return body.getPosition();
+        }
+        return new Vector2(0, 0);
     }
-    return new Vector2(0, 0);
-}
 
     public boolean isReflected() {
         return isReflected;

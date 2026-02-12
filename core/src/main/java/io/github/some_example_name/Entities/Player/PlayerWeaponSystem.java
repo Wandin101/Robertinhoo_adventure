@@ -21,13 +21,12 @@ public class PlayerWeaponSystem {
     private final Vector2 mousePosition = new Vector2();
     private float currentAimAngle = 0;
 
-
-    private final MapRenderer mapRenderer;
+    private MapRenderer mapRenderer;
 
     public PlayerWeaponSystem(Robertinhoo player, MapRenderer mapRenderer) {
         this.player = player;
         this.mapRenderer = mapRenderer;
-   
+
     }
 
     public void update(float deltaTime) {
@@ -83,36 +82,49 @@ public class PlayerWeaponSystem {
         // Direção da mira (já normalizada)
         Vector2 direction = getAimDirection();
 
-        // Comprimento máximo da mira (em pixels)
-        float maxLength = 500f;
-
-        // Ponto final padrão (sem colisão)
-        float endX = startX + direction.x * maxLength;
-        float endY = startY + direction.y * maxLength;
+        // Comprimento máximo da mira (em unidades do mundo)
+        float maxLengthWorld = 500f / MapRenderer.TILE_SIZE; // Ajuste conforme necessidade
+        float maxLengthPixels = maxLengthWorld * MapRenderer.TILE_SIZE;
 
         // Verifica colisão com paredes usando raycast
-        RayCastResult collision = rayCast(muzzleWorldPos, direction, maxLength / MapRenderer.TILE_SIZE);
+        RayCastResult collision = rayCast(muzzleWorldPos, direction, maxLengthWorld);
 
+        // Calcula comprimento até colisão (em pixels)
+        float collisionLengthPixels = 0;
         if (collision.hit) {
-            // Se houve colisão, ajusta o ponto final
-            endX = mapRenderer.offsetX + collision.point.x * MapRenderer.TILE_SIZE;
-            endY = mapRenderer.offsetY + collision.point.y * MapRenderer.TILE_SIZE;
+            collisionLengthPixels = collision.fraction * maxLengthPixels;
         }
 
-        // Renderiza a linha da mira
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.5f, 0.5f, 0.5f, 0.6f);
-        shapeRenderer.rectLine(startX, startY, endX, endY, 3f);
+        // Obtém a mira da arma
+        WeaponSight sight = weapon.getWeaponSight();
+        if (sight != null) {
+            // Configurações de renderização
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(sight.color);
 
-        // // Renderiza um marcador no ponto de colisão (opcional)
-        // if (collision.hit) {
-        // shapeRenderer.setColor(1, 0, 0, 0.8f);
-        // shapeRenderer.circle(endX, endY, 5);
-        // }
+            // Renderiza a mira customizada da arma
+            sight.render(shapeRenderer,
+                    new Vector2(startX, startY),
+                    direction,
+                    maxLengthPixels,
+                    collisionLengthPixels);
 
-        shapeRenderer.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
+            shapeRenderer.end();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        } else {
+            // Fallback: mira padrão (linha cinza)
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(0.5f, 0.5f, 0.5f, 0.6f);
+
+            float endX = startX + direction.x * (collision.hit ? collisionLengthPixels : maxLengthPixels);
+            float endY = startY + direction.y * (collision.hit ? collisionLengthPixels : maxLengthPixels);
+            shapeRenderer.rectLine(startX, startY, endX, endY, 3f);
+
+            shapeRenderer.end();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
 
     private RayCastResult rayCast(Vector2 start, Vector2 direction, float maxDistance) {
@@ -143,7 +155,8 @@ public class PlayerWeaponSystem {
         public float fraction = 1f;
     }
 
-     public void renderWeapon(SpriteBatch batch, float delta, Robertinhoo player, float playerRenderX, float playerRenderY) {
+    public void renderWeapon(SpriteBatch batch, float delta, Robertinhoo player, float playerRenderX,
+            float playerRenderY) {
         Weapon currentWeapon = player.getInventory().getEquippedWeapon();
         if (currentWeapon == null || player.state == Robertinhoo.DASH || player.state == Robertinhoo.MELEE_ATTACK)
             return;
@@ -159,21 +172,18 @@ public class PlayerWeaponSystem {
                 mapRenderer.offsetY);
     }
 
-    
+    private Vector2 calculateWeaponPosition(Weapon weapon, float playerX, float playerY) {
+        Vector2 muzzleOffset = weapon.getMuzzleOffset().scl(MapRenderer.TILE_SIZE);
 
-private Vector2 calculateWeaponPosition(Weapon weapon, float playerX, float playerY) {
-    Vector2 muzzleOffset = weapon.getMuzzleOffset().scl(MapRenderer.TILE_SIZE);
+        float playerScale = 1.4f;
 
-    float playerScale =1.4f;
-    
-    float playerCenterX = playerX + (player.bounds.width * MapRenderer.TILE_SIZE * playerScale) /2;
-    float playerCenterY = playerY + (player.bounds.height * MapRenderer.TILE_SIZE * playerScale) /2;
-    
-    return new Vector2(
-        playerCenterX + muzzleOffset.x - 3.4f,
-        playerCenterY + muzzleOffset.y-6.5f
-    );
-}
+        float playerCenterX = playerX + (player.bounds.width * MapRenderer.TILE_SIZE * playerScale) / 2;
+        float playerCenterY = playerY + (player.bounds.height * MapRenderer.TILE_SIZE * playerScale) / 2;
+
+        return new Vector2(
+                playerCenterX + muzzleOffset.x - 3.4f,
+                playerCenterY + muzzleOffset.y - 6.5f);
+    }
 
     public float getAimAngleForRenderer() {
         return currentAimAngle;
@@ -252,5 +262,15 @@ private Vector2 calculateWeaponPosition(Weapon weapon, float playerX, float play
         Gdx.app.log("AIM_DEBUG", "Mouse World: " + mousePosition.toString());
         Gdx.app.log("AIM_DEBUG", "Direction: " + aimDirection.toString());
         Gdx.app.log("AIM_DEBUG", "Angle: " + aimDirection.angleDeg());
+    }
+
+    public Robertinhoo getPlayer() {
+        return player;
+    }
+
+    // No arquivo PlayerWeaponSystem.java, adicione:
+    public void setMapRenderer(MapRenderer mapRenderer) {
+        this.mapRenderer = mapRenderer;
+        Gdx.app.log("PlayerWeaponSystem", "MapRenderer atualizado: " + (mapRenderer != null ? "VÁLIDO" : "NULL"));
     }
 }

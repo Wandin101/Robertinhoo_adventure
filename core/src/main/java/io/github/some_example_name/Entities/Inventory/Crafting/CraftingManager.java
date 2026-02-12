@@ -1,27 +1,33 @@
 package io.github.some_example_name.Entities.Inventory.Crafting;
 
-
 import io.github.some_example_name.Entities.Inventory.Inventory;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.some_example_name.Entities.Itens.Ammo.Ammo12Gauge;
 import io.github.some_example_name.Entities.Itens.Ammo.Ammo9mm;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
+import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraReforcada;
 import io.github.some_example_name.Entities.Inventory.InventoryController;
 
 public class CraftingManager {
     private final List<CraftingRecipe> recipes = new ArrayList<>();
-    
+
     public CraftingManager() {
         initializeRecipes();
     }
-    
+
     private void initializeRecipes() {
         CraftingRecipe gunpowderRecipe = new CraftingRecipe(new Ammo9mm(), 1)
-            .addIngredient(PolvoraBruta.class, 2, new PolvoraBruta().getIcon());
-        
+                .addIngredient(PolvoraBruta.class, 2, new PolvoraBruta().getIcon());
+        CraftingRecipe ammo12Recipe = new CraftingRecipe(new Ammo12Gauge(), 1)
+                .addIngredient(PolvoraBruta.class, 1, new PolvoraBruta().getIcon())
+                .addIngredient(PolvoraReforcada.class, 1, new PolvoraReforcada().getIcon());
+
         recipes.add(gunpowderRecipe);
+        recipes.add(ammo12Recipe);
     }
-    
+
     public List<CraftingRecipe> getAvailableRecipes(Inventory inventory) {
         List<CraftingRecipe> available = new ArrayList<>();
         for (CraftingRecipe recipe : recipes) {
@@ -31,7 +37,7 @@ public class CraftingManager {
         }
         return available;
     }
-    
+
     public boolean craftRecipe(CraftingRecipe recipe, Inventory inventory, InventoryController inventoryController) {
         return recipe.craft(inventory, inventoryController);
     }

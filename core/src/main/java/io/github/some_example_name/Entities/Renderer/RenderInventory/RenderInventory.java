@@ -5,34 +5,32 @@ import io.github.some_example_name.Entities.Inventory.InventoryController;
 import io.github.some_example_name.Entities.Inventory.InventoryMouseController;
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Inventory.Crafting.CraftingRecipe;
-
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Fonts.FontsManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
-import io.github.some_example_name.Fonts.FontsManager;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector2;
 
 import java.util.List;
 
-import com.badlogic.gdx.math.Vector2;
-
 public class RenderInventory {
     public final Inventory inventory;
-    private final ShapeRenderer shapeRenderer;
-    public final int cellSize;
+    public int cellSize;
     public final Vector2 position;
-    private final SpriteBatch spriteBatch;
+
     private final InventoryGridRenderer gridRenderer;
-    private final InventoryItemRenderer itemRenderer;
     private final InventoryCursorRenderer cursorRenderer;
-    private final CraftingRenderer craftingRenderer;
+    private InventoryItemRenderer itemRenderer; // recriado no resize
+    private CraftingRenderer craftingRenderer; // recriado no resize
     private BitmapFont inventoryFont;
     public final InventoryMouseCursorRenderer mouseCursorRenderer;
+
+    private final InventoryController inventoryController;
 
     private Item selectedItem;
     private int originalGridX;
@@ -40,57 +38,69 @@ public class RenderInventory {
     private int cursorGridX;
     private int cursorGridY;
 
-    private Color backgroundColor = new Color(0.15f, 0.15f, 0.15f, 1); // Cinza escuro
-    private Color gridLineColor = new Color(0.9f, 0.9f, 0.9f, 0.6f);
+    private Color backgroundColor = new Color(0.15f, 0.15f, 0.15f, 1);
 
-    private Color gridColor = new Color(0.2f, 0.2f, 0.2f, 1);
     private Color validColor = new Color(0, 1, 0, 0.4f);
     private Color invalidColor = new Color(1, 0, 0, 0.4f);
-    private Color itemColor = new Color(0.4f, 0.4f, 0.8f, 1);
-    private Vector2 offset = new Vector2(50, 50);
 
-    private final InventoryContextMenu contextMenu;
+    private int baseCellSize;
+    private float scaleFactor = 1.0f;
+
+    private InventoryContextMenu contextMenu;
+    private final InventoryContextMenu.Listener contextMenuListener;
 
     private Color selectionColor = new Color(1f, 0.8f, 0.3f, 1f);
     private Color hoverColor = new Color(0.6f, 0.8f, 1f, 0.8f);
 
+    private boolean placementValid;
 
     public RenderInventory(Inventory inventory, int cellSize, Vector2 startPosition,
             InventoryController inventoryController) {
+        System.out.println("=== RENDER INVENTORY CONSTRUTOR ===");
+        System.out.println("Tela atual: " + Gdx.graphics.getWidth() + "x" + Gdx.graphics.getHeight());
+
         this.inventory = inventory;
-        this.cellSize = cellSize;
-        this.position = startPosition;
-        this.shapeRenderer = new ShapeRenderer();
-        this.spriteBatch = new SpriteBatch();
+        this.inventoryController = inventoryController;
+        this.baseCellSize = cellSize;
+
+        this.scaleFactor = calculateScaleFactor(64);
+        this.cellSize = (int) (baseCellSize * scaleFactor);
+
+        System.out.println("Scale factor: " + scaleFactor);
+        System.out.println("Cell size ajustado: " + this.cellSize);
+
+        this.position = new Vector2(startPosition);
+        inventoryController.setInventoryPosition(position.x, position.y);
+
+        System.out.println("Posição central calculada: " + position);
+
         this.inventoryFont = FontsManager.createInventoryFont();
         this.selectedItem = null;
         this.originalGridX = 0;
         this.originalGridY = 0;
         this.cursorGridX = 0;
         this.cursorGridY = 0;
+
         this.gridRenderer = new InventoryGridRenderer(inventory, position, cellSize);
         this.itemRenderer = new InventoryItemRenderer(inventory, position, cellSize);
         this.cursorRenderer = new InventoryCursorRenderer(inventory, position, cellSize);
-        this.craftingRenderer = new CraftingRenderer(spriteBatch, shapeRenderer, position);
+
         this.mouseCursorRenderer = new InventoryMouseCursorRenderer(
                 inventoryController,
                 position,
                 cellSize,
                 inventory);
-        inventoryController.setInventoryPosition(startPosition.x, startPosition.y);
-        this.contextMenu = new InventoryContextMenu(cellSize, new InventoryContextMenu.Listener() {
+
+        this.contextMenuListener = new InventoryContextMenu.Listener() {
             @Override
             public void onDrop(Item item) {
                 System.out.println("Drop -> " + item.getName());
-                // chama seu código de drop aqui
                 inventoryController.dropItem(item);
             }
 
             @Override
             public void onMove(Item item) {
                 System.out.println("Move -> " + item.getName());
-                // iniciar modo mover (por ex. colocar item no cursor)
-                // inventoryController.startMove(item);
             }
 
             @Override
@@ -98,18 +108,31 @@ public class RenderInventory {
                 System.out.println("Craft -> " + item.getName());
                 inventoryController.craftingMode = true;
                 inventoryController.selectedItem = item;
-
-                // Inicializa as receitas disponíveis
                 inventoryController.availableRecipes = inventoryController.inventory.getAvailableRecipes();
-
-                // Seleciona a primeira receita se disponível
                 inventoryController.selectedRecipe = inventoryController.availableRecipes.isEmpty() ? null
                         : inventoryController.availableRecipes.get(0);
             }
-        }, mouseCursorRenderer);
+        };
+
+        this.contextMenu = null; // será criado depois com a hudCamera
     }
 
-    public void render(Item placementItem,
+    /** Deve ser chamado após a criação, com a câmera HUD do MapRenderer */
+    public void setHudCamera(OrthographicCamera hudCamera) {
+
+        if (contextMenu != null)
+            contextMenu.dispose();
+        this.contextMenu = new InventoryContextMenu(contextMenuListener, this, hudCamera);
+
+        if (craftingRenderer != null)
+            craftingRenderer.dispose();
+        this.craftingRenderer = new CraftingRenderer(position, hudCamera);
+
+        inventoryController.setContextMenu(this.contextMenu);
+    }
+
+    public void render(ShapeRenderer shapeRenderer, SpriteBatch uiBatch,
+            Item placementItem,
             int placementX,
             int placementY,
             boolean isValid,
@@ -121,252 +144,135 @@ public class RenderInventory {
             List<CraftingRecipe> availableRecipes,
             CraftingRecipe selectedRecipe) {
 
+        // Atualiza estado interno
         this.selectedItem = selectedItem;
         this.originalGridX = originalGridX;
         this.originalGridY = originalGridY;
         this.cursorGridX = cursorGridX;
         this.cursorGridY = cursorGridY;
-        drawBackground();
-        gridRenderer.render();
+
+        this.placementValid = isValid;
+
+        // ========== SHAPE RENDERER (COMPARTILHADO) ==========
+        drawBackground(shapeRenderer);
+        gridRenderer.render(shapeRenderer);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        itemRenderer.renderItems(selectedItem, isValid, cursorGridX, cursorGridY);
+        if (placementItem != null) {
+            drawPlacementLines(shapeRenderer, placementItem, placementX, placementY, isValid);
+        }
+        mouseCursorRenderer.setFreeCursorMode(contextMenu != null && contextMenu.isVisible());
+        drawSelection(shapeRenderer);
+        shapeRenderer.end();
+
+        // ========== ÍCONES DOS ITENS (BATCH PRÓPRIO) ==========
+        itemRenderer.updateSize(position, cellSize);
+        itemRenderer.renderItemIcons(selectedItem, isValid, cursorGridX, cursorGridY);
 
         if (placementItem != null) {
-            drawPlacement(placementItem, placementX, placementY, isValid);
+            itemRenderer.renderPlacementIcon(placementItem, placementX, placementY, placementValid);
         }
-        mouseCursorRenderer.setFreeCursorMode(contextMenu.isVisible());
 
-        drawSelection();
-        shapeRenderer.end();
+        // ========== UI / HUD ==========
+        uiBatch.begin();
 
         checkRightClick();
-        Vector2 mouseWorld = getMouseWorldFromScreen();
+        mouseCursorRenderer.renderMouseCursor(uiBatch);
 
-        contextMenu.render(shapeRenderer, spriteBatch, inventoryFont, mouseWorld.x + cellSize / 2f,
-                mouseWorld.y + cellSize / 2f);
+        uiBatch.end();
 
-        mouseCursorRenderer.renderMouseCursor();
-
-        if (mouseCursorRenderer.getInventoryController().craftingMode && selectedItem != null) {
-            System.out.println("Rendering crafting menu for item: " + selectedItem.getName());
-            System.out.println("Rendering crafting menu for item: " + selectedRecipe);
-            craftingRenderer.render(availableRecipes, selectedRecipe, cursorGridX, cursorGridY, selectedItem);
+        // ========== MENU DE CONTEXTO ==========
+        if (contextMenu != null) {
+            contextMenu.render();
         }
 
+        if (mouseCursorRenderer.getInventoryController().craftingMode && selectedItem != null) {
+            craftingRenderer.render(availableRecipes, selectedRecipe,
+                    cursorGridX, cursorGridY, selectedItem);
+        }
     }
 
-    private void drawItemIcon(TextureRegion icon, int gridX, int gridY, int gridWidth, int gridHeight, float alpha,
-            Color tint) {
-        // Calcular posição
-        float baseX = position.x + (gridX * cellSize);
-        float baseY = position.y + ((inventory.getGridRows() - 1 - gridY) * cellSize);
-        baseY -= (gridHeight - 1) * cellSize;
-
-        float scale = Math.min(
-                (gridWidth * cellSize) / icon.getRegionWidth(),
-                (gridHeight * cellSize) / icon.getRegionHeight());
-        float scaledWidth = icon.getRegionWidth() * scale +30;
-        float scaledHeight = icon.getRegionHeight() * scale +30;
-
-        float offsetX = (gridWidth * cellSize - scaledWidth) / 2;
-        float offsetY = (gridHeight * cellSize - scaledHeight) / 2;
-
-        Color originalColor = new Color(spriteBatch.getColor());
-        spriteBatch.setColor(tint.r, tint.g, tint.b, alpha);
-        spriteBatch.draw(
-                icon,
-                baseX + offsetX,
-                baseY + offsetY,
-                scaledWidth,
-                scaledHeight);
-        spriteBatch.setColor(originalColor);
-    }
-
-    private void drawBackground() {
+    // ---------- MÉTODOS AUXILIARES (drawBackground, drawSelection, etc.)
+    // ----------
+    private void drawBackground(ShapeRenderer shapeRenderer) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(backgroundColor);
-
         float totalWidth = inventory.getGridCols() * cellSize;
         float totalHeight = inventory.getGridRows() * cellSize;
-
-        shapeRenderer.rect(
-                position.x - 2,
-                position.y - 2,
-                totalWidth + 4,
-                totalHeight + 4);
+        shapeRenderer.rect(position.x - 2, position.y - 2, totalWidth + 4, totalHeight + 4);
         shapeRenderer.end();
     }
 
-    private void drawSelection() {
+    private void drawSelection(ShapeRenderer shapeRenderer) {
         Object hoveredItem = inventory.getItemAt(cursorGridX, cursorGridY);
         if (hoveredItem != null && hoveredItem != selectedItem) {
-            drawItemHoverEffect(hoveredItem, cursorGridX, cursorGridY);
+            drawItemHoverEffect(shapeRenderer, hoveredItem, cursorGridX, cursorGridY);
         }
-        drawCursor(hoveredItem);
+        drawCursor(shapeRenderer, hoveredItem);
         if (selectedItem != null) {
-            drawSelectedItem();
+            drawSelectedItem(shapeRenderer);
         }
-        cursorRenderer.render(selectedItem, originalGridX, originalGridY, cursorGridX, cursorGridY);
-
+        cursorRenderer.render(shapeRenderer, selectedItem, originalGridX, originalGridY, cursorGridX, cursorGridY);
     }
 
-    private void drawCursor(Object hoveredItem) {
+    private void drawCursor(ShapeRenderer shapeRenderer, Object hoveredItem) {
         int width = 1;
         int height = 1;
-
         if (hoveredItem instanceof Item) {
             Item item = (Item) hoveredItem;
             width = item.getGridWidth();
             height = item.getGridHeight();
         }
-
         float baseX = position.x + (cursorGridX * cellSize);
         float baseY = position.y + ((inventory.getGridRows() - 1 - cursorGridY) * cellSize);
         baseY -= (height - 1) * cellSize;
         float pulse = (float) (Math.sin(System.currentTimeMillis() * 0.005) * 0.3 + 0.7);
         shapeRenderer.setColor(selectionColor.r, selectionColor.g, selectionColor.b, pulse);
-
-        shapeRenderer.rectLine(
-                baseX - 2, baseY + height * cellSize + 2,
-                baseX + width * cellSize + 2, baseY + height * cellSize + 2,
-                3);
-
-        shapeRenderer.rectLine(
-                baseX - 2, baseY - 2,
-                baseX + width * cellSize + 2, baseY - 2,
-                3);
-
+        shapeRenderer.rectLine(baseX - 2, baseY + height * cellSize + 2,
+                baseX + width * cellSize + 2, baseY + height * cellSize + 2, 3);
+        shapeRenderer.rectLine(baseX - 2, baseY - 2,
+                baseX + width * cellSize + 2, baseY - 2, 3);
     }
 
-    private void drawItemHoverEffect(Object item, int gridX, int gridY) {
+    private void drawItemHoverEffect(ShapeRenderer shapeRenderer, Object item, int gridX, int gridY) {
         int width = item instanceof Weapon ? ((Weapon) item).getGridWidth() : 1;
         int height = item instanceof Weapon ? ((Weapon) item).getGridHeight() : 1;
-
         float baseX = position.x + (gridX * cellSize);
         float baseY = position.y + ((inventory.getGridRows() - 1 - gridY) * cellSize);
         baseY -= (height - 1) * cellSize;
-
         shapeRenderer.setColor(hoverColor);
-
-        // Linha superior sutil
-        shapeRenderer.rectLine(
-                baseX, baseY + height * cellSize,
-                baseX + width * cellSize, baseY + height * cellSize,
-                2);
-
-        // Linha inferior sutil
-        shapeRenderer.rectLine(
-                baseX, baseY,
-                baseX + width * cellSize, baseY,
-                2);
-
+        shapeRenderer.rectLine(baseX, baseY + height * cellSize,
+                baseX + width * cellSize, baseY + height * cellSize, 2);
+        shapeRenderer.rectLine(baseX, baseY,
+                baseX + width * cellSize, baseY, 2);
     }
 
-    private void drawSelectedItem() {
+    private void drawSelectedItem(ShapeRenderer shapeRenderer) {
         int width = selectedItem instanceof Weapon ? ((Weapon) selectedItem).getGridWidth() : 1;
         int height = selectedItem instanceof Weapon ? ((Weapon) selectedItem).getGridHeight() : 1;
-
         float baseX = position.x + (originalGridX * cellSize);
         float baseY = position.y + ((inventory.getGridRows() - 1 - originalGridY) * cellSize);
         baseY -= (height - 1) * cellSize;
-
         shapeRenderer.setColor(1f, 0.5f, 0f, 0.4f);
-
         float pulse = (float) Math.abs(Math.sin(System.currentTimeMillis() * 0.005));
-        shapeRenderer.rectLine(
-                baseX - 2, baseY + height * cellSize + 2,
-                baseX + width * cellSize + 2, baseY + height * cellSize + 2,
-                3 * pulse);
-
-        shapeRenderer.rectLine(
-                baseX - 2, baseY - 2,
-                baseX + width * cellSize + 2, baseY - 2,
-                3 * pulse);
-
+        shapeRenderer.rectLine(baseX - 2, baseY + height * cellSize + 2,
+                baseX + width * cellSize + 2, baseY + height * cellSize + 2, 3 * pulse);
+        shapeRenderer.rectLine(baseX - 2, baseY - 2,
+                baseX + width * cellSize + 2, baseY - 2, 3 * pulse);
     }
 
-    private void drawPlacement(Item item, int x, int y, boolean isValid) {
+    private void drawPlacementLines(ShapeRenderer shapeRenderer,
+            Item item, int x, int y, boolean isValid) {
         int renderY = inventory.getGridRows() - 1 - y - (item.getGridHeight() - 1);
-
         shapeRenderer.setColor(isValid ? validColor : invalidColor);
-
-        shapeRenderer.rectLine(
-                position.x + x * cellSize,
+        shapeRenderer.rectLine(position.x + x * cellSize,
                 position.y + renderY * cellSize + item.getGridHeight() * cellSize,
                 position.x + (x + item.getGridWidth()) * cellSize,
-                position.y + renderY * cellSize + item.getGridHeight() * cellSize,
-                3);
-
-        shapeRenderer.rectLine(
-                position.x + x * cellSize,
+                position.y + renderY * cellSize + item.getGridHeight() * cellSize, 3);
+        shapeRenderer.rectLine(position.x + x * cellSize,
                 position.y + renderY * cellSize,
                 position.x + (x + item.getGridWidth()) * cellSize,
-                position.y + renderY * cellSize,
-                3);
-
-        spriteBatch.begin();
-        drawItemIcon(
-                item.getIcon(),
-                x,
-                y,
-                item.getGridWidth(),
-                item.getGridHeight(),
-                0.5f,
-                isValid ? new Color(1, 1, 1, 0.7f) : new Color(1, 0.5f, 0.5f, 0.7f));
-        spriteBatch.end();
-    }
-
-    // public void debugRenderInteractionArea() {
-    // float startX =
-    // mouseCursorRenderer.getInventoryController().getInventoryStartX();
-    // float startY =
-    // mouseCursorRenderer.getInventoryController().getInventoryStartY();
-    // float cellSize = mouseCursorRenderer.getInventoryController().getCellSize();
-    // int rows = inventory.gridRows;
-    // int cols = inventory.gridCols;
-
-    // shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-    // shapeRenderer.setColor(Color.MAGENTA);
-
-    // // Desenhar área total
-    // shapeRenderer.rect(startX, startY, cols * cellSize, rows * cellSize);
-
-    // // Desenhar células
-    // for (int y = 0; y < rows; y++) {
-    // for (int x = 0; x < cols; x++) {
-    // float cellX = startX + x * cellSize;
-    // float cellY = startY + y * cellSize;
-    // shapeRenderer.rect(cellX, cellY, cellSize, cellSize);
-    // }
-    // }
-    // shapeRenderer.end();
-    // }
-
-    // public void debugRenderInventoryBounds() {
-    // shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-    // shapeRenderer.setColor(Color.RED);
-
-    // float width = inventory.getGridCols() * cellSize;
-    // float height = inventory.getGridRows() * cellSize;
-
-    // // Desenhar retângulo ao redor do inventário
-    // shapeRenderer.rect(position.x, position.y, width, height);
-
-    // // Desenhar ponto de origem
-    // shapeRenderer.setColor(Color.GREEN);
-    // shapeRenderer.circle(position.x, position.y, 5);
-
-    // shapeRenderer.end();
-
-    // spriteBatch.begin();
-    // inventoryFont.draw(spriteBatch, "Pos: " + position.x + ", " + position.y,
-    // position.x, position.y - 20);
-    // spriteBatch.end();
-    // }
-
-    public void setGridColor(Color color) {
-        this.gridColor = color;
+                position.y + renderY * cellSize, 3);
     }
 
     public void setValidColor(Color color) {
@@ -377,18 +283,14 @@ public class RenderInventory {
         this.invalidColor = color;
     }
 
-    public void setItemColor(Color color) {
-        this.itemColor = color;
-    }
-
     private void checkRightClick() {
+        if (contextMenu == null)
+            return;
         InventoryMouseController mouseController = mouseCursorRenderer
                 .getInventoryController()
                 .getMouseController();
-
         if (mouseController.rightClickTriggered) {
             mouseController.rightClickTriggered = false;
-
             handleRightClick(
                     mouseController.rightClickGridX,
                     mouseController.rightClickGridY,
@@ -398,43 +300,85 @@ public class RenderInventory {
     }
 
     public void handleRightClick(int gridX, int gridY, float screenX, float screenY) {
+        if (contextMenu == null)
+            return;
         Item clickedItem = inventory.getItemAt(gridX, gridY);
         if (clickedItem != null) {
-            // Calcular posição do centro do item
-            float itemCenterX = position.x + (gridX * cellSize) + (clickedItem.getGridWidth() * cellSize / 2f);
-            float itemCenterY = position.y + ((inventory.getGridRows() - 1 - gridY) * cellSize) -
-                    (clickedItem.getGridHeight() * cellSize / 2f);
-
-            // Mostrar menu no centro do item
-            contextMenu.show(clickedItem, itemCenterX + (clickedItem.getGridWidth() * cellSize / 2f),
-                    itemCenterY, clickedItem.getGridWidth());
+            contextMenu.show(clickedItem, gridX, gridY, clickedItem.getGridWidth());
         } else {
             contextMenu.hide();
         }
-    }
-
-    private Vector2 getMouseWorldFromScreen() {
-        int screenX = Gdx.input.getX();
-        int screenY = Gdx.input.getY();
-        return mouseCursorRenderer.screenToWorld(screenX, screenY);
     }
 
     public InventoryContextMenu getContextMenu() {
         return contextMenu;
     }
 
-    public Vector2 convertScreenToWorld(float screenX, float screenY) {
-        return mouseCursorRenderer.screenToWorld((int) screenX, (int) screenY);
+    private float calculateScaleFactor(float currentWidth) {
+        float baseWidth = 800f;
+        float scale = currentWidth / baseWidth;
+        scale = Math.max(0.7f, Math.min(scale, 2.0f));
+        return scale;
+    }
+
+    public void updateScreenSize(float width, float height) {
+        this.scaleFactor = calculateScaleFactor(width);
+        this.cellSize = (int) (baseCellSize * scaleFactor);
+
+        System.out.println("\n=== [RENDER INVENTORY] UPDATE SCREEN SIZE ===");
+        System.out.println("  width: " + width + ", height: " + height);
+        System.out.println("  scaleFactor: " + scaleFactor);
+        System.out.println("  cellSize: " + cellSize);
+        System.out.println("  position: (" + position.x + ", " + position.y + ")");
+
+        float totalWidth = inventory.getGridCols() * this.cellSize;
+        float totalHeight = inventory.getGridRows() * this.cellSize;
+        float centerX = width / 2f - totalWidth / 2f;
+        float centerY = height / 2f - totalHeight / 2f;
+        this.position.set(centerX, centerY);
+
+        updateAllRenderers();
+
+        InventoryController controller = mouseCursorRenderer.getInventoryController();
+        controller.setInventoryPosition(position.x, position.y);
+        controller.setCellSize(cellSize);
+
+        // 🔥 RECRIA OS RENDERERS QUE DEPENDEM DO CELL SIZE E FONTE
+        if (inventoryFont != null)
+            inventoryFont.dispose();
+        inventoryFont = FontsManager.createInventoryFont(scaleFactor);
+        this.itemRenderer = new InventoryItemRenderer(inventory, position, cellSize);
+
+    }
+
+    private void updateAllRenderers() {
+        if (gridRenderer != null)
+            gridRenderer.updateSize(position, cellSize);
+        if (itemRenderer != null)
+            itemRenderer.updateSize(position, cellSize);
+        if (cursorRenderer != null)
+            cursorRenderer.updateSize(position, cellSize);
+        if (mouseCursorRenderer != null)
+            mouseCursorRenderer.updateSize(position, cellSize);
+    }
+
+    public void setPosition(Vector2 newPosition) {
+        this.position.set(newPosition);
+        updateAllRenderers();
+        mouseCursorRenderer.getInventoryController().setInventoryPosition(newPosition.x, newPosition.y);
     }
 
     public void dispose() {
-        inventoryFont.dispose();
-        shapeRenderer.dispose();
-        spriteBatch.dispose();
+        if (inventoryFont != null)
+            inventoryFont.dispose();
         gridRenderer.dispose();
         itemRenderer.dispose();
         cursorRenderer.dispose();
         mouseCursorRenderer.dispose();
-    }
+        if (contextMenu != null)
+            contextMenu.dispose();
+        if (craftingRenderer != null)
+            craftingRenderer.dispose();
 
+    }
 }

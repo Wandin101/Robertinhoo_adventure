@@ -21,23 +21,23 @@ public class AmmoRenderer {
     public AmmoRenderer(int tileSize, float scaleFactor) {
         this.tileSize = tileSize;
         this.scaleFactor = scaleFactor;
-        this.ammoTexture = new TextureRegion(new Texture("ITENS/Ammo/ammo0.9mm.png"));
+        this.ammoTexture = new TextureRegion(new Texture("ITENS/Ammo/9mm.png"));
     }
+
     public void render(SpriteBatch batch, List<Ammo> ammoList, float offsetX, float offsetY) {
         float scaledSize = tileSize * scaleFactor;
         float offset = (tileSize - scaledSize) / 2f;
-      
-        for(Ammo ammo : ammoList) {
+
+        for (Ammo ammo : ammoList) {
             float x = offsetX + (ammo.getPosition().x * tileSize) + offset;
             float y = offsetY + (ammo.getPosition().y * tileSize) + offset;
-            
+
             batch.draw(
-                ammoTexture,
-                x,
-                y,
-                scaledSize,
-                scaledSize
-            );
+                    ammoTexture,
+                    x,
+                    y,
+                    scaledSize,
+                    scaledSize);
         }
     }
 

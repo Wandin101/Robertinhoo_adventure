@@ -2,14 +2,17 @@ package io.github.some_example_name.Entities.Itens.Weapon;
 
 import java.util.EnumMap;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 import com.badlogic.gdx.math.Vector2;
 
 import com.badlogic.gdx.physics.box2d.Body;
+import java.util.Map;
 
 import io.github.some_example_name.Entities.Inventory.Item;
+import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
 import io.github.some_example_name.MapConfig.Mapa;
@@ -26,6 +29,8 @@ public abstract class Weapon implements Item {
     protected float animationTime = 0f;
     protected boolean shotTriggered = false;
     protected boolean reloadJustTriggered = false;
+    protected Map<WeaponDirection, Vector2> renderOffsets;
+    protected float reloadDuration = 1.5f;
 
     public Body body;
 
@@ -192,6 +197,38 @@ public abstract class Weapon implements Item {
 
     public Vector2 getMuzzleOffset(WeaponDirection direction) {
         return muzzleOffsets.getOrDefault(direction, new Vector2(0, 0));
+    }
+
+    public void setRenderOffset(WeaponDirection direction, float offsetX, float offsetY) {
+        if (renderOffsets == null) {
+            renderOffsets = new EnumMap<>(WeaponDirection.class);
+        }
+        renderOffsets.put(direction, new Vector2(offsetX, offsetY));
+    }
+
+    public Vector2 getRenderOffset(WeaponDirection direction) {
+        if (renderOffsets != null && renderOffsets.containsKey(direction)) {
+            return renderOffsets.get(direction);
+        }
+        return new Vector2(0f, 0f);
+    }
+
+    public void setRenderOffsetForAllDirections(float offsetX, float offsetY) {
+        for (WeaponDirection dir : WeaponDirection.values()) {
+            setRenderOffset(dir, offsetX, offsetY);
+        }
+    }
+
+    public WeaponSight getWeaponSight() {
+        // Padrão: mira de linha reta (para pistola)
+        WeaponSight.LineSight sight = new WeaponSight.LineSight();
+        sight.color = new Color(0.5f, 0.5f, 0.5f, 0.6f); // Cinza semi-transparente
+        sight.lineWidth = 2f;
+        return sight;
+    }
+
+    public float getReloadDuration() {
+        return reloadDuration;
     }
 
 }

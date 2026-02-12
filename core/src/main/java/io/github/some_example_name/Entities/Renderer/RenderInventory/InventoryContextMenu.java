@@ -1,15 +1,16 @@
 package io.github.some_example_name.Entities.Renderer.RenderInventory;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
-
 import io.github.some_example_name.Entities.Inventory.Item;
-import com.badlogic.gdx.Input.Keys;
-import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryMouseCursorRenderer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -18,281 +19,192 @@ public class InventoryContextMenu {
 
     public interface Listener {
         void onDrop(Item item);
+
         void onMove(Item item);
+
         void onCraft(Item item);
     }
-private boolean debugMode = false; //
-    private final int cellSize;
+
+    private static final float MENU_WIDTH = 130f;
+    private static final float PADDING = 8f;
+    private static final float OPTION_HEIGHT = 28f;
+    private final List<String> options = Arrays.asList("Descartar", "Mover", "Craft");
+
     private final Listener listener;
+    private final RenderInventory renderInventory;
+    private final OrthographicCamera hudCamera; // 🔥 RECEBIDA DO MAPRENDERER
 
     private Item item;
     private boolean visible = false;
-     private ShapeRenderer debugRenderer;
+    private int gridX, gridY;
+    private int itemWidth;
 
-
-    // Layout
-    private float x;
-    private float y; 
-    private float menuWidth = 130f;
-    private float padding =8f;
-    private float optionHeight = 28f;
-    private List<String> options = Arrays.asList("Descartar", "Mover", "Craft");
-     private float optionMargin = 20f; 
-
-    // computed
-    private float menuHeight;
-    private float menuBottomY;
-    public InventoryMouseCursorRenderer mouseCursorRenderer;
-
-    // hover
     private int hoverIndex = -1;
 
-    public InventoryContextMenu(int cellSize, Listener listener,
-    InventoryMouseCursorRenderer mouseCursorRenderer) {
-        this.cellSize = cellSize;
+    // Recursos próprios (AGORA USAM A hudCamera)
+    private final SpriteBatch ownBatch;
+    private final ShapeRenderer ownShapeRenderer;
+    private static Texture whitePixel;
+
+    public InventoryContextMenu(Listener listener, RenderInventory renderInventory, OrthographicCamera hudCamera) {
         this.listener = listener;
-        this.menuHeight = padding * 2f + options.size() * optionHeight;
-        this.mouseCursorRenderer = mouseCursorRenderer;
-          this.debugRenderer = new ShapeRenderer();
+        this.renderInventory = renderInventory;
+        this.hudCamera = hudCamera;
+        this.ownBatch = new SpriteBatch();
+        this.ownShapeRenderer = new ShapeRenderer();
+        if (whitePixel == null) {
+            Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.WHITE);
+            pixmap.fill();
+            whitePixel = new Texture(pixmap);
+            pixmap.dispose();
+        }
     }
 
-    /** 
-     * Mostra o menu. x,y são coordenadas *absolutas* (world pixels). 
-     * x normalmente será a borda direita do item (ex: itemWorldX + itemWidth)
-     * y normalmente será o center Y do item.
-     */
-    public void show(Item item, float x, float y, int gridWidth) {
+    public void show(Item item, int gridX, int gridY, int itemWidth) {
         this.item = item;
-        this.x = x + 5f; // um pequeno gap à direita do item
-        this.y = y + 40f;
-        this.menuHeight = padding * 2f + options.size() * optionHeight;
-        this.menuBottomY = this.y - (this.menuHeight / 2f);
+        this.gridX = gridX;
+        this.gridY = gridY;
+        this.itemWidth = itemWidth;
         this.visible = true;
         this.hoverIndex = -1;
     }
 
     public void hide() {
-        this.visible = false;
-        this.item = null;
-        this.hoverIndex = -1;
+        visible = false;
+        item = null;
+        hoverIndex = -1;
     }
 
     public boolean isVisible() {
         return visible;
     }
 
-    /** 
-     * Renderiza o menu. Deve ser chamado com as mesmas projeções/matrices que você usa para desenhar o inventário (camera combined).
-     * mouseWorldX/Y são as coordenadas do mouse no mesmo espaço (world) — ex.: camera.unproject(new Vector3(screenX, screenY,0))
-     */
+    /** Calcula posição do menu (mesmo de sempre) */
+    private float[] getCurrentMenuPosition() {
+        float invPosX = renderInventory.position.x;
+        float invPosY = renderInventory.position.y;
+        float cell = renderInventory.cellSize;
+        int rows = renderInventory.inventory.getGridRows();
 
-       private float hoverOffsetY = -25f; 
-    public void render(ShapeRenderer sr, SpriteBatch sb, BitmapFont font, float mouseWorldX, float mouseWorldY) {
-        if (!visible || item == null) return;
+        float itemX = invPosX + (gridX * cell);
+        float itemY = invPosY + ((rows - 1 - gridY) * cell);
+        itemY -= (item.getGridHeight() - 1) * cell;
 
-        // recalcula bottom caso a y tenha mudado
-        menuBottomY = y - (menuHeight / 2f);
+        float menuX = itemX + (itemWidth * cell) + 5f;
+        float menuY = itemY + (item.getGridHeight() * cell / 2f);
+        float menuHeight = PADDING * 2f + options.size() * OPTION_HEIGHT;
+        float menuBottomY = menuY - menuHeight / 2f;
 
-        // Hover check
+        menuX = MathUtils.clamp(menuX, 5f, Gdx.graphics.getWidth() - MENU_WIDTH - 5f);
+        menuBottomY = MathUtils.clamp(menuBottomY, 5f, Gdx.graphics.getHeight() - menuHeight - 5f);
+
+        return new float[] { menuX, menuBottomY, menuHeight };
+    }
+
+    public void render() { // 🔥 NÃO RECEBE MAIS RENDERIZADORES EXTERNOS
+        if (!visible || item == null)
+            return;
+
+        float[] pos = getCurrentMenuPosition();
+        float menuX = pos[0];
+        float menuBottomY = pos[1];
+        float menuHeight = pos[2];
+
+        // ===== USA A HUD CAMERA =====
+        ownShapeRenderer.setProjectionMatrix(hudCamera.combined);
+        ownBatch.setProjectionMatrix(hudCamera.combined);
+
+        // ===== HOVER =====
+        int mouseX = Gdx.input.getX();
+        int mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
         hoverIndex = -1;
-        if (mouseWorldX >= x && mouseWorldX <= x + menuWidth) {
-            // Aplicar offset ao mouseY para ajuste de alinhamento
-            float adjustedMouseY = mouseWorldY + hoverOffsetY;
-            
-            if (adjustedMouseY >= menuBottomY && adjustedMouseY <= menuBottomY + menuHeight) {
-                // Verificar cada item individualmente com offset aplicado
-                for (int i = 0; i < options.size(); i++) {
-                    float optionTopY = menuBottomY + menuHeight - padding - i * optionHeight;
-                    float optionBottomY = optionTopY - optionHeight;
-                    
-                    if (adjustedMouseY >= optionBottomY && adjustedMouseY <= optionTopY) {
-                        hoverIndex = i;
-                        break;
-                    }
-                }
+        if (mouseX >= menuX && mouseX <= menuX + MENU_WIDTH &&
+                mouseY >= menuBottomY && mouseY <= menuBottomY + menuHeight) {
+            float relativeY = mouseY - menuBottomY;
+            float invertedY = menuHeight - relativeY;
+            int index = (int) ((invertedY - PADDING) / OPTION_HEIGHT);
+            if (index >= 0 && index < options.size()) {
+                hoverIndex = index;
             }
         }
 
-        // Draw background
+        // ===== FUNDO E BORDA =====
+        ownShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        ownShapeRenderer.setColor(0f, 0f, 0f, 0.85f);
+        ownShapeRenderer.rect(menuX, menuBottomY, MENU_WIDTH, menuHeight);
+        ownShapeRenderer.end();
 
-        sr.begin(ShapeRenderer.ShapeType.Filled);
-        sr.setColor(0f, 0f, 0f, 0.85f);
-        sr.rect(x, menuBottomY, menuWidth, menuHeight);
-        sr.end();
+        ownShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        ownShapeRenderer.setColor(1f, 1f, 1f, 0.15f);
+        ownShapeRenderer.rect(menuX, menuBottomY, MENU_WIDTH, menuHeight);
+        ownShapeRenderer.end();
 
-        // Border
-        sr.begin(ShapeRenderer.ShapeType.Line);
-        sr.setColor(1f, 1f, 1f, 0.15f);
-        sr.rect(x, menuBottomY, menuWidth, menuHeight);
-        sr.end();
-
-        // Highlight hovered option
         if (hoverIndex != -1) {
-            float optionTopY = menuBottomY + menuHeight - padding - (hoverIndex) * optionHeight;
-            float highlightY = optionTopY - optionHeight;
-            sr.begin(ShapeRenderer.ShapeType.Filled);
-            sr.setColor(new Color(1f, 1f, 1f, 0.06f));
-            sr.rect(x, highlightY, menuWidth, optionHeight);
-            sr.end();
+            ownShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            ownShapeRenderer.setColor(1f, 1f, 1f, 0.06f);
+            float optionTopY = menuBottomY + menuHeight - PADDING - hoverIndex * OPTION_HEIGHT;
+            float highlightY = optionTopY - OPTION_HEIGHT;
+            ownShapeRenderer.rect(menuX, highlightY, MENU_WIDTH, OPTION_HEIGHT);
+            ownShapeRenderer.end();
         }
 
-        // Draw text
-        sb.begin();
-        font.getData().setScale(1f);
-        float textX = x + padding;
+        // ===== TEXTO =====
+        ownBatch.begin();
+        BitmapFont font = new BitmapFont(); // PODE SER SUBSTITUÍDO PELA FONTE DO INVENTÁRIO
+        font.setColor(Color.WHITE);
+        float textX = menuX + PADDING;
         for (int i = 0; i < options.size(); i++) {
-            // calc baseline Y for this option
-            float optionTopY = menuBottomY + menuHeight - padding - i * optionHeight;
-            // baseline = optionTopY - (optionHeight - capHeight)/2
-            float baseline = optionTopY - (optionHeight - font.getCapHeight()) / 2f - 4f; // -4 to adjust visually
-            // color
-            if (i == hoverIndex) {
-                font.setColor(Color.YELLOW);
-            } else {
-                font.setColor(Color.WHITE);
-            }
-            font.draw(sb, options.get(i), textX, baseline);
+            float optionTopY = menuBottomY + menuHeight - PADDING - i * OPTION_HEIGHT;
+            float baseline = optionTopY - (OPTION_HEIGHT - font.getCapHeight()) / 2f - 2f;
+            baseline = Math.min(baseline, Gdx.graphics.getHeight() - 10);
+            font.setColor(i == hoverIndex ? Color.YELLOW : Color.WHITE);
+            font.draw(ownBatch, options.get(i), textX, baseline);
         }
-        sb.end();
-    if (debugMode) {
-            renderDebugAreas(mouseWorldX, mouseWorldY, sb, font);
-        }
-    
-        
+        ownBatch.end();
     }
 
-    /**
-     * Deve ser chamado quando ocorrer um clique (em coordenadas world).
-     * Retorna true se o clique foi consumido (dentro do menu), false se foi externo.
-     */
-public boolean handleClick(float worldX, float worldY) {
-    if (!visible) return false;
+    public boolean handleClick(float screenX, float screenY) {
+        if (!visible)
+            return false;
+        float[] pos = getCurrentMenuPosition();
+        float menuX = pos[0];
+        float menuBottomY = pos[1];
+        float menuHeight = pos[2];
 
-    System.out.printf("Click at: X=%.1f, Y=%.1f%n", worldX, worldY);
-    
-    // Área total do menu
-    if (worldX < x || worldX > x + menuWidth || 
-        worldY < menuBottomY || worldY > menuBottomY + menuHeight) {
+        if (screenX < menuX || screenX > menuX + MENU_WIDTH ||
+                screenY < menuBottomY || screenY > menuBottomY + menuHeight) {
+            hide();
+            return false;
+        }
+        float relativeY = screenY - menuBottomY;
+        float invertedY = menuHeight - relativeY;
+        int index = (int) ((invertedY - PADDING) / OPTION_HEIGHT);
+        index = MathUtils.clamp(index, 0, options.size() - 1);
+        triggerOption(index);
         hide();
-        return false;
-    }
-    
-    // Calcula a posição relativa dentro do menu
-    float relativeY = worldY - menuBottomY;
-    
-    // Inverte Y (porque o menu é desenhado de cima para baixo)
-    float invertedY = menuHeight - relativeY;
-    
-    // Calcula o índice diretamente
-    int index = (int) ((invertedY - padding) / optionHeight);
-    index = MathUtils.clamp(index, 0, options.size() - 1);
-    
-    System.out.println("Selected index: " + index);
-    
-    // Executa a ação
-    String opt = options.get(index);
-    if (listener != null && item != null) {
-        System.out.println("Triggering: " + opt);
-        switch (opt) {
-            case "Descartar": listener.onDrop(item); break;
-            case "Mover": listener.onMove(item); break;
-            case "Craft": listener.onCraft(item); break;
-        }
-    }
-    
-    hide();
-    return true;
-}
-      public void scroll(int amount) {
-        if (!visible) return;
-
-        if (amount > 0) {
-            hoverIndex = Math.max(0, hoverIndex - 1);
-        } else {
-            hoverIndex = Math.min(options.size() - 1, hoverIndex + 1);
-        }
-    }
-
-    public boolean handleKeyPress(int keycode) {
-        if (!visible) return false;
-
-        switch (keycode) {
-            case Keys.UP:
-                hoverIndex = Math.max(0, hoverIndex - 1);
-                return true;
-            case Keys.DOWN:
-                hoverIndex = Math.min(options.size() - 1, hoverIndex + 1);
-                return true;
-            case Keys.ENTER:
-                if (hoverIndex >= 0) {
-                    triggerOption(hoverIndex);
-                    hide();
-                }
-                return true;
-            case Keys.ESCAPE:
-                hide();
-                return true;
-        }
-        return false;
+        return true;
     }
 
     private void triggerOption(int index) {
+        if (listener == null || item == null)
+            return;
         String opt = options.get(index);
-        if (listener != null && item != null) {
-            switch (opt) {
-                case "Descartar": listener.onDrop(item); break;
-                case "Mover": listener.onMove(item); break;
-                case "Craft": listener.onCraft(item); break;
-            }
+        switch (opt) {
+            case "Descartar":
+                listener.onDrop(item);
+                break;
+            case "Mover":
+                listener.onMove(item);
+                break;
+            case "Craft":
+                listener.onCraft(item);
+                break;
         }
     }
 
-    /** Se precisar só checar se um ponto está dentro sem consumir. */
-    public boolean isPointInside(float worldX, float worldY) {
-        if (!visible) return false;
-        return worldX >= x && worldX <= x + menuWidth &&
-               worldY >= menuBottomY && worldY <= menuBottomY + menuHeight;
+    public void dispose() {
+        ownBatch.dispose();
+        ownShapeRenderer.dispose();
     }
-    public boolean handleLeftClick(float screenX, float screenY) {
-    if (visible) {
-        Vector2 worldPos = mouseCursorRenderer.screenToWorld((int) screenX, (int) screenY);
-        return handleClick(worldPos.x, worldPos.y);
-    }
-    return false;
-}
-
-
-
-    private void renderDebugAreas(float mouseWorldX, float mouseWorldY,SpriteBatch sb, BitmapFont font) {
-        debugRenderer.begin(ShapeRenderer.ShapeType.Line);
-        
-        for (int i = 0; i < options.size(); i++) {
-            float optionTopY = menuBottomY + menuHeight - padding - i * optionHeight;
-            float optionBottomY = optionTopY - optionHeight;
-            
-            // Verifica se o mouse está sobre esta opção
-            boolean isHovered = (i == hoverIndex);
-            
-            // Define a cor baseada no hover
-            debugRenderer.setColor(isHovered ? Color.RED : Color.GREEN);
-            
-            // Desenha a área da opção
-            debugRenderer.rect(x, optionBottomY, menuWidth, optionHeight);
-            
-            // Desenha texto de debug
-            debugRenderer.end();
-            sb.begin();
-            font.setColor(Color.WHITE);
-            font.draw(sb, "Option " + i + ": " + options.get(i), x, optionBottomY - 110);
-            font.draw(sb, "Top: " + optionTopY, x, optionBottomY - 240);
-            font.draw(sb, "Bottom: " + optionBottomY, x, optionBottomY - 360);
-            font.draw(sb, "MouseY: " + mouseWorldY, x, optionBottomY - 480);
-            sb.end();
-            debugRenderer.begin(ShapeRenderer.ShapeType.Line);
-        }
-        
-        debugRenderer.end();
-    }
-
-
 }

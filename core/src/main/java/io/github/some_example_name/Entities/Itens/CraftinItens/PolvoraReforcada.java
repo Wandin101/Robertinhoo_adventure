@@ -1,5 +1,6 @@
-package io.github.some_example_name.Entities.Itens.Ammo;
+package io.github.some_example_name.Entities.Itens.CraftinItens;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -7,41 +8,37 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.MapConfig.Mapa;
 
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.physics.box2d.World;
 
-public class Ammo9mm extends Ammo {
+public class PolvoraReforcada extends Polvora {
+    private World mapa;
     private Body body;
-
     protected Vector2 setWorldPosition;
 
-    public Ammo9mm(Mapa mapa, float x, float y) {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
+    public PolvoraReforcada(World mapa, float x, float y) {
+        super("PolvoraReforcada", new TextureRegion(new Texture("ITENS/Polvora/polvoraReforcada.png")), 1, 1);
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         createBody(this.position);
     }
 
-    public Ammo9mm() {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
+    public PolvoraReforcada() {
+        super("PolvoraReforcada", new TextureRegion(new Texture("ITENS/Polvora/polvoraReforcada.png")), 1, 1);
         this.position = new Vector2();
         this.mapa = null;
         this.body = null;
     }
 
     public void createBody(Vector2 position) {
-        if (mapa == null) {
-            throw new IllegalStateException("Mapa não definido para Ammo9mm");
-        }
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyType.StaticBody;
         bodyDef.position.set(position.x + 0.5f, position.y + 0.5f);
 
-        body = mapa.world.createBody(bodyDef);
+        body = mapa.createBody(bodyDef);
         body.setUserData(this);
 
         PolygonShape shape = new PolygonShape();
@@ -50,37 +47,38 @@ public class Ammo9mm extends Ammo {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.isSensor = true;
+
         fixtureDef.filter.categoryBits = Constants.BIT_ITEM;
         fixtureDef.filter.maskBits = Constants.BIT_PLAYER;
+
         body.createFixture(fixtureDef);
         shape.dispose();
     }
 
+    @Override
     public Vector2 getPosition() {
+        if (body != null) {
+            return body.getPosition();
+        }
         return position;
     }
 
     public void destroyBody() {
-        mapa.world.destroyBody(body);
+        mapa.destroyBody(body);
     }
 
     @Override
     public Item copy() {
-        Ammo9mm copy = new Ammo9mm();
-        copy.setQuantity(this.quantity);
-        copy.setMapa(this.mapa);
-        copy.setPosition(this.position.cpy());
-        return copy;
+        return new PolvoraReforcada(); // Usa o novo construtor
     }
 
     @Override
     public String getName() {
-        return "9mm Ammo";
+        return "Polvora Reforcada";
     }
 
     @Override
     public Body getBody() {
-
         return body;
     }
 }

@@ -10,6 +10,7 @@ import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 
 import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Flower;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Grass;
+import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
 
 public class Room0LayoutLoader {
     // Cores para identificar elementos no layout
@@ -175,7 +176,7 @@ public class Room0LayoutLoader {
     private static void addDoor(Mapa mapa, int tileX, int tileY) {
         try {
             Room0Door door = new Room0Door(mapa, tileX, tileY);
-            
+
             mapa.addDoor(door);
             System.out.println("🚪 Porta criada em tile: " + tileX + ", " + tileY);
         } catch (Exception e) {

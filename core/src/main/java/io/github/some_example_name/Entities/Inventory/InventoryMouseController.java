@@ -44,16 +44,17 @@ public class InventoryMouseController implements InputProcessor {
 
         return false;
     }
-   @Override
+
+    @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         // Menu visível: tratar cliques de forma especial
         if (controller.getContextMenu().isVisible()) {
             if (button == Buttons.LEFT) {
                 // Clique esquerdo: interage com o menu
-                Vector2 worldPos = controller.getContextMenu().mouseCursorRenderer.screenToWorld(screenX, screenY);
-                return controller.getContextMenu().handleClick(worldPos.x, worldPos.y);
-            } 
-            else if (button == Buttons.RIGHT) {
+                // Usa coordenadas de tela diretamente (inverte Y)
+                float adjustedY = Gdx.graphics.getHeight() - screenY;
+                return controller.getContextMenu().handleClick(screenX, adjustedY);
+            } else if (button == Buttons.RIGHT) {
                 // Clique direito: apenas fecha o menu
                 controller.getContextMenu().hide();
                 return true;
@@ -67,7 +68,7 @@ public class InventoryMouseController implements InputProcessor {
             Vector2 gridPos = screenToGrid(screenX, screenY);
             if (gridPos != null) {
                 controller.setCursorPosition((int) gridPos.x, (int) gridPos.y);
-                
+
                 if (controller.getSelectedItem() == null) {
                     Item item = inventory.getItemAt((int) gridPos.x, (int) gridPos.y);
                     if (item != null) {
@@ -79,8 +80,7 @@ public class InventoryMouseController implements InputProcessor {
                 }
                 return true;
             }
-        } 
-        else if (button == Buttons.RIGHT) {
+        } else if (button == Buttons.RIGHT) {
             // Comportamento para clique direito (abrir menu)
             Vector2 gridPos = screenToGrid(screenX, screenY);
             if (gridPos != null) {
@@ -95,6 +95,7 @@ public class InventoryMouseController implements InputProcessor {
 
         return false;
     }
+
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
         if (!controller.isInventoryOpen() || !dragging)
@@ -123,7 +124,6 @@ public class InventoryMouseController implements InputProcessor {
         }
         return false;
     }
-
 
     public Vector2 screenToGrid(int screenX, int screenY) {
 

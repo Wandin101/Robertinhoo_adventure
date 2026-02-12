@@ -13,6 +13,7 @@ import box2dLight.RayHandler;
 import box2dLight.PointLight;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 
 import io.github.some_example_name.Entities.Debug.DebugRenderers;
@@ -53,6 +54,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import io.github.some_example_name.Entities.Enemies.StateEnemy.StateEnemy;
+import io.github.some_example_name.Entities.Inventory.InventoryController;
 
 public class MapRenderer {
     private RayHandler rayHandler;
@@ -80,6 +82,10 @@ public class MapRenderer {
     private SpawnRoomRenderer spawnRoomRenderer;
     private BloodParticleSystem bloodParticleSystem;
     private BloodParticleRenderer bloodParticleRenderer;
+    private OrthographicCamera hudCamera;
+    private ShapeRenderer hudShapeRenderer;
+    private SpriteBatch hudSpriteBatch;
+    private boolean useHudForInventory = true; // Co
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -98,7 +104,8 @@ public class MapRenderer {
         this.mapa = mapa;
 
         this.rayHandler = mapa.getRayHandler();
-
+        System.out.println("=== MAP RENDERER CONSTRUTOR ===");
+        System.out.println("Tela: " + Gdx.graphics.getWidth() + "x" + Gdx.graphics.getHeight());
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         spriteBatch = new SpriteBatch();
@@ -116,11 +123,20 @@ public class MapRenderer {
         castorRenderer = new CastorRenderer();
         ratRenderer = new RatRenderer();
 
+        float startX = (Gdx.graphics.getWidth() - 5 * 64 * 1.2f) / 2f;
+        float startY = (Gdx.graphics.getHeight() - 5 * 64 * 1.2f) / 2f;
+        Vector2 inventoryPos = new Vector2(startX, startY);
+        hudCamera = new OrthographicCamera();
+        hudCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        hudCamera.update();
         this.renderInventory = new RenderInventory(
                 mapa.robertinhoo.getInventory(),
                 64,
-                new Vector2(175, 100), mapa.robertinhoo.getInventoryController());
+                inventoryPos,
+                mapa.robertinhoo.getInventoryController());
         mapa.robertinhoo.getInventoryController().setContextMenu(renderInventory.getContextMenu());
+        this.renderInventory.setHudCamera(hudCamera);
+        System.out.println("Inventário criado na posição: " + renderInventory.position);
 
         mapa.robertinhoo.setCamera(cameraController.getCamera());
         this.destructibleRenderer = new DestructibleRenderer(TILE_SIZE);
@@ -149,32 +165,28 @@ public class MapRenderer {
         this.escurecedor = new EscurecedorAmbiente();
         bloodParticleSystem = mapa.getBloodParticleSystem();
         bloodParticleRenderer = new BloodParticleRenderer();
+        if (mapa.robertinhoo != null) {
+            mapa.robertinhoo.setMapRenderer(this);
+            System.out.println("✅ MapRenderer: PlayerWeaponSystem vinculado ao novo MapRenderer");
+        }
+
+        hudShapeRenderer = new ShapeRenderer();
+        hudSpriteBatch = new SpriteBatch();
 
     }
 
     public void render(float delta, Robertinhoo player) {
-        // ✅ FUNDO MAIS ESCURO
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Calcula offsets e atualiza câmera
         calculateOffsets();
         cameraController.centerOnPlayer(player, offsetX, offsetY);
-
-        // Configura matrizes de projeção
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
         spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
-
-        // Atualiza física do mundo
         mapa.world.step(delta, 6, 2);
-
-        // ✅ ATUALIZAR LIGHT SPHERE DA PORTA (se existir)
         if (isRoom0 && room0Door != null) {
             room0Door.updateLightSpherePosition(offsetX, offsetY);
             room0Door.update(delta); // Importante: atualizar a porta também
         }
-
-        // --- COLETA DE ENTIDADES PARA SOMBRA ---
         List<ShadowEntity> shadowEntities = new ArrayList<>();
         shadowEntities.add(player); // Jogador
         Vector2 cameraPosWorld = new Vector2(
@@ -377,36 +389,9 @@ public class MapRenderer {
         }
 
         // --- RENDERIZAÇÃO DA INTERFACE ---
-        if (player.getInventoryController().GetIsOpen()) {
-            shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
-            spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
-            renderInventory.render(
-                    null,
-                    0, 0,
-                    false,
-                    player.getInventoryController().getSelectedItem(),
-                    player.getInventoryController().getOriginalGridX(),
-                    player.getInventoryController().getOriginalGridY(),
-                    player.getInventoryController().getCursorGridX(),
-                    player.getInventoryController().getCursorGridY(),
-                    player.getInventoryController().getAvailableRecipes(),
-                    player.getInventoryController().getSelectedRecipe());
-        }
-
-        if (player.getInventoryController().isInPlacementMode()) {
-            shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
-            spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
-            renderInventory.render(
-                    player.getInventoryController().getCurrentPlacementItem(),
-                    player.getInventoryController().getPlacementGridX(),
-                    player.getInventoryController().getPlacementGridY(),
-                    player.getInventoryController().isValidPlacement(),
-                    null,
-                    -1, -1,
-                    player.getInventoryController().getPlacementGridX(),
-                    player.getInventoryController().getPlacementGridY(),
-                    player.getInventoryController().getAvailableRecipes(),
-                    player.getInventoryController().getSelectedRecipe());
+        InventoryController ctrl = player.getInventoryController();
+        if (ctrl.GetIsOpen() || ctrl.isInPlacementMode()) {
+            renderInventoryWithHUD(player, ctrl.isInPlacementMode());
         }
 
         if (rayHandler != null) {
@@ -476,10 +461,41 @@ public class MapRenderer {
     public void resize(int width, int height) {
         cameraController.resize(width, height);
         calculateOffsets();
+
+        // Atualiza a câmera HUD também
+        hudCamera.setToOrtho(false, width, height);
+        hudCamera.update();
+
+        if (renderInventory != null) {
+            renderInventory.updateScreenSize(width, height);
+        }
+
     }
 
     public PlayerRenderer getPlayerRenderer() {
         return playerRenderer;
+    }
+
+    private void renderInventoryWithHUD(Robertinhoo player, boolean isPlacementMode) {
+        hudShapeRenderer.setProjectionMatrix(hudCamera.combined);
+        hudSpriteBatch.setProjectionMatrix(hudCamera.combined);
+
+        InventoryController ctrl = player.getInventoryController();
+
+        renderInventory.render(
+                hudShapeRenderer,
+                hudSpriteBatch,
+                isPlacementMode ? ctrl.getCurrentPlacementItem() : null,
+                isPlacementMode ? ctrl.getPlacementGridX() : 0,
+                isPlacementMode ? ctrl.getPlacementGridY() : 0,
+                isPlacementMode ? ctrl.isValidPlacement() : false,
+                ctrl.getSelectedItem(),
+                ctrl.getOriginalGridX(),
+                ctrl.getOriginalGridY(),
+                ctrl.getCursorGridX(),
+                ctrl.getCursorGridY(),
+                ctrl.getAvailableRecipes(),
+                ctrl.getSelectedRecipe());
     }
 
     public void dispose() {
@@ -521,5 +537,8 @@ public class MapRenderer {
         }
         if (particleBatch != null)
             particleBatch.dispose();
+
+        hudShapeRenderer.dispose();
+        hudSpriteBatch.dispose();
     }
 }

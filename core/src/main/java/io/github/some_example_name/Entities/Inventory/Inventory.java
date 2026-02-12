@@ -250,47 +250,48 @@ public class Inventory {
         return false;
     }
 
-public boolean placeItem(Item item, int newX, int newY) {
-    System.out.println("\n=== 📦 INVENTORY PLACE ITEM (INICIO) ===");
-    System.out.println("   - Item: " + item);
-    System.out.println("   - HashCode: " + System.identityHashCode(item));
-    System.out.println("   - Posição: [" + newX + ", " + newY + "]");
-    System.out.println("   - Item já no inventário? " + items.contains(item));
-    
-    if (items.contains(item)) {
-        System.out.println("🔄 Item já está no inventário, removendo primeiro...");
-        removeItem(item);
-    }
+    public boolean placeItem(Item item, int newX, int newY) {
+        System.out.println("\n=== 📦 INVENTORY PLACE ITEM (INICIO) ===");
+        System.out.println("   - Item: " + item);
+        System.out.println("   - HashCode: " + System.identityHashCode(item));
+        System.out.println("   - Posição: [" + newX + ", " + newY + "]");
+        System.out.println("   - Item já no inventário? " + items.contains(item));
 
-    if (!canPlaceAt(newX, newY, item)) {
-        System.out.println("❌ Não pode colocar nesta posição!");
-        System.out.println("=== ❌ INVENTORY PLACE ITEM (FALHA) ===\n");
-        return false;
-    }
+        if (items.contains(item)) {
+            System.out.println("🔄 Item já está no inventário, removendo primeiro...");
+            removeItem(item);
+        }
 
-    markGrid(newX, newY, item, true);
-    slots.add(new InventorySlot(newX, newY, item));
-    items.add(item);
-    
-    System.out.println("✅ Item colocado no inventário!");
-    System.out.println("   - Slots count: " + slots.size());
-    System.out.println("   - Items count: " + items.size());
-    
-    if (item instanceof Ammo) {
-        Ammo ammo = (Ammo) item;
-        ammoStock.put(ammo.getCaliber(),
-                ammoStock.getOrDefault(ammo.getCaliber(), 0) + ammo.getQuantity());
-        System.out.println("   - Ammo stock atualizado: " + ammo.getCaliber() + " = " + ammoStock.get(ammo.getCaliber()));
-    }
+        if (!canPlaceAt(newX, newY, item)) {
+            System.out.println("❌ Não pode colocar nesta posição!");
+            System.out.println("=== ❌ INVENTORY PLACE ITEM (FALHA) ===\n");
+            return false;
+        }
 
-    if (item instanceof Weapon && equippedWeapon == null) {
-        equipWeapon((Weapon) item);
-        System.out.println("   - Arma equipada automaticamente");
+        markGrid(newX, newY, item, true);
+        slots.add(new InventorySlot(newX, newY, item));
+        items.add(item);
+
+        System.out.println("✅ Item colocado no inventário!");
+        System.out.println("   - Slots count: " + slots.size());
+        System.out.println("   - Items count: " + items.size());
+
+        if (item instanceof Ammo) {
+            Ammo ammo = (Ammo) item;
+            ammoStock.put(ammo.getCaliber(),
+                    ammoStock.getOrDefault(ammo.getCaliber(), 0) + ammo.getQuantity());
+            System.out.println(
+                    "   - Ammo stock atualizado: " + ammo.getCaliber() + " = " + ammoStock.get(ammo.getCaliber()));
+        }
+
+        if (item instanceof Weapon && equippedWeapon == null) {
+            equipWeapon((Weapon) item);
+            System.out.println("   - Arma equipada automaticamente");
+        }
+
+        System.out.println("=== ✅ INVENTORY PLACE ITEM (SUCESSO) ===\n");
+        return true;
     }
-    
-    System.out.println("=== ✅ INVENTORY PLACE ITEM (SUCESSO) ===\n");
-    return true;
-}
 
     public List<Item> getItems() {
         return items;
@@ -298,6 +299,30 @@ public boolean placeItem(Item item, int newX, int newY) {
 
     public int getAmmoCount(String ammoType) {
         return ammoStock.getOrDefault(ammoType, 0);
+    }
+
+    public boolean consumeAmmoOneByOne(String type, int maxAmount) {
+        if (maxAmount <= 0 || !ammoStock.containsKey(type) || ammoStock.get(type) <= 0) {
+            return false;
+        }
+        for (InventorySlot slot : slots) {
+            if (slot.item instanceof Ammo) {
+                Ammo ammo = (Ammo) slot.item;
+                if (ammo.getCaliber().equals(type) && ammo.getQuantity() > 0) {
+                    ammo.reduceQuantity(1);
+                    int currentStock = ammoStock.getOrDefault(type, 0);
+                    ammoStock.put(type, Math.max(0, currentStock - 1));
+                    if (ammo.getQuantity() <= 0) {
+                        markGrid(slot.x, slot.y, ammo, false);
+                        slots.remove(slot);
+                    }
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public void consumeAmmo(String type, int amount) {

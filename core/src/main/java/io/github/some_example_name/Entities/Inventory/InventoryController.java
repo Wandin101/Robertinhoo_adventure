@@ -20,7 +20,7 @@ import java.util.List;
 public class InventoryController {
     private final Robertinhoo player;
     public final Inventory inventory;
-    public  Mapa mapa;
+    public Mapa mapa;
     private InventoryMouseController mouseController;
 
     private boolean isOpen = false;
@@ -44,6 +44,7 @@ public class InventoryController {
     public CraftingRecipe selectedRecipe;
     public List<CraftingRecipe> availableRecipes;
     private InventoryContextMenu inventoryContextMenu;
+    private int cellSize = 40;
 
     private Vector2 inventoryPosition;
 
@@ -342,8 +343,10 @@ public class InventoryController {
             if (currentPlacementItem != null && currentPlacementItem instanceof Weapon) {
                 inventory.equipWeapon((Weapon) currentPlacementItem);
             }
+            selectedItem = null;
         }
         currentPlacementItem = null;
+
     }
 
     public void enterPlacementMode(Item item) {
@@ -509,7 +512,7 @@ public class InventoryController {
     }
 
     public float getCellSize() {
-        return 40; // Tamanho da célula (deve ser igual ao usado no render)
+        return this.cellSize; // ← retorna o valor atualizado, não fixo!
     }
 
     public boolean isInventoryOpen() {
@@ -570,4 +573,10 @@ public class InventoryController {
         this.inventoryContextMenu = contextMenu;
     }
 
+    // valor inicial (será atualizado pelo render)
+
+    // Métodos get/set:
+    public void setCellSize(int cellSize) {
+        this.cellSize = cellSize;
+    }
 }
