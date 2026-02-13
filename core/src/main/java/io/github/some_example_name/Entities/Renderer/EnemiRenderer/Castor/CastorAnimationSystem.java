@@ -21,6 +21,7 @@ public class CastorAnimationSystem {
     private Animation<TextureRegion> dashAnimation;
     private Animation<TextureRegion> meleeDeathAnimation;
     private Animation<TextureRegion> projectileDeathAnimation;
+    private Animation<TextureRegion> highCaliberDeathAnimation;
 
     private static final float FRAME_DURATION = 0.1f;
     private static final float DASH_PREPARATION_DURATION = 0.3f;
@@ -97,41 +98,47 @@ public class CastorAnimationSystem {
     }
 
     private void loadDeathAnimations() {
-        // Carregar spritesheet de morte (5 colunas x 4 linhas)
+        // Spritesheet agora tem 3 linhas × 10 colunas
         Texture deathSheet = new Texture(Gdx.files.internal("enemies/castor/CastorDeads.png"));
 
-        int deathFrameWidth = deathSheet.getWidth() / 5;
-        int deathFrameHeight = deathSheet.getHeight() / 4;
+        int deathFrameWidth = deathSheet.getWidth() / 10; // 10 colunas
+        int deathFrameHeight = deathSheet.getHeight() / 3; // 3 linhas
 
-        // Projetil death - primeiras 2 linhas (10 frames)
+        // 🔥 PROJÉTIL – linha 0 (primeira linha)
         TextureRegion[] projectileFrames = new TextureRegion[10];
-        int index = 0;
-        for (int row = 0; row < 2; row++) {
-            for (int col = 0; col < 5; col++) {
-                projectileFrames[index++] = new TextureRegion(
-                        deathSheet,
-                        col * deathFrameWidth,
-                        row * deathFrameHeight,
-                        deathFrameWidth,
-                        deathFrameHeight);
-            }
+        for (int col = 0; col < 10; col++) {
+            projectileFrames[col] = new TextureRegion(
+                    deathSheet,
+                    col * deathFrameWidth,
+                    0, // row 0
+                    deathFrameWidth,
+                    deathFrameHeight);
         }
         projectileDeathAnimation = new Animation<>(0.1f, projectileFrames);
 
-        // Melee death - últimas 2 linhas (10 frames)
+        // 🔥 MELEE – linha 1 (segunda linha)
         TextureRegion[] meleeFrames = new TextureRegion[10];
-        index = 0;
-        for (int row = 2; row < 4; row++) {
-            for (int col = 0; col < 5; col++) {
-                meleeFrames[index++] = new TextureRegion(
-                        deathSheet,
-                        col * deathFrameWidth,
-                        row * deathFrameHeight,
-                        deathFrameWidth,
-                        deathFrameHeight);
-            }
+        for (int col = 0; col < 10; col++) {
+            meleeFrames[col] = new TextureRegion(
+                    deathSheet,
+                    col * deathFrameWidth,
+                    deathFrameHeight, // row 1
+                    deathFrameWidth,
+                    deathFrameHeight);
         }
         meleeDeathAnimation = new Animation<>(0.1f, meleeFrames);
+
+        // 🔥 ALTO CALIBRE – linha 2 (terceira linha)
+        TextureRegion[] highCaliberFrames = new TextureRegion[10];
+        for (int col = 0; col < 10; col++) {
+            highCaliberFrames[col] = new TextureRegion(
+                    deathSheet,
+                    col * deathFrameWidth,
+                    2 * deathFrameHeight, // row 2
+                    deathFrameWidth,
+                    deathFrameHeight);
+        }
+        highCaliberDeathAnimation = new Animation<>(0.1f, highCaliberFrames);
     }
 
     /**
@@ -267,6 +274,8 @@ public class CastorAnimationSystem {
             case PROJECTILE:
                 frame = projectileDeathAnimation.getKeyFrame(animState.deathAnimationTime, false);
                 break;
+            case HIGH_CALIBER:
+                return highCaliberDeathAnimation.getKeyFrame(animState.deathAnimationTime, false);
         }
 
         if (isDeathAnimationFinished(deathType, animState.deathAnimationTime)) {
@@ -282,6 +291,9 @@ public class CastorAnimationSystem {
                 return meleeDeathAnimation.getKeyFrames()[9];
             case PROJECTILE:
                 return projectileDeathAnimation.getKeyFrames()[9];
+            case HIGH_CALIBER:
+                return highCaliberDeathAnimation.getKeyFrames()[9];
+
             default:
                 return idleAnimation.getKeyFrames()[0];
         }
@@ -297,6 +309,9 @@ public class CastorAnimationSystem {
                 return meleeDeathAnimation.isAnimationFinished(deathAnimationTime);
             case PROJECTILE:
                 return projectileDeathAnimation.isAnimationFinished(deathAnimationTime);
+
+            case HIGH_CALIBER:
+                return highCaliberDeathAnimation.isAnimationFinished(deathAnimationTime);
             default:
                 return true;
         }
@@ -355,5 +370,10 @@ public class CastorAnimationSystem {
         if (projectileDeathAnimation != null && projectileDeathAnimation.getKeyFrames().length > 0) {
             projectileDeathAnimation.getKeyFrames()[0].getTexture().dispose();
         }
+
+        if (highCaliberDeathAnimation != null && highCaliberDeathAnimation.getKeyFrames().length > 0) {
+            highCaliberDeathAnimation.getKeyFrames()[0].getTexture().dispose();
+        }
+
     }
 }

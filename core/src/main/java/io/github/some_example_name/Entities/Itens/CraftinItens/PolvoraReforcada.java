@@ -1,0 +1,84 @@
+package io.github.some_example_name.Entities.Itens.CraftinItens;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import io.github.some_example_name.Entities.Inventory.Item;
+import io.github.some_example_name.Entities.Itens.Contact.Constants;
+import io.github.some_example_name.MapConfig.Mapa;
+
+import com.badlogic.gdx.physics.box2d.World;
+
+public class PolvoraReforcada extends Polvora {
+    private World mapa;
+    private Body body;
+    protected Vector2 setWorldPosition;
+
+    public PolvoraReforcada(World mapa, float x, float y) {
+        super("PolvoraReforcada", new TextureRegion(new Texture("ITENS/Polvora/polvoraReforcada.png")), 1, 1);
+        this.position = new Vector2(x, y);
+        this.mapa = mapa;
+        createBody(this.position);
+    }
+
+    public PolvoraReforcada() {
+        super("PolvoraReforcada", new TextureRegion(new Texture("ITENS/Polvora/polvoraReforcada.png")), 1, 1);
+        this.position = new Vector2();
+        this.mapa = null;
+        this.body = null;
+    }
+
+    public void createBody(Vector2 position) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyType.StaticBody;
+        bodyDef.position.set(position.x + 0.5f, position.y + 0.5f);
+
+        body = mapa.createBody(bodyDef);
+        body.setUserData(this);
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(0.4f, 0.4f);
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.isSensor = true;
+
+        fixtureDef.filter.categoryBits = Constants.BIT_ITEM;
+        fixtureDef.filter.maskBits = Constants.BIT_PLAYER;
+
+        body.createFixture(fixtureDef);
+        shape.dispose();
+    }
+
+    @Override
+    public Vector2 getPosition() {
+        if (body != null) {
+            return body.getPosition();
+        }
+        return position;
+    }
+
+    public void destroyBody() {
+        mapa.destroyBody(body);
+    }
+
+    @Override
+    public Item copy() {
+        return new PolvoraReforcada(); // Usa o novo construtor
+    }
+
+    @Override
+    public String getName() {
+        return "Polvora Reforcada";
+    }
+
+    @Override
+    public Body getBody() {
+        return body;
+    }
+}

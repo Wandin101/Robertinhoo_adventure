@@ -20,14 +20,14 @@ public class Ammo9mm extends Ammo {
     protected Vector2 setWorldPosition;
 
     public Ammo9mm(Mapa mapa, float x, float y) {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/ammo0.9mm.png")), 2, 1);
+        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         createBody(this.position);
     }
 
     public Ammo9mm() {
-        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/ammo0.9mm.png")), 2, 1);
+        super("9mm", 15, 25, new TextureRegion(new Texture("ITENS/Ammo/9mm.png")), 2, 1);
         this.position = new Vector2();
         this.mapa = null;
         this.body = null;
@@ -77,9 +77,10 @@ public class Ammo9mm extends Ammo {
     public String getName() {
         return "9mm Ammo";
     }
+
     @Override
     public Body getBody() {
-        
+
         return body;
     }
 }

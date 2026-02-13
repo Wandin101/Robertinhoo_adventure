@@ -15,7 +15,7 @@ public abstract class Enemy {
 
     // Propriedades de morte movidas para cá
     public enum DeathType {
-        NONE, MELEE, PROJECTILE
+        NONE, MELEE, PROJECTILE, HIGH_CALIBER
     }
 
     protected DeathType deathType = DeathType.NONE;

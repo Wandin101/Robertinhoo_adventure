@@ -6,9 +6,9 @@ import com.badlogic.gdx.graphics.Color;
 
 public class BloodParticle {
     // COORDENADAS EM UNIDADES DE MUNDO
-    public Vector2 position;
-    public Vector2 velocity;
-    public float gravity = 12f;
+    public final Vector2 position;
+    public final Vector2 velocity;
+    public final float gravity = 12f;
 
     public int spriteIndex;
     public float renderScale;
@@ -28,9 +28,9 @@ public class BloodParticle {
 
     // Cores de sangue (sem crítico)
     private static final Color[] BLOOD_COLORS = {
-        new Color(0.8f, 0.1f, 0.1f, 1f), // Vermelho vivo
-        new Color(0.7f, 0.15f, 0.15f, 1f), // Vermelho escuro
-        new Color(0.6f, 0.1f, 0.1f, 1f)  // Vermelho quase marrom
+            new Color(0.8f, 0.1f, 0.1f, 1f), // Vermelho vivo
+            new Color(0.7f, 0.15f, 0.15f, 1f), // Vermelho escuro
+            new Color(0.6f, 0.1f, 0.1f, 1f) // Vermelho quase marrom
     };
 
     public BloodParticle() {
@@ -43,42 +43,43 @@ public class BloodParticle {
 
     public void activate(float x, float y, Vector2 direction, float force) {
         position.set(x, y);
-        
+
         // Força com variação
         float forceVariation = MathUtils.random(0.7f, 1.3f);
         velocity.set(direction).nor().scl(force * forceVariation);
-        
+
         // Aleatoriedade mais orgânica
         float spread = force * 0.3f;
         velocity.x += MathUtils.random(-spread, spread);
         velocity.y += MathUtils.random(-spread * 0.5f, spread);
-        
+
         // Escala variada
         initialScale = MathUtils.random(0.04f, 0.1f);
         renderScale = initialScale;
-        
+
         // Rotação e velocidade angular
         rotation = MathUtils.random(0f, 360f);
         angularVelocity = MathUtils.random(-180f, 180f);
-        
+
         // Cor aleatória
         color.set(BLOOD_COLORS[MathUtils.random(0, BLOOD_COLORS.length - 1)]);
-        
+
         // Tempo de vida variado
         maxLifeTime = MathUtils.random(0.8f, 1.5f);
-        
+
         lifeTime = 0;
         isActive = true;
         hasCreatedPool = false;
         hasSplattered = false;
-        
+
         // Tocar som de splash (intensidade baseada na força)
         float soundIntensity = Math.min(force / 5f, 1f);
         BloodSoundManager.playSplashSound(soundIntensity);
     }
 
     public void update(float delta, BloodPoolSystem poolSystem, Vector2 cameraPos) {
-        if (!isActive) return;
+        if (!isActive)
+            return;
 
         // Aplica resistência do ar
         velocity.x *= drag;
@@ -146,12 +147,12 @@ public class BloodParticle {
 
     public float getAlpha() {
         float progress = lifeTime / maxLifeTime;
-        
+
         // Fade suave no final
         if (progress > 0.7f) {
             return 1f - ((progress - 0.7f) / 0.3f);
         }
-        
+
         return 1f;
     }
 }

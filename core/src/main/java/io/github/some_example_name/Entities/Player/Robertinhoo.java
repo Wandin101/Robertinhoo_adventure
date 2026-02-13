@@ -301,7 +301,12 @@ public class Robertinhoo implements ShadowEntity {
     }
 
     public void setMapRenderer(MapRenderer mapRenderer) {
-        this.weaponSystem = new PlayerWeaponSystem(this, mapRenderer);
+        if (weaponSystem != null) {
+            weaponSystem.setMapRenderer(mapRenderer);
+            System.out.println("✅ Robertinhoo: PlayerWeaponSystem atualizado com novo MapRenderer");
+        } else {
+            System.err.println("❌ Robertinhoo: weaponSystem é null!");
+        }
     }
 
     public float getMeleeAttackDuration() {
@@ -545,4 +550,5 @@ public class Robertinhoo implements ShadowEntity {
     public void setFaceHUD(RobertinhoFaceHUD hud) {
         this.faceHUD = hud;
     }
+
 }

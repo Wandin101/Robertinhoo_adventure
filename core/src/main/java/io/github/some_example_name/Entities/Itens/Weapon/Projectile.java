@@ -26,6 +26,7 @@ public class Projectile {
     private static final float WIDTH = 0.4f;
     private static final float HEIGHT = 0.3f;
     private Mapa mapa;
+    private String weaponName;
 
     private static final float HITBOX_RADIUS = 0.1f; // Rai
     private boolean toBeDestroyed = false;
@@ -56,8 +57,9 @@ public class Projectile {
         return toBeDestroyed;
     }
 
-    public Projectile(Mapa mapa, Vector2 position, Vector2 velocity, float damage) {
+    public Projectile(Mapa mapa, Vector2 position, Vector2 velocity, float damage, String weaponName) {
         this.damage = damage;
+        this.weaponName = weaponName;
         this.mapa = mapa;
         createBody(mapa, position, velocity);
         mapa.addProjectile(this);
@@ -176,6 +178,10 @@ public class Projectile {
 
     public float getDestructionTime() {
         return destructionTime;
+    }
+
+    public String getWeaponName() {
+        return weaponName;
     }
 
     public void startDestruction() {

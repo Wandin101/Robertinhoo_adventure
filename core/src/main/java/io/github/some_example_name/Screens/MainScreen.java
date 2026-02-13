@@ -1,4 +1,5 @@
 package io.github.some_example_name.Screens;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
@@ -17,7 +18,6 @@ public class MainScreen implements Screen {
         this.game = game;
     }
 
-
     @Override
     public void show() {
         font = new BitmapFont(); // Fonte padrão do LibGDX
@@ -31,26 +31,32 @@ public class MainScreen implements Screen {
 
         // Renderiza o menu
         game.batch.begin();
-        font.draw(game.batch, "Aperte qualquer teclaaa cria", Gdx.graphics.getWidth() / 2f - 100, Gdx.graphics.getHeight() / 2f);
+        font.draw(game.batch, "Aperte qualquer teclaaa cria", Gdx.graphics.getWidth() / 2f - 100,
+                Gdx.graphics.getHeight() / 2f);
         game.batch.end();
 
         if (Gdx.input.isTouched()) {
             System.out.println("Tela tocada! Mudando para GameScreen.");
+            game.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             game.setScreen(new GameScreen(game));
         }
     }
 
     @Override
-    public void resize(int width, int height) {}
+    public void resize(int width, int height) {
+    }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+    }
 
     @Override
     public void dispose() {

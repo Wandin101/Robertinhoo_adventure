@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -81,7 +82,7 @@ public class Castor extends Enemy implements ShadowEntity, Steerable<Vector2> {
 
     public enum State {
         IDLE, MOVING, SHOOTING, TAKING_DAMAGE, DASHING,
-        MELEE_DEATH, PROJECTILE_DEATH
+        MELEE_DEATH, PROJECTILE_DEATH, HIGH_CALIBER_DEATH
     }
 
     private State state = State.IDLE;
@@ -351,6 +352,26 @@ public class Castor extends Enemy implements ShadowEntity, Steerable<Vector2> {
             applyNormalKnockback();
         }
 
+        Vector2 worldPos = body.getPosition(); // Ex: (10.5, 15.3)
+
+        // Direção do sangue (normalizada)
+        Vector2 bloodDirection = new Vector2(
+                MathUtils.random(-1f, 1f),
+                MathUtils.random(0.5f, 1f)).nor(); // IMPORTANTE: normalizar!
+
+        float force = MathUtils.random(1.5f, 2.5f);
+
+        // Quantidade de partículas: ajustável
+        int particleCount = MathUtils.random(20, 30);
+
+        // CHAMA COM COORDENADAS DO MUNDO
+        mapa.getBloodParticleSystem().createBloodSplash(
+                worldPos.x, // Já está em unidades mundo
+                worldPos.y, // Já está em unidades mundo
+                bloodDirection,
+                particleCount,
+                force);
+
         if (isShooting) {
             isShooting = false;
             hasShot = false;
@@ -387,10 +408,24 @@ public class Castor extends Enemy implements ShadowEntity, Steerable<Vector2> {
             return;
         isDead = true;
         deathType = type;
-
         animationState.deathAnimationTime = 0f;
-        state = type == DeathType.MELEE ? State.MELEE_DEATH : State.PROJECTILE_DEATH;
 
+        switch (type) {
+            case MELEE:
+                state = State.MELEE_DEATH;
+
+                break;
+            case PROJECTILE:
+                state = State.PROJECTILE_DEATH;
+
+                break;
+            case HIGH_CALIBER:
+                state = State.HIGH_CALIBER_DEATH;
+
+                break;
+        }
+
+        // Disable collisions
         for (Fixture fixture : body.getFixtureList()) {
             fixture.setSensor(true);
         }

@@ -10,12 +10,16 @@ public class GameGameSoundsPaths {
         public static final String PARRY_SUCCESS = "parry_success";
         public static final String MELEE_ATACK = "melee_attack";
 
-        //Passos
+        // Passos
         public static final String FOOTSTEP_GRASS = "passos_grama";
 
         public static final String BLOOD_SPLASH = "blood_splash";
         public static final String BLOOD_POOL = "blood_pool";
 
+        public static final String SHOTGUN_SHOOT = "tiro12";
+        public static final String SHOTGUN_COCK = "punheta";
+        public static final String SHOTGUN_RELOAD_INSERT = "recarga";
+        public static final String SHOTGUN_RELOAD_TILT = "inclinacao";
 
         // public static final String MELEE_ATTACK = "melee_attack";
         // public static final String RANGED_ATTACK = "ranged_attack";
@@ -44,12 +48,11 @@ public class GameGameSoundsPaths {
 
     // === MÚSICAS ===
     public static class Music {
-    public static final String MAIN_THEME = "main_theme";
-    public static final String BOSS_BATTLE = "boss_battle";
-    public static final String MENU_MUSIC = "menu_music";
-    public static final String FOOTSTEP_GRASS = "passos_grama";
-            
-        
+        public static final String MAIN_THEME = "main_theme";
+        public static final String BOSS_BATTLE = "boss_battle";
+        public static final String MENU_MUSIC = "menu_music";
+        public static final String FOOTSTEP_GRASS = "passos_grama";
+
     }
 
     public static class Ambient {
@@ -66,7 +69,12 @@ public class GameGameSoundsPaths {
         audio.loadSound(Sounds.MELEE_ATACK, "Sounds/melee.wav");
         audio.loadSound(Sounds.BLOOD_SPLASH, "Sounds/splash.wav");
         audio.loadSound(Sounds.BLOOD_POOL, "Sounds/pool.wav");
-        
+
+        audio.loadSound(Sounds.SHOTGUN_SHOOT, "Sounds/tiro12.wav");
+        audio.loadSound(Sounds.SHOTGUN_COCK, "Sounds/punheta12.wav");
+        audio.loadSound(Sounds.SHOTGUN_RELOAD_INSERT, "Sounds/recarga.wav");
+        audio.loadSound(Sounds.SHOTGUN_RELOAD_TILT, "Sounds/inclinacao.wav");
+
         // audio.loadSound(Sounds.MELEE_ATTACK, "sounds/combat/melee_attack.wav");
         // audio.loadSound(Sounds.RANGED_ATTACK, "sounds/combat/ranged_attack.wav");
         // audio.loadSound(Sounds.RELOAD, "sounds/combat/reload.wav");
@@ -96,7 +104,7 @@ public class GameGameSoundsPaths {
         // audio.loadMusic(Music.MAIN_THEME, "music/main_theme.mp3");
         // audio.loadMusic(Music.BOSS_BATTLE, "music/boss_battle.mp3");
         // audio.loadMusic(Music.MENU_MUSIC, "music/menu_music.mp3");
-         audio.loadMusic(Music.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
+        audio.loadMusic(Music.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
 
         Gdx.app.log("ASSETS", "Todos os assets de áudio carregados!");
     }

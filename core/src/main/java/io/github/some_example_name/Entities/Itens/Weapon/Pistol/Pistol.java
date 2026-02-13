@@ -1,5 +1,6 @@
 package io.github.some_example_name.Entities.Itens.Weapon.Pistol;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -15,6 +16,7 @@ import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
 import io.github.some_example_name.MapConfig.Mapa;
 
@@ -34,6 +36,8 @@ public class Pistol extends Weapon {
     private float reloadDuration = 2.1f; // Tempo de duração da recarga em segundos
 
     private Animation<TextureRegion> shootAnim;
+    private float shootingTime = 0f;
+    private static final float SHOOTING_STATE_DURATION = 0.5f;
 
     @Override
     public TipoMao getTipoMao() {
@@ -61,8 +65,6 @@ public class Pistol extends Weapon {
                 new Vector2(1, 0),
                 new Vector2(0, 1)
         };
-        
-
 
         this.setMuzzleOffset(WeaponDirection.N, new Vector2(2, 2));
         this.setMuzzleOffset(WeaponDirection.NE, new Vector2(6, 2));
@@ -72,9 +74,8 @@ public class Pistol extends Weapon {
         this.setMuzzleOffset(WeaponDirection.SW, new Vector2(6, 2));
         this.setMuzzleOffset(WeaponDirection.SE, new Vector2(6, 3.5f));
         this.setMuzzleOffset(WeaponDirection.W, new Vector2(7, -2));
-
+        setRenderOffsetForAllDirections(0f, 0f);
     }
-
 
     @Override
     public Vector2[] getOccupiedCells() {
@@ -92,7 +93,10 @@ public class Pistol extends Weapon {
         if (currentState == WeaponState.RELOADING || inventory == null) {
             return;
         }
-
+        if (currentState == WeaponState.SHOOTING) {
+            currentState = WeaponState.IDLE;
+            shootingTime = 0f;
+        }
         int needed = maxAmmo - ammo;
         String requiredType = "9mm";
         int available = inventory.getAmmoCount(requiredType);
@@ -123,6 +127,15 @@ public class Pistol extends Weapon {
         updateFloatation(delta);
         timeSinceLastShot += delta;
 
+        if (currentState == WeaponState.SHOOTING) {
+            shootingTime += delta;
+            if (shootingTime >= SHOOTING_STATE_DURATION) {
+                currentState = WeaponState.IDLE;
+                shootingTime = 0f;
+                System.out.println("🔄 [Pistol.update] Estado voltou para IDLE");
+            }
+        }
+
         if (timeSinceLastShot >= 1 / fireRate) {
             canShoot = true;
         }
@@ -151,7 +164,7 @@ public class Pistol extends Weapon {
         fixtureDef.shape = shape;
         fixtureDef.isSensor = true;
         fixtureDef.filter.categoryBits = Constants.BIT_ITEM;
-        fixtureDef.filter.maskBits     = Constants.BIT_PLAYER;
+        fixtureDef.filter.maskBits = Constants.BIT_PLAYER;
         body.createFixture(fixtureDef);
         shape.dispose();
 
@@ -199,9 +212,10 @@ public class Pistol extends Weapon {
             return;
         }
         if (canShoot && ammo > 0) {
-            new Projectile(mapa, position, direction.nor().scl(10f), damage);
+            new Projectile(mapa, position, direction.nor().scl(10f), damage, getName());
 
             shotTriggered = true;
+            currentState = WeaponState.SHOOTING;
 
             ammo--;
             canShoot = false;
@@ -253,16 +267,27 @@ public class Pistol extends Weapon {
     @Override
     public Pistol copy() {
         Pistol copy = new Pistol(mapa, (int) position.x, (int) position.y, inventory);
-       return copy;
+        return copy;
     }
 
     @Override
     public String getName() {
         return "Pistol";
     }
+
     @Override
     public Body getBody() {
         return body;
+    }
+
+    @Override
+    public WeaponSight getWeaponSight() {
+        // Pistola: linha com ponto no final (estilo Brawl Stars)
+        WeaponSight.BrawlPistolSight sight = new WeaponSight.BrawlPistolSight();
+        sight.color = new Color(0.9f, 0.9f, 0.9f, 0.25f); // Branco transparente
+        sight.lineWidth = 4f;
+        sight.endMarkerSize = 6;
+        return sight;
     }
 
 }

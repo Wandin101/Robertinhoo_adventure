@@ -204,140 +204,140 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         }
     }
 
- private void loadRoom0() {
-    AudioManager.getInstance().stopAllAmbientSounds();
-    
-    // Salva o player atual se existir
-    Robertinhoo currentPlayer = (mapa != null) ? mapa.robertinhoo : robertinhoo;
-    
-    if (mapa != null) {
+    private void loadRoom0() {
+        AudioManager.getInstance().stopAllAmbientSounds();
+
+        // Salva o player atual se existir
+        Robertinhoo currentPlayer = (mapa != null) ? mapa.robertinhoo : robertinhoo;
+
+        if (mapa != null) {
+            try {
+                mapa.disposeSafely();
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
+            }
+        }
+
+        mapa = roomManager.createOrResetRoom0(currentPlayer);
+        robertinhoo = mapa.robertinhoo;
+        renderer = new MapRenderer(mapa);
+
+        // ✅ RECRIA o faceHUD com as novas dimensões
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, robertinhoo);
+
+        // ✅ ATUALIZA A REFERÊNCIA NO ROBERTINHOO
+        if (robertinhoo != null) {
+            robertinhoo.setFaceHUD(robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] FaceHUD atualizado no Robertinhoo (Sala 0)");
+        }
+
+        // ✅ ATUALIZA o DeathSystem com o NOVO faceHUD
+        if (deathSystem != null) {
+            deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer(), robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] DeathSystem atualizado com novo faceHUD da Sala 0");
+        } else {
+            deathSystem = new DeathSystem(this, renderer.getPlayerRenderer(), robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] DeathSystem criado com novo faceHUD da Sala 0");
+        }
+
+        cabanaInteraction = mapa.getCabanaInteractionSystem();
+        mapa.setRoomTransitionListener(this);
+
+        System.out.println("✅ Sala 0 carregada - Player e FaceHUD configurados");
+    }
+
+    private void loadRoom1() {
+        System.out.println("=== INICIANDO LOAD ROOM 1 ===");
+        currentRoom = 1;
+        AudioManager.getInstance().stopAllAmbientSounds();
+
+        Robertinhoo currentPlayer = null;
+        if (mapa != null) {
+            System.out.println("📝 Mapa atual existe, obtendo jogador...");
+            currentPlayer = mapa.robertinhoo;
+            System.out.println("📝 Jogador obtido: " + (currentPlayer != null));
+        } else {
+            System.out.println("📝 Mapa atual é null, usando robertinhoo: " + (robertinhoo != null));
+            currentPlayer = robertinhoo;
+        }
+
+        if (mapa != null) {
+            System.out.println("🗑️ Destruindo mapa antigo...");
+            try {
+                mapa.disposeSafely();
+            } catch (Exception e) {
+                System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
+                System.err.println("⚠️ Continuando mesmo com erro...");
+            }
+            mapa = null;
+            System.out.println("🗑️ Mapa antigo destruído");
+        }
+
         try {
-            mapa.disposeSafely();
-        } catch (Exception e) {
-            System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            // Ignora
         }
-    }
-    
-    mapa = roomManager.createOrResetRoom0(currentPlayer);
-    robertinhoo = mapa.robertinhoo;
-    renderer = new MapRenderer(mapa);
-    
-    // ✅ RECRIA o faceHUD com as novas dimensões
-    float width = Gdx.graphics.getWidth();
-    float height = Gdx.graphics.getHeight();
-    robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, robertinhoo);
-    
-    // ✅ ATUALIZA A REFERÊNCIA NO ROBERTINHOO
-    if (robertinhoo != null) {
-        robertinhoo.setFaceHUD(robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] FaceHUD atualizado no Robertinhoo (Sala 0)");
-    }
-    
-    // ✅ ATUALIZA o DeathSystem com o NOVO faceHUD
-    if (deathSystem != null) {
-        deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer(), robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] DeathSystem atualizado com novo faceHUD da Sala 0");
-    } else {
-        deathSystem = new DeathSystem(this, renderer.getPlayerRenderer(), robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] DeathSystem criado com novo faceHUD da Sala 0");
-    }
-    
-    cabanaInteraction = mapa.getCabanaInteractionSystem();
-    mapa.setRoomTransitionListener(this);
-    
-    System.out.println("✅ Sala 0 carregada - Player e FaceHUD configurados");
-}
 
-   private void loadRoom1() {
-    System.out.println("=== INICIANDO LOAD ROOM 1 ===");
-    currentRoom = 1;
-    AudioManager.getInstance().stopAllAmbientSounds();
-    
-    Robertinhoo currentPlayer = null;
-    if (mapa != null) {
-        System.out.println("📝 Mapa atual existe, obtendo jogador...");
-        currentPlayer = mapa.robertinhoo;
-        System.out.println("📝 Jogador obtido: " + (currentPlayer != null));
-    } else {
-        System.out.println("📝 Mapa atual é null, usando robertinhoo: " + (robertinhoo != null));
-        currentPlayer = robertinhoo;
-    }
+        mapa = createRoom1ReusingPlayer(currentPlayer);
+        robertinhoo = mapa.robertinhoo;
+        renderer = new MapRenderer(mapa);
 
-    if (mapa != null) {
-        System.out.println("🗑️ Destruindo mapa antigo...");
-        try {
-            mapa.disposeSafely();
-        } catch (Exception e) {
-            System.err.println("⚠️ Erro ao dispor mapa antigo: " + e.getMessage());
-            System.err.println("⚠️ Continuando mesmo com erro...");
+        // ✅ ATUALIZA A REFERÊNCIA NO ROBERTINHOO
+        if (robertinhoo != null) {
+            robertinhoo.setFaceHUD(robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] FaceHUD atualizado no Robertinhoo (Sala 1)");
         }
-        mapa = null;
-        System.out.println("🗑️ Mapa antigo destruído");
-    }
-    
-    try {
-        Thread.sleep(10);
-    } catch (InterruptedException e) {
-        // Ignora
-    }
-    
-    mapa = createRoom1ReusingPlayer(currentPlayer);
-    robertinhoo = mapa.robertinhoo;
-    renderer = new MapRenderer(mapa);
-    
-    // ✅ ATUALIZA A REFERÊNCIA NO ROBERTINHOO
-    if (robertinhoo != null) {
-        robertinhoo.setFaceHUD(robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] FaceHUD atualizado no Robertinhoo (Sala 1)");
-    }
-    
-    // ✅ ATUALIZA o DeathSystem com o NOVO faceHUD
-    if (deathSystem != null) {
-        deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer(), robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] DeathSystem atualizado com novo faceHUD da Sala 1");
-    } else {
-        deathSystem = new DeathSystem(this, renderer.getPlayerRenderer(), robertinhoFaceHUD);
-        System.out.println("✅ [GameScreen] DeathSystem criado com novo faceHUD da Sala 1");
-    }
-    
-    cabanaInteraction = null;
-    mapa.setRoomTransitionListener(this);
-}
 
-private Mapa createRoom1ReusingPlayer(Robertinhoo existingPlayer) {
-    System.out.println("🔧 Criando Sala 1 com jogador existente: " + (existingPlayer != null));
-
-    // Cria sala 1 normalmente
-    Mapa room1 = new Mapa(false);
-
-    // Se temos um jogador existente, reutiliza
-    if (existingPlayer != null) {
-        System.out.println("👤 Reutilizando jogador existente...");
-        if (room1.robertinhoo != null && room1.robertinhoo.getBody() != null) {
-            room1.world.destroyBody(room1.robertinhoo.getBody());
-            System.out.println("🗑️ Jogador automático removido");
+        // ✅ ATUALIZA o DeathSystem com o NOVO faceHUD
+        if (deathSystem != null) {
+            deathSystem.updatePlayerRenderer(renderer.getPlayerRenderer(), robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] DeathSystem atualizado com novo faceHUD da Sala 1");
+        } else {
+            deathSystem = new DeathSystem(this, renderer.getPlayerRenderer(), robertinhoFaceHUD);
+            System.out.println("✅ [GameScreen] DeathSystem criado com novo faceHUD da Sala 1");
         }
-        
-        Vector2 worldStartPos = room1.getMapGenerator().getWorldStartPosition(room1.mapHeight);
-        existingPlayer.switchToNewMap(room1, worldStartPos);
-        room1.robertinhoo = existingPlayer;
-        room1.setupContactListener(existingPlayer);
 
-        System.out.println("✅ Jogador reutilizado e ContactListener configurado");
-    } else {
-        System.out.println("👤 Usando jogador novo da Sala 1");
-        room1.setupContactListener(room1.robertinhoo);
+        cabanaInteraction = null;
+        mapa.setRoomTransitionListener(this);
     }
-    
-    float width = Gdx.graphics.getWidth();
-    float height = Gdx.graphics.getHeight();
-    robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, room1.robertinhoo);
-        
-    room1.robertinhoo.setFaceHUD(robertinhoFaceHUD);
-    System.out.println("✅ [createRoom1] FaceHUD configurado no jogador da Sala 1");
-    
-    return room1;
-}
+
+    private Mapa createRoom1ReusingPlayer(Robertinhoo existingPlayer) {
+        System.out.println("🔧 Criando Sala 1 com jogador existente: " + (existingPlayer != null));
+
+        // Cria sala 1 normalmente
+        Mapa room1 = new Mapa(false);
+
+        // Se temos um jogador existente, reutiliza
+        if (existingPlayer != null) {
+            System.out.println("👤 Reutilizando jogador existente...");
+            if (room1.robertinhoo != null && room1.robertinhoo.getBody() != null) {
+                room1.world.destroyBody(room1.robertinhoo.getBody());
+                System.out.println("🗑️ Jogador automático removido");
+            }
+
+            Vector2 worldStartPos = room1.getMapGenerator().getWorldStartPosition(room1.mapHeight);
+            existingPlayer.switchToNewMap(room1, worldStartPos);
+            room1.robertinhoo = existingPlayer;
+            room1.setupContactListener(existingPlayer);
+
+            System.out.println("✅ Jogador reutilizado e ContactListener configurado");
+        } else {
+            System.out.println("👤 Usando jogador novo da Sala 1");
+            room1.setupContactListener(room1.robertinhoo);
+        }
+
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, room1.robertinhoo);
+
+        room1.robertinhoo.setFaceHUD(robertinhoFaceHUD);
+        System.out.println("✅ [createRoom1] FaceHUD configurado no jogador da Sala 1");
+
+        return room1;
+    }
 
     @Override
     public void onRoomTransition(boolean toRoom0) {

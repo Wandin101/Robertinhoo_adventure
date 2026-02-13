@@ -8,6 +8,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
+import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraReforcada;
+
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.BaseDestructible;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowComponent;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
@@ -27,6 +29,7 @@ public class Barrel extends BaseDestructible implements ShadowEntity, Obstacle {
     private boolean hasDropped = false;
 
     private static final float SINGLE_HIT_PROBABILITY = 0.3f;
+    private static final float REINFORCED_GUNPOWDER_DROP_CHANCE = 0.08f;
 
     private float flashTimer = 0f;
     private static final float FLASH_DURATION = 0.15f;
@@ -120,20 +123,28 @@ public class Barrel extends BaseDestructible implements ShadowEntity, Obstacle {
         if (!hasDropped) {
             hasDropped = true;
             final Vector2 barrelBodyPos = body.getPosition().cpy();
-            Gdx.app.log("Barrel", "Posição do barril: " + barrelBodyPos.x + ", " + barrelBodyPos.y);
 
             mapa.addPendingAction(() -> {
                 float x = barrelBodyPos.x - 0.54f;
                 float y = barrelBodyPos.y - 0.54f;
-                Gdx.app.log("Barrel", "Dropando polvora em: " + x + ", " + y);
-
                 PolvoraBruta polvoraBruta = new PolvoraBruta(
                         mapa.world,
                         x,
                         y);
-
                 polvoraBruta.createBody(new Vector2(x, y));
                 mapa.addCraftItem(polvoraBruta);
+
+                PolvoraReforcada polvoraReforcada = new PolvoraReforcada(
+                        mapa.world,
+                        x + 0.2f,
+                        y + 0.2f);
+
+                polvoraReforcada.createBody(new Vector2(
+                        x + 0.2f,
+                        y + 0.2f));
+
+                mapa.addCraftItem(polvoraReforcada);
+
             });
         }
     }

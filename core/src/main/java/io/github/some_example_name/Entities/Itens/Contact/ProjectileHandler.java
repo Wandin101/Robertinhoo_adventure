@@ -9,6 +9,7 @@ import io.github.some_example_name.Entities.Itens.Weapon.Missile;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Enemies.Enemy;
+import io.github.some_example_name.Entities.Enemies.Enemy.DeathType;
 
 public class ProjectileHandler implements ContactHandler {
     private final Robertinhoo player;
@@ -21,7 +22,6 @@ public class ProjectileHandler implements ContactHandler {
     public boolean handleBeginContact(Contact contact, Fixture fixtureA, Fixture fixtureB) {
         Object dataA = fixtureA.getBody().getUserData();
         Object dataB = fixtureB.getBody().getUserData();
-
 
         if (player.getMeleeAttackSystem().getParrySystem().isParryActive() &&
                 ((dataA instanceof Missile && "PLAYER".equals(dataB)) ||
@@ -71,12 +71,10 @@ public class ProjectileHandler implements ContactHandler {
         projectile.startDestruction();
 
         if (enemy.getHealth() <= 0) {
-
-            enemy.die(Enemy.DeathType.PROJECTILE);
-
+            DeathType deathType = determineDeathType(projectile);
+            enemy.die(deathType);
             enemy.isToBeDestroyed();
         }
-
     }
 
     private void handleProjectileBarrelCollision(Object dataA, Object dataB) {
@@ -90,5 +88,21 @@ public class ProjectileHandler implements ContactHandler {
     @Override
     public void handleEndContact(Contact contact, Fixture fixtureA, Fixture fixtureB) {
 
+    }
+
+    private DeathType determineDeathType(Projectile projectile) {
+        String weaponName = projectile.getWeaponName();
+        if (weaponName != null) {
+            switch (weaponName.toLowerCase()) {
+                case "calibre12":
+                    return DeathType.HIGH_CALIBER;
+                case "pistol":
+                case "revolver":
+                    return DeathType.PROJECTILE;
+                default:
+                    return DeathType.PROJECTILE;
+            }
+        }
+        return DeathType.PROJECTILE;
     }
 }

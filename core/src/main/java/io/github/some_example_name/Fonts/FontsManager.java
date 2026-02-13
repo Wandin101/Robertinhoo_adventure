@@ -1,22 +1,16 @@
 package io.github.some_example_name.Fonts;
-import java.util.BitSet;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 public class FontsManager {
+
     public static BitmapFont createInventoryFont() {
+        return new BitmapFont(); // SEMPRE UMA NOVA INSTÂNCIA
+    }
+
+    public static BitmapFont createInventoryFont(float scaleFactor) {
         BitmapFont font = new BitmapFont();
-        font.getData().setScale(0.8f);
-        font.setColor(Color.WHITE);
-        
-   
-        font.getRegion().getTexture().setFilter(
-            TextureFilter.Linear, 
-            TextureFilter.Linear
-        );
+        font.getData().setScale(scaleFactor);
         return font;
     }
 }
-
