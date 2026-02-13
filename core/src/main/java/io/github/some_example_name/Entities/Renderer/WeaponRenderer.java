@@ -44,8 +44,6 @@ public class WeaponRenderer {
 
             if (shotgun.getCurrentState() == Weapon.WeaponState.IDLE &&
                     (isShotgunReloading || reloadTriggered)) {
-                System.out
-                        .println("🔚 [WeaponRenderer] Forçando saída do estado de recarga porque a arma está em IDLE.");
                 isShotgunReloading = false;
                 reloadTriggered = false;
                 currentState = Weapon.WeaponState.IDLE;
@@ -63,7 +61,6 @@ public class WeaponRenderer {
                 reloadAnimationTime = 0f;
                 currentReloadStage = 0;
                 currentShellInserted = 0;
-                System.out.println("🔁 [WeaponRenderer] Iniciando animação de recarga da espingarda");
             }
         }
         if (shotJustFired) {
@@ -74,7 +71,6 @@ public class WeaponRenderer {
             if (isShotgun && reloadTriggered) {
                 reloadTriggered = false;
                 isShotgunReloading = false;
-                System.out.println("⚠️ [WeaponRenderer] Recarga interrompida por disparo");
             }
         }
         if (!reloadTriggered && !shotTriggered) {
@@ -97,7 +93,6 @@ public class WeaponRenderer {
                     reloadTriggered = false;
                     currentState = Weapon.WeaponState.IDLE;
                     animationCompleted = true;
-                    System.out.println("🏁 [WeaponRenderer] Recarga concluída, voltando para idle");
                 }
             }
             Weapon.WeaponState animState = getCurrentAnimationState();
@@ -211,9 +206,10 @@ public class WeaponRenderer {
             return;
         }
 
-        // Obter offset de renderização
         WeaponDirection renderDirection = currentDirection;
-        if (animState == Weapon.WeaponState.IDLE && !shotTriggered) {
+        if (isShotgunReload) {
+            renderDirection = WeaponDirection.S;
+        } else if (animState == Weapon.WeaponState.IDLE && !shotTriggered) {
             renderDirection = convertToCardinalDirection(currentDirection);
         }
 
@@ -249,14 +245,6 @@ public class WeaponRenderer {
         int stage = shotgun.getReloadStage();
         float progress = shotgun.getStageProgress();
 
-        // Debug periódico
-        if (Gdx.graphics.getFrameId() % 60 == 0) {
-            System.out.println("🎬 [WeaponRenderer] Estágio: " + stage +
-                    ", Progresso: " + String.format("%.2f", progress) +
-                    ", Cápsulas: " + shotgun.getShellsInserted() +
-                    "/" + shotgun.getShellsToInsert());
-        }
-
         if (stage == 0) {
             // Inclinação: frames 0-2
             int frameIndex = (int) (progress * 3);
@@ -264,27 +252,40 @@ public class WeaponRenderer {
             return reloadFrames[frameIndex];
 
         } else if (stage == 1) {
-            int currentShell = shotgun.getShellsInserted(); // Já inseridas
-            float shellProgress = progress; // Progresso dentro da inserção atual
-
-            int frameIndex = 3 + (int) (shellProgress * 7);
+            // Inserção das cápsulas: frames 3-9
+            int frameIndex = 3 + (int) (progress * 7);
             frameIndex = Math.min(frameIndex, 9);
             return reloadFrames[frameIndex];
 
         } else if (stage == 2) {
-            // Finalização: frames 2→0 (reverso)
+            // Finalização: inclinação reversa (primeira metade) + COCKING (segunda metade)
             if (progress < 0.5f) {
-                // Reverso: frames 2→0
+                // 0.0 a 0.5: inclinação reversa (frames 2→0)
                 float reverseProgress = progress * 2; // 0 a 1
                 int frameIndex = 2 - (int) (reverseProgress * 3);
                 frameIndex = Math.max(frameIndex, 0);
                 return reloadFrames[frameIndex];
             } else {
-                Animation<TextureRegion> idleAnim = animations.getAnimation(WeaponDirection.S, Weapon.WeaponState.IDLE);
-                if (idleAnim != null) {
-                    return idleAnim.getKeyFrame(0);
+                // 0.5 a 1.0: COCKING – frames 5,6,7 da animação de TIRO na direção SUL
+                Animation<TextureRegion> shootS = animations.getAnimation(WeaponDirection.S,
+                        Weapon.WeaponState.SHOOTING);
+                if (shootS != null) {
+                    TextureRegion[] shootFrames = shootS.getKeyFrames();
+                    if (shootFrames.length >= 8) {
+                        float cockingProgress = (progress - 0.5f) * 2; // 0 a 1
+                        int cockingIndex;
+                        if (cockingProgress < 0.33f) {
+                            cockingIndex = 5; // primeiro frame do cocking
+                        } else if (cockingProgress < 0.66f) {
+                            cockingIndex = 6; // segundo frame
+                        } else {
+                            cockingIndex = 7; // terceiro frame
+                        }
+                        return shootFrames[cockingIndex];
+                    }
                 }
-                return reloadFrames[0]; // Fallback
+                // Fallback: se não conseguir os frames de tiro, retorna frame 0 do reload
+                return reloadFrames[0];
             }
         }
 

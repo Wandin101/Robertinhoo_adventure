@@ -24,6 +24,7 @@ import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Particulas.BloodParticleRenderer;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
+import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.TileRenderer;
 import io.github.some_example_name.Entities.Renderer.AmmoRenderer.AmmoRenderer;
@@ -331,10 +332,22 @@ public class MapRenderer {
         }
         spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
 
+        // ========== PARTÍCULAS (SANGUE + CÁPSULAS) ==========
         particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
+
+        // ✅ UPDATE (fora do batch)
+        bloodParticleSystem.update(delta, cameraPosWorld);
+        ShellSystem.getInstance().update(delta);
+
         particleBatch.begin();
+
+        // Sangue
         bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
         bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
+
+        // 🎯 Cápsulas da Calibre12 – usando o mesmo batch
+        ShellSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
+
         particleBatch.end();
 
         if (isRoom0 && room0Door != null) {
@@ -540,5 +553,7 @@ public class MapRenderer {
 
         hudShapeRenderer.dispose();
         hudSpriteBatch.dispose();
+
+        ShellSystem.getInstance().dispose();
     }
 }

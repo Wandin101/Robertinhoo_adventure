@@ -328,7 +328,6 @@ public class Ratinho extends Enemy implements Steerable<Vector2>, ShadowEntity {
     public void die(DeathType type) {
 
         if (isDead) {
-            Gdx.app.log("Ratinho", "   ❌ Já está morto, ignorando");
             return;
         }
 
@@ -336,23 +335,17 @@ public class Ratinho extends Enemy implements Steerable<Vector2>, ShadowEntity {
         deathType = type;
         deathAnimationTime = 0;
 
-        Gdx.app.log("Ratinho", "   ✅ Morto definido como true");
-        Gdx.app.log("Ratinho", "   ✅ deathType definido: " + deathType);
-
         switch (type) {
             case MELEE:
                 state = State.MELEE_DEATH;
-                Gdx.app.log("Ratinho", "   ⚔️ Estado: MELEE_DEATH");
                 applyKnockback(-3f);
                 break;
             case PROJECTILE:
                 state = State.PROJECTILE_DEATH;
-                Gdx.app.log("Ratinho", "   🔫 Estado: PROJECTILE_DEATH");
                 applyKnockback(-5f);
                 break;
             case HIGH_CALIBER:
                 state = State.HIGH_CALIBER_DEATH;
-                Gdx.app.log("Ratinho", "   💥 Estado: HIGH_CALIBER_DEATH");
                 applyKnockback(-10f);
                 break;
         }

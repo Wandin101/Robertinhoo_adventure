@@ -504,19 +504,7 @@ public class PlayerRenderer {
 
         boolean isShooting = equippedWeapon.getCurrentState() == Weapon.WeaponState.SHOOTING;
 
-        // Log para debug
-        if (isShooting) {
-            Gdx.app.log("PlayerRenderer", "✅ ARMA ATIRANDO - Estado: SHOOTING");
-        }
-
         return isShooting;
-    }
-
-    private boolean isWeaponReloading(Robertinhoo player) {
-        Weapon equippedWeapon = player.getInventory().getEquippedWeapon();
-        if (equippedWeapon == null)
-            return false;
-        return equippedWeapon.getCurrentState() == Weapon.WeaponState.RELOADING;
     }
 
     public float getDeathAnimationProgress() {

@@ -199,7 +199,7 @@ public class Mapa implements RoomTransitionManager {
         agruparEPCriarParedes();
         setupContactListener(robertinhoo);
         addTestWeaponsToRoom0();
-        // addTestRatsToRoom0();
+        addTestEnemiesToRoom0();
 
         System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
     }
@@ -1056,16 +1056,16 @@ public class Mapa implements RoomTransitionManager {
 
     }
 
-    private void addTestRatsToRoom0() {
-        System.out.println("🐀 Adicionando ratos de teste na Sala 0");
+    private void addTestEnemiesToRoom0() {
+        System.out.println("🐀🐿️ Adicionando inimigos de teste na Sala 0");
 
-        // Define a sala 0 como um retângulo que cobre toda a área jogável
+        // Define a área jogável da sala 0
         Rectangle room0Rect = new Rectangle(1, 1, mapWidth - 2, mapHeight - 2);
 
-        // Adiciona alguns ratos em posições específicas (evitando o centro)
+        // ========== RATOS ==========
         float[][] ratPositions = {
-                { startPosition.x + 3, startPosition.y + 2 }, // Leste do spawn
-                { startPosition.x - 3, startPosition.y - 2 }, // Oeste do spawn
+                { startPosition.x + 3, startPosition.y + 2 }, // Leste
+                { startPosition.x - 3, startPosition.y - 2 }, // Oeste
                 { startPosition.x + 2, startPosition.y - 3 }, // Sudeste
                 { startPosition.x - 2, startPosition.y + 3 } // Noroeste
         };
@@ -1074,17 +1074,40 @@ public class Mapa implements RoomTransitionManager {
             int tileX = (int) pos[0];
             int tileY = (int) pos[1];
 
-            // Verifica se a posição é válida (não é parede)
-            if (tileX > 0 && tileX < mapWidth - 1 &&
-                    tileY > 0 && tileY < mapHeight - 1 &&
-                    tiles[tileX][tileY] == TILE) {
-
+            if (isValidTile(tileX, tileY)) {
                 Vector2 worldPos = tileToWorld(tileX, tileY);
                 Ratinho rat = new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room0Rect);
                 enemies.add(rat);
                 System.out.println("✅ Rato adicionado em: (" + tileX + ", " + tileY + ")");
             }
         }
+
+        // ========== CASTORES ==========
+        float[][] castorPositions = {
+                { startPosition.x + 5, startPosition.y + 1 }, // Mais distante leste
+                { startPosition.x - 5, startPosition.y - 1 }, // Mais distante oeste
+                { startPosition.x + 1, startPosition.y - 5 }, // Sul
+                { startPosition.x - 1, startPosition.y + 5 } // Norte
+        };
+
+        for (float[] pos : castorPositions) {
+            int tileX = (int) pos[0];
+            int tileY = (int) pos[1];
+
+            if (isValidTile(tileX, tileY)) {
+                Vector2 worldPos = tileToWorld(tileX, tileY);
+                Castor castor = new Castor(this, worldPos.x, worldPos.y, robertinhoo);
+                enemies.add(castor);
+                System.out.println("✅ Castor adicionado em: (" + tileX + ", " + tileY + ")");
+            }
+        }
+    }
+
+    // Método auxiliar para validar tiles (evita repetição)
+    private boolean isValidTile(int tileX, int tileY) {
+        return tileX > 0 && tileX < mapWidth - 1 &&
+                tileY > 0 && tileY < mapHeight - 1 &&
+                tiles[tileX][tileY] == TILE;
     }
 
     public BloodPoolSystem getBloodPoolSystem() {

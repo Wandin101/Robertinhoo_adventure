@@ -133,18 +133,18 @@ public class Barrel extends BaseDestructible implements ShadowEntity, Obstacle {
                         y);
                 polvoraBruta.createBody(new Vector2(x, y));
                 mapa.addCraftItem(polvoraBruta);
-                if (MathUtils.random() < REINFORCED_GUNPOWDER_DROP_CHANCE) {
-                    PolvoraReforcada polvoraReforcada = new PolvoraReforcada(
-                            mapa.world,
-                            x + 0.2f,
-                            y + 0.2f);
 
-                    polvoraReforcada.createBody(new Vector2(
-                            x + 0.2f,
-                            y + 0.2f));
+                PolvoraReforcada polvoraReforcada = new PolvoraReforcada(
+                        mapa.world,
+                        x + 0.2f,
+                        y + 0.2f);
 
-                    mapa.addCraftItem(polvoraReforcada);
-                }
+                polvoraReforcada.createBody(new Vector2(
+                        x + 0.2f,
+                        y + 0.2f));
+
+                mapa.addCraftItem(polvoraReforcada);
+
             });
         }
     }

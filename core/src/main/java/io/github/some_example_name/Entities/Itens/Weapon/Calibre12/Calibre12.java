@@ -10,15 +10,19 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon.TipoMao;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
+import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
+import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
-
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.graphics.g2d.Animation;
 
 public class Calibre12 extends Weapon {
@@ -47,6 +51,9 @@ public class Calibre12 extends Weapon {
     private float stageTimer = 0f;
     private float stageDuration = 0f;
     private boolean reloadInProgress = false;
+    private boolean reloadCockPlayed = false;
+    private static TextureRegion shellTexture; // estático para compartilhar entre instâncias
+    private static boolean shellTextureLoaded = false;
 
     public Calibre12(Mapa mapa, float x, float y, Inventory inventory) {
         super();
@@ -71,6 +78,17 @@ public class Calibre12 extends Weapon {
                 new Vector2(0, 1),
                 new Vector2(1, 1)
         };
+        if (!shellTextureLoaded) {
+            try {
+                Texture tex = new Texture("ITENS/12/bala.png");
+                shellTexture = new TextureRegion(tex);
+                ShellSystem.getInstance().init(mapa, shellTexture, 0.3f);
+                shellTextureLoaded = true;
+                System.out.println("✅ [Calibre12] Textura de cápsula carregada");
+            } catch (Exception e) {
+                System.err.println("❌ [Calibre12] Erro ao carregar bala.png: " + e.getMessage());
+            }
+        }
 
         this.setMuzzleOffset(WeaponDirection.N, new Vector2(2, 2));
         this.setMuzzleOffset(WeaponDirection.NE, new Vector2(6, 2));
@@ -119,7 +137,6 @@ public class Calibre12 extends Weapon {
             shootingTime = 0f;
         }
 
-        // Verificar se há munição disponível e precisa recarregar
         String requiredType = "12gauge";
         int available = inventory.getAmmoCount(requiredType);
         int needed = maxAmmo - ammo;
@@ -128,18 +145,18 @@ public class Calibre12 extends Weapon {
             return;
         }
 
-        // Calcular quantas cápsulas podemos inserir
         shellsToInsert = Math.min(needed, available);
 
-        // Iniciar recarga
         currentState = WeaponState.RELOADING;
-        reloadStage = 0; // Começar com inclinação
+        reloadStage = 0;
         stageTimer = 0f;
-        stageDuration = 0.5f; // 0.5s para inclinação
+        stageDuration = 0.5f;
         reloadInProgress = true;
         reloadJustTriggered = true;
+        reloadCockPlayed = false;
 
-        System.out.println("🔁 [Calibre12.reload] Iniciando recarga. Inserir " + shellsToInsert + " cápsulas");
+        // 🔥 Tocar som de inclinação
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_RELOAD_TILT, 0.7f);
     }
 
     @Override
@@ -163,46 +180,33 @@ public class Calibre12 extends Weapon {
             stageTimer += delta;
 
             if (stageTimer >= stageDuration) {
-
                 if (reloadStage == 0) { // Inclinação concluída
                     reloadStage = 1;
                     shellsInserted = 0;
                     stageTimer = 0f;
-                    stageDuration = 0.7f; // 0.7s por cápsula
-                    System.out.println("📐 [Calibre12] Inclinação concluída, iniciando inserção");
+                    stageDuration = 0.7f; // por cápsula
 
                 } else if (reloadStage == 1) { // Inserção de cápsulas
-                    // Verificar se já inserimos todas as cápsulas necessárias
                     if (shellsInserted >= shellsToInsert) {
                         reloadStage = 2;
                         stageTimer = 0f;
-                        stageDuration = 0.5f; // 0.5s para finalização
-                        System.out.println("✅ [Calibre12] Todas cápsulas inseridas (" + shellsInserted + ")");
+                        stageDuration = 0.5f; // finalizaç
                         return;
                     }
 
-                    // Tentar inserir uma cápsula
                     if (insertShell()) {
                         shellsInserted++;
-                        System.out.println("💾 [Calibre12] Cápsula " + shellsInserted + "/" + shellsToInsert +
-                                " inserida. Munição: " + ammo + "/" + maxAmmo);
-
-                        // Verificar se inseriu todas ou se a arma está cheia
                         if (shellsInserted >= shellsToInsert || ammo >= maxAmmo) {
                             reloadStage = 2;
                             stageTimer = 0f;
-                            stageDuration = 0.5f; // 0.5s para finalização
-                            System.out.println("✅ [Calibre12] Todas cápsulas inseridas (" + shellsInserted + ")");
+                            stageDuration = 0.5f;
                         } else {
-                            // Resetar timer para próxima cápsula
                             stageTimer = 0f;
                         }
                     } else {
-                        // Sem munição, finalizar
                         reloadStage = 2;
                         stageTimer = 0f;
                         stageDuration = 0.5f;
-                        System.out.println("⚠️ [Calibre12] Sem munição, finalizando");
                     }
 
                 } else if (reloadStage == 2) { // Finalização
@@ -211,8 +215,12 @@ public class Calibre12 extends Weapon {
                     reloadStage = 0;
                     shellsInserted = 0;
                     stageTimer = 0f;
-                    System.out.println("🏁 [Calibre12] Recarga finalizada. Munição: " + ammo + "/" + maxAmmo);
                 }
+            }
+
+            if (reloadStage == 2 && !reloadCockPlayed) {
+                AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_COCK, 0.7f);
+                reloadCockPlayed = true;
             }
         }
     }
@@ -252,20 +260,60 @@ public class Calibre12 extends Weapon {
             reloadStage = 0;
             shellsInserted = 0;
             waitingForNextShell = false;
-            System.out.println("⚠️ [Calibre12] Recarga interrompida para atirar");
         }
 
-        if (!canShoot || ammo <= 0) {
+        if (!canShoot || ammo <= 0)
             return;
-        }
 
+        // 🔫 PROJÉTEIS (usam a posição do cano passada pelo WeaponSystem – isso está
+        // correto)
         int pelletCount = 8;
         float spreadAngle = 20f;
-
         for (int i = 0; i < pelletCount; i++) {
             float angleVariation = (float) Math.toRadians(spreadAngle * (Math.random() - 0.5));
             Vector2 pelletDir = new Vector2(direction).rotateRad(angleVariation);
             new Projectile(mapa, position, pelletDir.nor().scl(30f), damage * 0.7f, getName());
+        }
+
+        // 🔥 KNOCKBACK + CÁPSULA (USANDO A POSIÇÃO DO JOGADOR)
+        if (inventory != null && inventory.getPlayer() != null) {
+            Robertinhoo player = inventory.getPlayer();
+            final Body playerBody = player.getBody();
+            if (playerBody != null) {
+                // Knockback
+                float knockbackForce = 12.0f;
+                final Vector2 recoilForce = new Vector2(direction).scl(-knockbackForce);
+                playerBody.applyForceToCenter(recoilForce, true);
+
+                // Captura posição do jogador e direção do tiro AGORA
+                final Vector2 playerPos = playerBody.getPosition().cpy();
+                final Vector2 shootDir = direction.cpy();
+
+                // Agenda a remoção da força e o spawn da cápsula (0.5s)
+                Timer.schedule(new Timer.Task() {
+                    @Override
+                    public void run() {
+                        // Cancela o knockback
+                        playerBody.applyForceToCenter(recoilForce.scl(-1), true);
+
+                        // 🎯 OFFSET DE EJEÇÃO – cápsula sai de perto do jogador
+                        // Vetor perpendicular à direção do tiro (girado 90° no sentido horário)
+                        float perpX = shootDir.y;
+                        float perpY = -shootDir.x;
+
+                        // Offset: um pouco para trás (-shootDir) e para o lado (perp)
+                        float backAmount = 0.15f; // para trás
+                        float sideAmount = 0.25f; // lateral
+
+                        Vector2 ejectionOffset = new Vector2(
+                                shootDir.x * -backAmount + perpX * sideAmount,
+                                shootDir.y * -backAmount + perpY * sideAmount);
+
+                        Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
+                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir);
+                    }
+                }, 0.5f); // sincronizado com o som da punheta
+            }
         }
 
         shotTriggered = true;
@@ -273,6 +321,15 @@ public class Calibre12 extends Weapon {
         canShoot = false;
         timeSinceLastShot = 0f;
         currentState = WeaponState.SHOOTING;
+
+        // 🔥 Sons
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_SHOOT, 0.8f);
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_COCK, 0.7f);
+            }
+        }, 0.35f);
     }
 
     @Override
@@ -339,7 +396,6 @@ public class Calibre12 extends Weapon {
 
     private boolean insertShell() {
         if (inventory == null || ammo >= maxAmmo) {
-            System.out.println("❌ [Calibre12.insertShell] Inventário nulo ou arma cheia");
             return false;
         }
 
@@ -347,28 +403,23 @@ public class Calibre12 extends Weapon {
         int available = inventory.getAmmoCount(requiredType);
 
         if (available <= 0) {
-            System.out.println("❌ [Calibre12.insertShell] Sem munição disponível");
             return false;
         }
 
-        // Consumir UMA cápsula do inventário
         boolean consumed = inventory.consumeAmmoOneByOne(requiredType, 1);
 
         if (!consumed) {
-            System.out.println("❌ [Calibre12.insertShell] Falha ao consumir munição do inventário");
             return false;
         }
 
-        // Adicionar uma munição à arma
         int oldAmmo = ammo;
         ammo = Math.min(ammo + 1, maxAmmo);
 
-        // Verificar se realmente aumentou
         if (ammo > oldAmmo) {
-            System.out.println("✅ [Calibre12.insertShell] Munição aumentada de " + oldAmmo + " para " + ammo);
+
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_RELOAD_INSERT, 0.8f);
             return true;
         } else {
-            System.out.println("⚠️ [Calibre12.insertShell] Munição não aumentou. Permanece em " + ammo);
             return false;
         }
     }
@@ -407,6 +458,12 @@ public class Calibre12 extends Weapon {
         }
         if (iconTexture != null) {
             iconTexture.dispose();
+        }
+
+        if (shellTexture != null && shellTexture.getTexture() != null) {
+            shellTexture.getTexture().dispose();
+            shellTexture = null;
+            shellTextureLoaded = false;
         }
     }
 }

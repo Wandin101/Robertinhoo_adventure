@@ -442,4 +442,8 @@ public class Inventory {
     public boolean craftRecipe(CraftingRecipe recipe) {
         return craftingManager.craftRecipe(recipe, this, robertinhoo.getInventoryController());
     }
+
+    public Robertinhoo getPlayer() {
+        return robertinhoo;
+    }
 }
