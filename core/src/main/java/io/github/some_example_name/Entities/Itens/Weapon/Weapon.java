@@ -31,6 +31,7 @@ public abstract class Weapon implements Item {
     protected boolean reloadJustTriggered = false;
     protected Map<WeaponDirection, Vector2> renderOffsets;
     protected float reloadDuration = 1.5f;
+    protected float rotation = 0f;
 
     public Body body;
 
@@ -140,9 +141,26 @@ public abstract class Weapon implements Item {
     public abstract Vector2 getMuzzleOffset();
 
     public void rotate() {
+        // Alterna a rotação entre 0 e 90
+        rotation = (rotation == 0f) ? 90f : 0f;
+
+        // Troca as dimensões do grid
         int temp = gridWidth;
         gridWidth = gridHeight;
         gridHeight = temp;
+
+        // Reconstroi as células ocupadas para a nova orientação
+        rebuildOccupiedCells();
+    }
+
+    public void rebuildOccupiedCells() {
+        occupiedCells = new Vector2[gridWidth * gridHeight];
+        int index = 0;
+        for (int y = 0; y < gridHeight; y++) {
+            for (int x = 0; x < gridWidth; x++) {
+                occupiedCells[index++] = new Vector2(x, y);
+            }
+        }
     }
 
     public Vector2[] getOccupiedCells() {
@@ -229,6 +247,11 @@ public abstract class Weapon implements Item {
 
     public float getReloadDuration() {
         return reloadDuration;
+    }
+
+    @Override
+    public float getRotation() {
+        return rotation;
     }
 
 }

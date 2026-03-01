@@ -14,27 +14,26 @@ import io.github.some_example_name.MapConfig.Mapa;
 
 import com.badlogic.gdx.physics.box2d.World;
 
-public class PolvoraBruta extends Polvora{
+public class PolvoraBruta extends Polvora {
     private World mapa;
     private Body body;
     protected Vector2 setWorldPosition;
 
     public PolvoraBruta(World mapa, float x, float y) {
-        super("PolvoraBruta", new TextureRegion(new Texture("ITENS/Polvora/PolvoraBruta-Sheet.png")),1,1);
+        super("PolvoraBruta", new TextureRegion(new Texture("ITENS/Polvora/PolvoraBruta-Sheet.png")), 1, 1);
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         createBody(this.position);
     }
 
-        public PolvoraBruta() {
+    public PolvoraBruta() {
         super("PolvoraBruta", new TextureRegion(new Texture("ITENS/Polvora/PolvoraBruta-Sheet.png")), 1, 1);
         this.position = new Vector2();
         this.mapa = null;
         this.body = null;
     }
 
-
-      public void createBody(Vector2 position) {
+    public void createBody(Vector2 position) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyType.StaticBody;
         bodyDef.position.set(position.x + 0.5f, position.y + 0.5f);
@@ -48,10 +47,10 @@ public class PolvoraBruta extends Polvora{
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.isSensor = true;
-        
+
         fixtureDef.filter.categoryBits = Constants.BIT_ITEM;
         fixtureDef.filter.maskBits = Constants.BIT_PLAYER;
-        
+
         body.createFixture(fixtureDef);
         shape.dispose();
     }
@@ -63,20 +62,29 @@ public class PolvoraBruta extends Polvora{
         }
         return position;
     }
+
     public void destroyBody() {
         mapa.destroyBody(body);
     }
+
     @Override
     public Item copy() {
         return new PolvoraBruta(); // Usa o novo construtor
     }
+
     @Override
-    public String getName() { 
+    public String getName() {
         return "Polvora Bruta";
     }
 
     @Override
     public Body getBody() {
         return body;
+    }
+
+    @Override
+    public float getRotation() {
+        // TODO Auto-generated method stub
+        return 0;
     }
 }

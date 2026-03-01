@@ -1,7 +1,6 @@
 package io.github.some_example_name.Entities.Renderer.RenderInventory;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -11,8 +10,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import io.github.some_example_name.Entities.Inventory.Item;
+import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 public class InventoryContextMenu {
@@ -23,25 +23,26 @@ public class InventoryContextMenu {
         void onMove(Item item);
 
         void onCraft(Item item);
+
+        void onEquip(Item item); // nova ação
+
+        void onUnequip(Item item); // nova ação
     }
 
     private static final float MENU_WIDTH = 130f;
     private static final float PADDING = 8f;
     private static final float OPTION_HEIGHT = 28f;
-    private final List<String> options = Arrays.asList("Descartar", "Mover", "Craft");
 
     private final Listener listener;
     private final RenderInventory renderInventory;
-    private final OrthographicCamera hudCamera; // 🔥 RECEBIDA DO MAPRENDERER
+    private final OrthographicCamera hudCamera;
 
     private Item item;
     private boolean visible = false;
     private int gridX, gridY;
     private int itemWidth;
-
     private int hoverIndex = -1;
 
-    // Recursos próprios (AGORA USAM A hudCamera)
     private final SpriteBatch ownBatch;
     private final ShapeRenderer ownShapeRenderer;
     private static Texture whitePixel;
@@ -80,7 +81,25 @@ public class InventoryContextMenu {
         return visible;
     }
 
-    /** Calcula posição do menu (mesmo de sempre) */
+    /** Retorna a lista de opções dinâmica para o item atual */
+    private List<String> getOptionsForItem() {
+        List<String> opts = new ArrayList<>();
+        opts.add("Descartar");
+        opts.add("Mover");
+
+        if (item instanceof Weapon) {
+            boolean isEquipped = renderInventory.inventory.isEquipped((Weapon) item);
+            if (isEquipped) {
+                opts.add("Desequipar");
+            } else {
+                opts.add("Equipar");
+            }
+        }
+
+        opts.add("Craft");
+        return opts;
+    }
+
     private float[] getCurrentMenuPosition() {
         float invPosX = renderInventory.position.x;
         float invPosY = renderInventory.position.y;
@@ -93,7 +112,7 @@ public class InventoryContextMenu {
 
         float menuX = itemX + (itemWidth * cell) + 5f;
         float menuY = itemY + (item.getGridHeight() * cell / 2f);
-        float menuHeight = PADDING * 2f + options.size() * OPTION_HEIGHT;
+        float menuHeight = PADDING * 2f + getOptionsForItem().size() * OPTION_HEIGHT;
         float menuBottomY = menuY - menuHeight / 2f;
 
         menuX = MathUtils.clamp(menuX, 5f, Gdx.graphics.getWidth() - MENU_WIDTH - 5f);
@@ -102,20 +121,20 @@ public class InventoryContextMenu {
         return new float[] { menuX, menuBottomY, menuHeight };
     }
 
-    public void render() { // 🔥 NÃO RECEBE MAIS RENDERIZADORES EXTERNOS
+    public void render() {
         if (!visible || item == null)
             return;
 
+        List<String> options = getOptionsForItem();
         float[] pos = getCurrentMenuPosition();
         float menuX = pos[0];
         float menuBottomY = pos[1];
         float menuHeight = pos[2];
 
-        // ===== USA A HUD CAMERA =====
         ownShapeRenderer.setProjectionMatrix(hudCamera.combined);
         ownBatch.setProjectionMatrix(hudCamera.combined);
 
-        // ===== HOVER =====
+        // Hover detection
         int mouseX = Gdx.input.getX();
         int mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
         hoverIndex = -1;
@@ -129,17 +148,19 @@ public class InventoryContextMenu {
             }
         }
 
-        // ===== FUNDO E BORDA =====
+        // Fundo
         ownShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         ownShapeRenderer.setColor(0f, 0f, 0f, 0.85f);
         ownShapeRenderer.rect(menuX, menuBottomY, MENU_WIDTH, menuHeight);
         ownShapeRenderer.end();
 
+        // Borda
         ownShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         ownShapeRenderer.setColor(1f, 1f, 1f, 0.15f);
         ownShapeRenderer.rect(menuX, menuBottomY, MENU_WIDTH, menuHeight);
         ownShapeRenderer.end();
 
+        // Destaque do hover
         if (hoverIndex != -1) {
             ownShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             ownShapeRenderer.setColor(1f, 1f, 1f, 0.06f);
@@ -149,9 +170,9 @@ public class InventoryContextMenu {
             ownShapeRenderer.end();
         }
 
-        // ===== TEXTO =====
+        // Texto
         ownBatch.begin();
-        BitmapFont font = new BitmapFont(); // PODE SER SUBSTITUÍDO PELA FONTE DO INVENTÁRIO
+        BitmapFont font = new BitmapFont(); // Idealmente use uma fonte compartilhada
         font.setColor(Color.WHITE);
         float textX = menuX + PADDING;
         for (int i = 0; i < options.size(); i++) {
@@ -167,6 +188,7 @@ public class InventoryContextMenu {
     public boolean handleClick(float screenX, float screenY) {
         if (!visible)
             return false;
+        List<String> options = getOptionsForItem();
         float[] pos = getCurrentMenuPosition();
         float menuX = pos[0];
         float menuBottomY = pos[1];
@@ -181,16 +203,15 @@ public class InventoryContextMenu {
         float invertedY = menuHeight - relativeY;
         int index = (int) ((invertedY - PADDING) / OPTION_HEIGHT);
         index = MathUtils.clamp(index, 0, options.size() - 1);
-        triggerOption(index);
+        triggerOption(options.get(index));
         hide();
         return true;
     }
 
-    private void triggerOption(int index) {
+    private void triggerOption(String option) {
         if (listener == null || item == null)
             return;
-        String opt = options.get(index);
-        switch (opt) {
+        switch (option) {
             case "Descartar":
                 listener.onDrop(item);
                 break;
@@ -199,6 +220,12 @@ public class InventoryContextMenu {
                 break;
             case "Craft":
                 listener.onCraft(item);
+                break;
+            case "Equipar":
+                listener.onEquip(item);
+                break;
+            case "Desequipar":
+                listener.onUnequip(item);
                 break;
         }
     }

@@ -112,6 +112,19 @@ public class RenderInventory {
                 inventoryController.selectedRecipe = inventoryController.availableRecipes.isEmpty() ? null
                         : inventoryController.availableRecipes.get(0);
             }
+
+            @Override
+            public void onEquip(Item item) {
+                if (item instanceof Weapon) {
+                    inventoryController.equipWeapon((Weapon) item);
+                }
+            }
+
+            @Override
+            public void onUnequip(Item item) {
+                // Apenas desequipa a arma atual (não precisa do item)
+                inventoryController.unequipWeapon();
+            }
         };
 
         this.contextMenu = null; // será criado depois com a hudCamera

@@ -8,6 +8,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.utils.Timer;
 
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Sounds.AudioManager;
@@ -17,13 +18,10 @@ import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon.TipoMao;
-import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
 import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
-import com.badlogic.gdx.utils.Timer;
-import com.badlogic.gdx.graphics.g2d.Animation;
 
 public class Calibre12 extends Weapon {
 
@@ -31,28 +29,27 @@ public class Calibre12 extends Weapon {
     private Inventory inventory;
     private Texture iconTexture;
     private float reloadTime = 0;
-    private float reloadDuration = 3.0f; // Tempo maior de recarga
-    private int shotgunMaxAmmo = 6; // Menor capacidade
+    private float reloadDuration = 3.0f;
+    private int shotgunMaxAmmo = 6;
     protected Vector2 position;
     private Texture idleTexture;
     private Texture shootTexture;
 
     private float animationTime = 0f;
-    private Animation<TextureRegion> shootAnim;
     private float shootingTime = 0f;
     private static final float SHOOTING_STATE_DURATION = 1f;
-    private int reloadStage = 0; // 0: inclinação, 1: inserção, 2: finalização
+    private int reloadStage = 0;
     private int shellsInserted = 0;
     private boolean reloadInterrupted = false;
     private boolean waitingForNextShell = false;
     private float shellInsertionTimer = 0f;
-    private float shellInsertionInterval = 0.5f; // T
+    private float shellInsertionInterval = 0.5f;
     private int shellsToInsert = 0;
     private float stageTimer = 0f;
     private float stageDuration = 0f;
     private boolean reloadInProgress = false;
     private boolean reloadCockPlayed = false;
-    private static TextureRegion shellTexture; // estático para compartilhar entre instâncias
+    private static TextureRegion shellTexture;
     private static boolean shellTextureLoaded = false;
 
     public Calibre12(Mapa mapa, float x, float y, Inventory inventory) {
@@ -62,8 +59,8 @@ public class Calibre12 extends Weapon {
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         this.inventory = inventory;
-        this.fireRate = 0.8f; // Cadência mais lenta
-        this.damage = 25f; // Dano maior por projetil
+        this.fireRate = 0.8f;
+        this.damage = 25f;
         this.iconTexture = new Texture("ITENS/12/12_icon.png");
         this.icon = new TextureRegion(iconTexture);
 
@@ -71,13 +68,10 @@ public class Calibre12 extends Weapon {
 
         this.gridWidth = 5;
         this.gridHeight = 2;
-        this.occupiedCells = new Vector2[] {
-                new Vector2(0, 0),
-                new Vector2(1, 0),
-                new Vector2(2, 0),
-                new Vector2(0, 1),
-                new Vector2(1, 1)
-        };
+
+        // 🔥 Inicializa as células ocupadas como um retângulo cheio 5x2
+        rebuildOccupiedCells();
+
         if (!shellTextureLoaded) {
             try {
                 Texture tex = new Texture("ITENS/12/bala.png");
@@ -99,8 +93,8 @@ public class Calibre12 extends Weapon {
         this.setMuzzleOffset(WeaponDirection.SE, new Vector2(6, 3.5f));
         this.setMuzzleOffset(WeaponDirection.W, new Vector2(7, -2));
 
-        float baseX = -8f; // Move para esquerda
-        float baseY = -12f; // Move para baixo
+        float baseX = -8f;
+        float baseY = -12f;
         setRenderOffset(WeaponDirection.S, baseX + 6.0f, baseY + 20f);
         setRenderOffset(WeaponDirection.SW, baseX + 10f, baseY + 10f);
         setRenderOffset(WeaponDirection.SE, baseX + 8f, baseY + 10f);
@@ -113,12 +107,7 @@ public class Calibre12 extends Weapon {
 
     @Override
     public TipoMao getTipoMao() {
-        return TipoMao.UMA_MAO; // Shotgun requer duas mãos
-    }
-
-    @Override
-    public Vector2[] getOccupiedCells() {
-        return occupiedCells;
+        return TipoMao.UMA_MAO;
     }
 
     @Override
@@ -155,7 +144,6 @@ public class Calibre12 extends Weapon {
         reloadJustTriggered = true;
         reloadCockPlayed = false;
 
-        // 🔥 Tocar som de inclinação
         AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_RELOAD_TILT, 0.7f);
     }
 
@@ -180,17 +168,17 @@ public class Calibre12 extends Weapon {
             stageTimer += delta;
 
             if (stageTimer >= stageDuration) {
-                if (reloadStage == 0) { // Inclinação concluída
+                if (reloadStage == 0) {
                     reloadStage = 1;
                     shellsInserted = 0;
                     stageTimer = 0f;
-                    stageDuration = 0.7f; // por cápsula
+                    stageDuration = 0.7f;
 
-                } else if (reloadStage == 1) { // Inserção de cápsulas
+                } else if (reloadStage == 1) {
                     if (shellsInserted >= shellsToInsert) {
                         reloadStage = 2;
                         stageTimer = 0f;
-                        stageDuration = 0.5f; // finalizaç
+                        stageDuration = 0.5f;
                         return;
                     }
 
@@ -209,7 +197,7 @@ public class Calibre12 extends Weapon {
                         stageDuration = 0.5f;
                     }
 
-                } else if (reloadStage == 2) { // Finalização
+                } else if (reloadStage == 2) {
                     currentState = WeaponState.IDLE;
                     reloadInProgress = false;
                     reloadStage = 0;
@@ -233,7 +221,7 @@ public class Calibre12 extends Weapon {
         body = mapa.world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(0.7f, 0.7f); // Tamanho maior
+        shape.setAsBox(0.7f, 0.7f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -248,7 +236,6 @@ public class Calibre12 extends Weapon {
 
     @Override
     public TextureRegion getCurrentFrame(float delta) {
-
         return new TextureRegion(iconTexture);
     }
 
@@ -265,8 +252,6 @@ public class Calibre12 extends Weapon {
         if (!canShoot || ammo <= 0)
             return;
 
-        // 🔫 PROJÉTEIS (usam a posição do cano passada pelo WeaponSystem – isso está
-        // correto)
         int pelletCount = 8;
         float spreadAngle = 20f;
         for (int i = 0; i < pelletCount; i++) {
@@ -275,35 +260,26 @@ public class Calibre12 extends Weapon {
             new Projectile(mapa, position, pelletDir.nor().scl(30f), damage * 0.7f, getName());
         }
 
-        // 🔥 KNOCKBACK + CÁPSULA (USANDO A POSIÇÃO DO JOGADOR)
         if (inventory != null && inventory.getPlayer() != null) {
             Robertinhoo player = inventory.getPlayer();
             final Body playerBody = player.getBody();
             if (playerBody != null) {
-                // Knockback
                 float knockbackForce = 12.0f;
                 final Vector2 recoilForce = new Vector2(direction).scl(-knockbackForce);
                 playerBody.applyForceToCenter(recoilForce, true);
 
-                // Captura posição do jogador e direção do tiro AGORA
                 final Vector2 playerPos = playerBody.getPosition().cpy();
                 final Vector2 shootDir = direction.cpy();
 
-                // Agenda a remoção da força e o spawn da cápsula (0.5s)
                 Timer.schedule(new Timer.Task() {
                     @Override
                     public void run() {
-                        // Cancela o knockback
                         playerBody.applyForceToCenter(recoilForce.scl(-1), true);
 
-                        // 🎯 OFFSET DE EJEÇÃO – cápsula sai de perto do jogador
-                        // Vetor perpendicular à direção do tiro (girado 90° no sentido horário)
                         float perpX = shootDir.y;
                         float perpY = -shootDir.x;
-
-                        // Offset: um pouco para trás (-shootDir) e para o lado (perp)
-                        float backAmount = 0.15f; // para trás
-                        float sideAmount = 0.25f; // lateral
+                        float backAmount = 0.15f;
+                        float sideAmount = 0.25f;
 
                         Vector2 ejectionOffset = new Vector2(
                                 shootDir.x * -backAmount + perpX * sideAmount,
@@ -312,7 +288,7 @@ public class Calibre12 extends Weapon {
                         Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
                         ShellSystem.getInstance().spawn(shellSpawnPos, shootDir);
                     }
-                }, 0.5f); // sincronizado com o som da punheta
+                }, 0.5f);
             }
         }
 
@@ -322,7 +298,6 @@ public class Calibre12 extends Weapon {
         timeSinceLastShot = 0f;
         currentState = WeaponState.SHOOTING;
 
-        // 🔥 Sons
         AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_SHOOT, 0.8f);
         Timer.schedule(new Timer.Task() {
             @Override
@@ -344,16 +319,19 @@ public class Calibre12 extends Weapon {
 
     @Override
     public Vector2 getMuzzleOffset() {
-
         return new Vector2(0.001f, 0.001f);
     }
 
-    @Override
-    public void rotate() {
-        int temp = gridWidth;
-        gridWidth = gridHeight;
-        gridHeight = temp;
-    }
+    // 🔥 O método rotate() herdado de Weapon já faz tudo (troca dimensões,
+    // alterna rotation e reconstrói occupiedCells). Se precisar de algo extra,
+    // descomente e chame super.rotate():
+    /*
+     * @Override
+     * public void rotate() {
+     * super.rotate();
+     * // lógica adicional, se houver
+     * }
+     */
 
     @Override
     public void destroyBody() {
@@ -381,11 +359,10 @@ public class Calibre12 extends Weapon {
 
     @Override
     public WeaponSight getWeaponSight() {
-        // Shotgun: cone de dispersão transparente
         WeaponSight.ConeSight sight = new WeaponSight.ConeSight();
-        sight.color = new Color(0.9f, 0.9f, 0.9f, 0.2f); // Branco bem transparente
+        sight.color = new Color(0.9f, 0.9f, 0.9f, 0.2f);
         sight.lineWidth = 1f;
-        sight.spreadAngle = 30f; // Mesmo ângulo da dispersão do tiro
+        sight.spreadAngle = 30f;
         sight.coneSegments = 8;
         return sight;
     }
@@ -416,7 +393,6 @@ public class Calibre12 extends Weapon {
         ammo = Math.min(ammo + 1, maxAmmo);
 
         if (ammo > oldAmmo) {
-
             AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.SHOTGUN_RELOAD_INSERT, 0.8f);
             return true;
         } else {
@@ -424,7 +400,6 @@ public class Calibre12 extends Weapon {
         }
     }
 
-    // Adicione métodos getter:
     public float getReloadTime() {
         return reloadTime;
     }
