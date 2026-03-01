@@ -446,4 +446,32 @@ public class Inventory {
     public Robertinhoo getPlayer() {
         return robertinhoo;
     }
+
+    public void debugPrintGrid() {
+        System.out.println("=== INVENTORY GRID ===");
+        for (int y = gridRows - 1; y >= 0; y--) {
+            StringBuilder line = new StringBuilder();
+            for (int x = 0; x < gridCols; x++) {
+                boolean occupied = grid[gridRows - 1 - y][x];
+                if (occupied) {
+                    Item item = getItemAt(x, y);
+                    if (item != null) {
+                        line.append(String.format("[%s]", item.getName().substring(0, 1)));
+                    } else {
+                        line.append("[X]");
+                    }
+                } else {
+                    line.append("[ ]");
+                }
+            }
+            System.out.println("y=" + y + ": " + line);
+        }
+        System.out.println("======================");
+    }
+
+    public boolean isCellOccupied(int x, int y) {
+        if (x < 0 || x >= gridCols || y < 0 || y >= gridRows)
+            return true;
+        return grid[gridRows - 1 - y][x];
+    }
 }

@@ -83,4 +83,10 @@ public class Ammo12Gauge extends Ammo {
 
         return body;
     }
+
+    @Override
+    public float getRotation() {
+        // TODO Auto-generated method stub
+        return 0;
+    }
 }

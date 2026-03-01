@@ -15,6 +15,7 @@ import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryCo
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryContextMenu;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class InventoryController {
@@ -128,20 +129,21 @@ public class InventoryController {
 
     private void handleInventorySelection() {
         boolean isVisible = getContextMenu().isVisible();
-        System.out.println("isVisible: " + isVisible);
         if (isVisible)
             return;
+
         int gridCols = inventory.gridCols;
         int gridRows = inventory.gridRows;
 
+        // Limites do cursor
         int maxX = gridCols - 1;
         int maxY = gridRows - 1;
-
         if (selectedItem != null) {
             maxX = gridCols - selectedItem.getGridWidth();
             maxY = gridRows - selectedItem.getGridHeight();
         }
 
+        // Movimento do cursor
         if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
             cursorGridX = Math.max(0, cursorGridX - 1);
         }
@@ -154,30 +156,48 @@ public class InventoryController {
         if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
             cursorGridY = Math.min(maxY, cursorGridY + 1);
         }
+
         if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
             if (selectedItem == null) {
-
-                selectedItem = inventory.getItemAt(cursorGridX, cursorGridY);
-                if (selectedItem != null) {
-                    originalGridX = cursorGridX;
-                    originalGridY = cursorGridY;
+                Item item = inventory.getItemAt(cursorGridX, cursorGridY);
+                if (item != null) {
+                    selectItem(item, cursorGridX, cursorGridY);
                 }
             } else {
-                if (inventory.moveItem(selectedItem, cursorGridX, cursorGridY)) {
+                // Tenta colocar na posição do cursor
+                if (inventory.placeItem(selectedItem, cursorGridX, cursorGridY)) {
                     selectedItem = null;
+                    System.out.println("[DEBUG] Item colocado em (" + cursorGridX + "," + cursorGridY + ")");
+                } else {
+                    // Não coube, volta pra original
+                    inventory.placeItem(selectedItem, originalGridX, originalGridY);
+                    selectedItem = null;
+                    System.out.println(
+                            "[DEBUG] Não coube, item voltou para (" + originalGridX + "," + originalGridY + ")");
                 }
             }
         }
-        if (Gdx.input.isKeyJustPressed(Keys.R)) {
-            if (selectedItem != null) {
-                selectedItem.rotate();
-                inventory.moveItem(selectedItem, cursorGridX, cursorGridY);
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
-            selectedItem = null;
+
+        // Tecla R - rotação (só com item selecionado)
+        if (Gdx.input.isKeyJustPressed(Keys.R) && selectedItem != null) {
+            inventory.debugPrintGrid();
+            selectedItem.rotate();
+            System.out.println("[DEBUG] Item rotacionado. Novas dimensões: " + selectedItem.getGridWidth() + "x"
+                    + selectedItem.getGridHeight());
+            // Ajusta cursor para não ultrapassar os limites (após rotação)
+            int newMaxX = inventory.gridCols - selectedItem.getGridWidth();
+            int newMaxY = inventory.gridRows - selectedItem.getGridHeight();
+            cursorGridX = Math.min(cursorGridX, newMaxX);
+            cursorGridY = Math.min(cursorGridY, newMaxY);
+            inventory.debugPrintGrid();
         }
 
+        // Tecla ESC - cancela seleção
+        if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+            cancelSelection();
+        }
+
+        // Tecla Q - descartar
         if (Gdx.input.isKeyJustPressed(Keys.Q)) {
             if (selectedItem != null) {
                 dropItem(selectedItem);
@@ -187,15 +207,44 @@ public class InventoryController {
     }
 
     private void rotateItem() {
-        if (currentPlacementItem != null) {
+        if (currentPlacementItem == null)
+            return;
+
+        // Obtém as dimensões atuais
+        int oldWidth = currentPlacementItem.getGridWidth();
+        int oldHeight = currentPlacementItem.getGridHeight();
+
+        // Simula a rotação: novas dimensões são trocadas
+        int newWidth = oldHeight;
+        int newHeight = oldWidth;
+
+        // Calcula a melhor posição possível, mantendo a mesma se possível
+        int newX = placementGridX;
+        int newY = placementGridY;
+
+        // Ajusta para não ultrapassar os limites do grid
+        if (newX + newWidth > inventory.gridCols) {
+            newX = inventory.gridCols - newWidth;
+        }
+        if (newY + newHeight > inventory.gridRows) {
+            newY = inventory.gridRows - newHeight;
+        }
+
+        // Garante que não seja negativo (caso o item seja maior que o grid)
+        newX = Math.max(0, newX);
+        newY = Math.max(0, newY);
+
+        // Verifica se a nova posição é válida (células livres)
+        if (inventory.canPlaceAt(newX, newY, currentPlacementItem)) {
+            // Aplica a rotação
             currentPlacementItem.rotate();
-            int newWidth = currentPlacementItem.getGridWidth();
-            int newHeight = currentPlacementItem.getGridHeight();
-
-            placementGridX = Math.min(placementGridX, inventory.gridCols - newWidth);
-            placementGridY = Math.min(placementGridY, inventory.gridRows - newHeight);
-
+            placementGridX = newX;
+            placementGridY = newY;
             updatePlacementValidity();
+            System.out.println(
+                    "Item rotacionado para " + newWidth + "x" + newHeight + " na posição (" + newX + "," + newY + ")");
+        } else {
+            System.out.println("Não é possível rotacionar: sem espaço na posição " + newX + "," + newY);
         }
     }
 
@@ -231,8 +280,14 @@ public class InventoryController {
             cursorGridY = 0;
             craftingMode = false;
         } else {
-            // Restaura o processador anterior
+
             Gdx.input.setInputProcessor(previousInputProcessor);
+
+            if (selectedItem != null) {
+                inventory.placeItem(selectedItem, originalGridX, originalGridY);
+                selectedItem = null;
+                System.out.println("[DEBUG] Inventário fechado, item recolocado na posição original");
+            }
 
             // Reseta estados
             craftingMode = false;
@@ -242,7 +297,9 @@ public class InventoryController {
 
     private void updatePlacementMode() {
 
+        System.out.println("updatePlacementMode() - placementMode = " + placementMode);
         if (Gdx.input.isKeyJustPressed(Keys.R)) {
+            System.out.println("Tecla R pressionada em updatePlacementMode");
             rotateItem();
         }
 
@@ -578,5 +635,46 @@ public class InventoryController {
     // Métodos get/set:
     public void setCellSize(int cellSize) {
         this.cellSize = cellSize;
+    }
+
+    public void equipWeapon(Weapon weapon) {
+        inventory.equipWeapon(weapon);
+    }
+
+    public void unequipWeapon() {
+        inventory.unequipWeapon();
+    }
+
+    public void selectItem(Item item, int gridX, int gridY) {
+        if (inventory.removeItem(item)) {
+            this.selectedItem = item;
+            this.originalGridX = gridX;
+            this.originalGridY = gridY;
+            this.cursorGridX = gridX;
+            this.cursorGridY = gridY;
+            System.out.println("[DEBUG] Item selecionado: " + item.getName() + " em (" + gridX + "," + gridY + ")");
+        }
+    }
+
+    public void tryPlaceSelectedItem(int gridX, int gridY) {
+        if (selectedItem == null)
+            return;
+        if (inventory.placeItem(selectedItem, gridX, gridY)) {
+            selectedItem = null;
+            System.out.println("[DEBUG] Item colocado em (" + gridX + "," + gridY + ")");
+        } else {
+            // Não coube, volta pra original
+            inventory.placeItem(selectedItem, originalGridX, originalGridY);
+            selectedItem = null;
+            System.out.println("[DEBUG] Não coube, item voltou para (" + originalGridX + "," + originalGridY + ")");
+        }
+    }
+
+    public void cancelSelection() {
+        if (selectedItem != null) {
+            inventory.placeItem(selectedItem, originalGridX, originalGridY);
+            selectedItem = null;
+            System.out.println("[DEBUG] Seleção cancelada");
+        }
     }
 }

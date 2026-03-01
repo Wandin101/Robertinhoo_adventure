@@ -58,30 +58,55 @@ public class InventoryItemRenderer {
 
     private void renderItemIcon(Item item, int gridX, int gridY, float alpha, Color tint) {
         TextureRegion icon = item.getIcon();
-        int width = item.getGridWidth();
-        int height = item.getGridHeight();
+        int gridWidth = item.getGridWidth();
+        int gridHeight = item.getGridHeight();
+        float rotation = item.getRotation();
 
         float baseX = position.x + (gridX * cellSize);
         float baseY = position.y + ((inventory.getGridRows() - 1 - gridY) * cellSize);
-        baseY -= (height - 1) * cellSize;
+        baseY -= (gridHeight - 1) * cellSize;
 
+        // Dimensões originais do ícone
+        int iconWidth = icon.getRegionWidth();
+        int iconHeight = icon.getRegionHeight();
+
+        // Se o item está rotacionado, as dimensões efetivas trocam
+        boolean isRotated = (rotation == 90 || rotation == 270);
+        int effectiveIconWidth = isRotated ? iconHeight : iconWidth;
+        int effectiveIconHeight = isRotated ? iconWidth : iconHeight;
+
+        // Escala para caber na área do grid, mantendo a proporção
         float scale = Math.min(
-                (width * cellSize) / icon.getRegionWidth(),
-                (height * cellSize) / icon.getRegionHeight());
+                (gridWidth * cellSize) / effectiveIconWidth,
+                (gridHeight * cellSize) / effectiveIconHeight);
 
-        float scaledWidth = icon.getRegionWidth() * scale + 30;
-        float scaledHeight = icon.getRegionHeight() * scale + 20;
-        float offsetX = (width * cellSize - scaledWidth) / 2;
-        float offsetY = (height * cellSize - scaledHeight) / 2;
+        float scaledWidth = iconWidth * scale;
+        float scaledHeight = iconHeight * scale;
+
+        // Centro da área ocupada
+        float centerX = baseX + (gridWidth * cellSize) / 2;
+        float centerY = baseY + (gridHeight * cellSize) / 2;
 
         Color originalColor = spriteBatch.getColor();
         spriteBatch.setColor(tint.r, tint.g, tint.b, alpha);
-        spriteBatch.draw(icon, baseX + offsetX, baseY + offsetY, scaledWidth, scaledHeight);
+
+        if (rotation != 0) {
+            spriteBatch.draw(icon,
+                    centerX - scaledWidth / 2, centerY - scaledHeight / 2,
+                    scaledWidth / 2, scaledHeight / 2,
+                    scaledWidth, scaledHeight,
+                    1, 1,
+                    rotation);
+        } else {
+            spriteBatch.draw(icon,
+                    centerX - scaledWidth / 2, centerY - scaledHeight / 2,
+                    scaledWidth, scaledHeight);
+        }
+
         spriteBatch.setColor(originalColor);
     }
 
     private void renderAmmoQuantity(Ammo ammo, int gridX, int gridY) {
-        // ... (código inalterado, usa spriteBatch e font)
         int width = ammo.getGridWidth();
         int height = ammo.getGridHeight();
 

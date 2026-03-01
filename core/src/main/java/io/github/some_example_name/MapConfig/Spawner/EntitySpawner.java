@@ -38,7 +38,7 @@ public class EntitySpawner {
      */
     public void spawnAll() {
         if (mapa.isRoom0) {
-            // spawnRoom0TestEntities();
+            spawnRoom0TestEntities();
         } else {
             spawnRandomEntities();
         }
@@ -152,7 +152,7 @@ public class EntitySpawner {
         Gdx.app.log("EntitySpawner", "Adicionando entidades de teste na Sala 0");
 
         spawnTestWeapons();
-        spawnTestEnemies();
+        // spawnTestEnemies();
         spawnTestCraftItems();
     }
 

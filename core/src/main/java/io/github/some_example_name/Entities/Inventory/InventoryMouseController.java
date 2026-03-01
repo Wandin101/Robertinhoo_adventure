@@ -50,38 +50,43 @@ public class InventoryMouseController implements InputProcessor {
         // Menu visível: tratar cliques de forma especial
         if (controller.getContextMenu().isVisible()) {
             if (button == Buttons.LEFT) {
-                // Clique esquerdo: interage com o menu
-                // Usa coordenadas de tela diretamente (inverte Y)
                 float adjustedY = Gdx.graphics.getHeight() - screenY;
                 return controller.getContextMenu().handleClick(screenX, adjustedY);
             } else if (button == Buttons.RIGHT) {
-                // Clique direito: apenas fecha o menu
                 controller.getContextMenu().hide();
                 return true;
             }
-            return true; // Bloqueia outros botões
+            return true;
         }
 
-        // Menu não visível: comportamento normal
+        // Menu não visível
         if (button == Buttons.LEFT) {
-            // Comportamento normal para clique esquerdo
             Vector2 gridPos = screenToGrid(screenX, screenY);
             if (gridPos != null) {
                 controller.setCursorPosition((int) gridPos.x, (int) gridPos.y);
 
                 if (controller.getSelectedItem() == null) {
+                    // Sem item selecionado: tenta pegar o item sob o cursor
                     Item item = inventory.getItemAt((int) gridPos.x, (int) gridPos.y);
                     if (item != null) {
-                        controller.startDragging(item, (int) gridPos.x, (int) gridPos.y);
+                        controller.selectItem(item, (int) gridPos.x, (int) gridPos.y);
                         dragging = true;
                     }
                 } else {
-                    controller.selectItemAtCursor();
+                    // Já tem item selecionado: tenta colocar na posição do clique
+                    controller.tryPlaceSelectedItem((int) gridPos.x, (int) gridPos.y);
+                    dragging = false; // não arrasta mais
                 }
                 return true;
             }
         } else if (button == Buttons.RIGHT) {
-            // Comportamento para clique direito (abrir menu)
+            // Clique direito: se houver item selecionado, cancela (volta à posição
+            // original)
+            if (controller.getSelectedItem() != null) {
+                controller.cancelSelection();
+                return true;
+            }
+            // Caso contrário, prepara para abrir menu de contexto
             Vector2 gridPos = screenToGrid(screenX, screenY);
             if (gridPos != null) {
                 rightClickTriggered = true;
@@ -111,15 +116,11 @@ public class InventoryMouseController implements InputProcessor {
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (!controller.isInventoryOpen() || button != 0)
+        if (!controller.isInventoryOpen() || button != Buttons.LEFT)
             return false;
-
         if (dragging) {
-            Vector2 gridPos = screenToGrid(screenX, screenY);
-            if (gridPos != null) {
-                controller.completeDrag((int) gridPos.x, (int) gridPos.y);
-            }
             dragging = false;
+            // Não faz nada ao soltar – o item continua selecionado
             return true;
         }
         return false;

@@ -59,6 +59,9 @@ public class PlayerController {
         if (player.state == Robertinhoo.ENTERING_DOOR || player.state == Robertinhoo.EXITING_DOOR) {
             return;
         }
+        if (player.inventoryController.isInPlacementMode() || player.inventoryController.isInventoryOpen()) {
+            return;
+        }
         boolean spacePressed = Gdx.input.isKeyPressed(Keys.SPACE);
         boolean spaceJustPressed = Gdx.input.isKeyJustPressed(Keys.SPACE);
         moveDir.set(0, 0);
@@ -138,6 +141,10 @@ public class PlayerController {
     // Movimento normal
 
     private void processActions(float deltaTime) {
+
+        if (player.inventoryController.isInPlacementMode() || player.inventoryController.isInventoryOpen()) {
+            return;
+        }
         // Pickup/Placement
         if (Gdx.input.isKeyJustPressed(Keys.T)) {
             System.out.println("[DEBUG] Tecla T pressionada");
