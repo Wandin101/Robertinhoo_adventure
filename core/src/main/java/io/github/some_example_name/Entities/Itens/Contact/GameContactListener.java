@@ -12,7 +12,8 @@ import java.util.List;
 
 public class GameContactListener implements ContactListener {
     private Robertinhoo player;
-    private final List<ContactHandler> handlers = new ArrayList<>(); 
+    private final List<ContactHandler> handlers = new ArrayList<>();
+
     public GameContactListener(Robertinhoo player) {
         System.out.println("🎯 GameContactListener CRIADO");
         System.out.println("   - Jogador fornecido: " + (player != null));
@@ -24,22 +25,24 @@ public class GameContactListener implements ContactListener {
     public Robertinhoo getPlayer() {
         return player;
     }
-public void updatePlayerReference(Robertinhoo newPlayer) {
-    System.out.println("🔄 [GameContactListener] ATUALIZANDO referência do jogador");
-    
-    // Limpar TODOS os handlers antes de recriar
-    for (ContactHandler handler : handlers) {
-        if (handler instanceof PlayerItemHandler) {
-            PlayerItemHandler itemHandler = (PlayerItemHandler) handler;
-            System.out.println("🧹 Limpando PlayerItemHandler antigo...");
-            itemHandler.clearAllItems(); // Vamos criar este método
+
+    public void updatePlayerReference(Robertinhoo newPlayer) {
+        System.out.println("🔄 [GameContactListener] ATUALIZANDO referência do jogador");
+
+        // Limpar TODOS os handlers antes de recriar
+        for (ContactHandler handler : handlers) {
+            if (handler instanceof PlayerItemHandler) {
+                PlayerItemHandler itemHandler = (PlayerItemHandler) handler;
+                System.out.println("🧹 Limpando PlayerItemHandler antigo...");
+                itemHandler.clearAllItems(); // Vamos criar este método
+            }
         }
+
+        handlers.clear();
+        this.player = newPlayer;
+        initializeHandlers();
     }
-    
-    handlers.clear();
-    this.player = newPlayer;
-    initializeHandlers();
-}
+
     private void initializeHandlers() {
         handlers.clear();
         handlers.add(new MeleeAttackHandler(player));
@@ -50,7 +53,9 @@ public void updatePlayerReference(Robertinhoo newPlayer) {
         handlers.add(new GrassHandler());
         handlers.add(new DoorHandler());
         handlers.add(new Room0PlantHandler());
+        handlers.add(new InteractableHandler());
     }
+
     @Override
     public void beginContact(Contact contact) {
         Fixture fixtureA = contact.getFixtureA();
@@ -85,6 +90,15 @@ public void updatePlayerReference(Robertinhoo newPlayer) {
         for (ContactHandler handler : handlers) {
             if (handler instanceof PlayerItemHandler) {
                 return (PlayerItemHandler) handler;
+            }
+        }
+        return null;
+    }
+
+    public InteractableHandler getInteractableHandler() {
+        for (ContactHandler handler : handlers) {
+            if (handler instanceof InteractableHandler) {
+                return (InteractableHandler) handler;
             }
         }
         return null;

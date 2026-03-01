@@ -5,7 +5,9 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.math.Vector2;
 
+import io.github.some_example_name.Entities.Interatibles.Interactable;
 import io.github.some_example_name.Entities.Inventory.InventoryController;
+import io.github.some_example_name.Entities.Itens.Contact.InteractableHandler;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 
 public class PlayerController {
@@ -31,6 +33,7 @@ public class PlayerController {
     }
 
     public void update(float deltaTime) {
+
         dashSystem.update(deltaTime);
 
         if (meleeCooldown > 0) {
@@ -53,6 +56,9 @@ public class PlayerController {
     }
 
     private void processMovement() {
+        if (player.state == Robertinhoo.ENTERING_DOOR || player.state == Robertinhoo.EXITING_DOOR) {
+            return;
+        }
         boolean spacePressed = Gdx.input.isKeyPressed(Keys.SPACE);
         boolean spaceJustPressed = Gdx.input.isKeyJustPressed(Keys.SPACE);
         moveDir.set(0, 0);
@@ -186,6 +192,16 @@ public class PlayerController {
                 firePosition.mulAdd(direction, spawnOffset);
 
                 currentWeapon.shoot(firePosition, direction);
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Keys.E)) {
+            InteractableHandler handler = player.getContactListener().getInteractableHandler();
+            if (handler != null) {
+                Interactable interactable = handler.getCurrentInteractable();
+                if (interactable != null && interactable.isActive()) {
+                    interactable.onInteract();
+                }
             }
         }
 

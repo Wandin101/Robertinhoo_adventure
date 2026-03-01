@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 
+import io.github.some_example_name.Entities.Interatibles.InteractionManager;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Interface.DebugHUD;
@@ -21,6 +22,8 @@ import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.MapConfig.RoomManager;
+import io.github.some_example_name.MapConfig.Rooms.Room0Door;
+
 import com.badlogic.gdx.utils.Timer;
 
 import com.badlogic.gdx.graphics.Pixmap;
@@ -36,6 +39,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
     private OrthographicCamera hudCamera;
     private RobertinhoFaceHUD robertinhoFaceHUD;
     private DebugHUD debugHUD;
+
     private boolean debugEnabled = true;
     private AudioManager audioManager;
     private RoomManager roomManager = RoomManager.getInstance();
@@ -79,6 +83,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         pixmap.dispose();
 
         Gdx.graphics.setCursor(blankCursor);
+
     }
 
     // No GameScreen.java, modifique o método render:
@@ -90,6 +95,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         float playerDelta = ScreenFreezeSystem.getPlayerDelta();
         float animationDelta = ScreenFreezeSystem.getAnimationDelta();
         ScreenFreezeSystem.update(delta);
+        InteractionManager.getInstance().update(delta);
         gameplayDelta = Math.min(0.06f, gameplayDelta);
         playerDelta = Math.min(0.06f, playerDelta);
         animationDelta = Math.min(0.06f, animationDelta);
@@ -146,6 +152,8 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         hudBatch.begin();
         weaponHUD.draw();
         robertinhoFaceHUD.draw(hudBatch, animationDelta);
+        InteractionManager.getInstance().render(hudBatch);
+
         hudBatch.end();
 
         // Debug HUD
@@ -307,10 +315,8 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
     private Mapa createRoom1ReusingPlayer(Robertinhoo existingPlayer) {
         System.out.println("🔧 Criando Sala 1 com jogador existente: " + (existingPlayer != null));
 
-        // Cria sala 1 normalmente
         Mapa room1 = new Mapa(false);
 
-        // Se temos um jogador existente, reutiliza
         if (existingPlayer != null) {
             System.out.println("👤 Reutilizando jogador existente...");
             if (room1.robertinhoo != null && room1.robertinhoo.getBody() != null) {
@@ -318,12 +324,25 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
                 System.out.println("🗑️ Jogador automático removido");
             }
 
-            Vector2 worldStartPos = room1.getMapGenerator().getWorldStartPosition(room1.mapHeight);
-            existingPlayer.switchToNewMap(room1, worldStartPos);
+            Room0Door door = room1.getDoor0();
+            Vector2 spawnPos;
+            if (door != null) {
+                spawnPos = door.getSpawnPosition();
+                System.out.println("🚪 Posicionando jogador na porta com offset: " + spawnPos
+                        + " | posição da porta (tile): " + door.getPosition());
+            } else {
+                spawnPos = room1.getMapGenerator().getWorldStartPosition(room1.mapHeight);
+                System.out.println("⚠️ Porta não encontrada, usando spawn padrão: " + spawnPos);
+            }
+
+            existingPlayer.switchToNewMap(room1, spawnPos);
+            existingPlayer.getBody().setLinearVelocity(0, 0);
+            existingPlayer.setState(Robertinhoo.EXITING_DOOR);
+            existingPlayer.setSensor(true);
+
             room1.robertinhoo = existingPlayer;
             room1.setupContactListener(existingPlayer);
-
-            System.out.println("✅ Jogador reutilizado e ContactListener configurado");
+            System.out.println("✅ Jogador reutilizado e configurado para saída da porta");
         } else {
             System.out.println("👤 Usando jogador novo da Sala 1");
             room1.setupContactListener(room1.robertinhoo);
@@ -332,9 +351,8 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
         robertinhoFaceHUD = new RobertinhoFaceHUD(width, height, room1.robertinhoo);
-
         room1.robertinhoo.setFaceHUD(robertinhoFaceHUD);
-        System.out.println("✅ [createRoom1] FaceHUD configurado no jogador da Sala 1");
+        System.out.println("✅ [createRoom1] FaceHUD configurado");
 
         return room1;
     }

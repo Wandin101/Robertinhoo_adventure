@@ -20,6 +20,7 @@ public class Room0LayoutLoader {
     public static final Color COLOR_FLOWER = new Color(0xc800ffff); // Flor - #c800ff
     public static final Color COLOR_RUSTY_SWORD = new Color(0xf6a4a4ff); // espada - #f6a4a4
     public static final Color COLOR_DOOR = new Color(0xffffffff); // porta - #ffffffff
+    public static final Color COLOR_BOULDER = new Color(0x335215ff); // Pedregulho - #335215
 
     // Novas cores para cabanas
     public static final Color COLOR_CABANA_PLAYER = new Color(0x351e1eff);// #351e1e
@@ -81,6 +82,13 @@ public class Room0LayoutLoader {
                         addDoor(mapa, x, y);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
                         System.out.println("🚪 Porta em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
+                                + ") -> mundo: " + worldPos);
+                    }
+
+                    else if (colorsMatch(pixelColor, COLOR_BOULDER)) {
+                        Vector2 worldPos = mapa.tileToWorld(x, y);
+                        addBoulder(mapa, x, y);
+                        System.out.println("🚪 Passarela: " + x + "," + y + " -> tile: (" + x + ", " + y
                                 + ") -> mundo: " + worldPos);
                     }
 
@@ -175,12 +183,22 @@ public class Room0LayoutLoader {
 
     private static void addDoor(Mapa mapa, int tileX, int tileY) {
         try {
-            Room0Door door = new Room0Door(mapa, tileX, tileY);
+            Room0Door door = new Room0Door(mapa, tileX, tileY, true);
 
             mapa.addDoor(door);
             System.out.println("🚪 Porta criada em tile: " + tileX + ", " + tileY);
         } catch (Exception e) {
             System.err.println("❌ Erro ao criar porta: " + e.getMessage());
+        }
+    }
+
+    private static void addBoulder(Mapa mapa, int tileX, int tileY) {
+        try {
+            Boulder boulder = new Boulder(mapa, tileX, tileY); // passa os inteiros
+            mapa.addBoulder(boulder);
+            System.out.println("🪨 Pedregulho criado em tile: " + tileX + ", " + tileY);
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao criar pedregulho: " + e.getMessage());
         }
     }
 }

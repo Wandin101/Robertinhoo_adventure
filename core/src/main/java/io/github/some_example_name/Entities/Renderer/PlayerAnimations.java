@@ -273,42 +273,42 @@ public class PlayerAnimations implements Disposable {
         }
     }
 
-public static class DeathAnimations {
-    public final Animation<TextureRegion> deathAnimation;
+    public static class DeathAnimations {
+        public final Animation<TextureRegion> deathAnimation;
 
-    public DeathAnimations() {
-        // Carrega a textura de morte (5 colunas x 5 linhas = 25 frames)
-        Texture deathTexture = AnimationLoader.loadTexture("rober/death/death-sheet.png");
-        
-        // O spritesheet tem 5 colunas e 5 linhas
-        int frameCols = 6;
-        int frameRows = 5;
-        int frameWidth = deathTexture.getWidth() / frameCols;
-        int frameHeight = deathTexture.getHeight() / frameRows;
+        public DeathAnimations() {
+            // Carrega a textura de morte (5 colunas x 5 linhas = 25 frames)
+            Texture deathTexture = AnimationLoader.loadTexture("rober/death/death-sheet.png");
 
-        // Divide o spritesheet em uma matriz de TextureRegion
-        TextureRegion[][] tempFrames = TextureRegion.split(deathTexture, frameWidth, frameHeight);
-        
-        // Cria um array com todos os 25 frames (5x5)
-        TextureRegion[] deathFrames = new TextureRegion[frameCols * frameRows];
-        
-        // Preenche o array percorrendo as linhas e colunas
-        int index = 0;
-        for (int row = 0; row < frameRows; row++) {
-            for (int col = 0; col < frameCols; col++) {
-                deathFrames[index++] = tempFrames[row][col];
+            // O spritesheet tem 5 colunas e 5 linhas
+            int frameCols = 6;
+            int frameRows = 5;
+            int frameWidth = deathTexture.getWidth() / frameCols;
+            int frameHeight = deathTexture.getHeight() / frameRows;
+
+            // Divide o spritesheet em uma matriz de TextureRegion
+            TextureRegion[][] tempFrames = TextureRegion.split(deathTexture, frameWidth, frameHeight);
+
+            // Cria um array com todos os 25 frames (5x5)
+            TextureRegion[] deathFrames = new TextureRegion[frameCols * frameRows];
+
+            // Preenche o array percorrendo as linhas e colunas
+            int index = 0;
+            for (int row = 0; row < frameRows; row++) {
+                for (int col = 0; col < frameCols; col++) {
+                    deathFrames[index++] = tempFrames[row][col];
+                }
             }
+
+            // Define a animação com duração total de 2.0 segundos
+            // 25 frames / 2.0s = 0.08s por frame
+            float frameDuration = 3.5f / deathFrames.length; // 2.0 segundos dividido por 25 frames
+
+            // Cria a animação que NÃO faz loop
+            deathAnimation = new Animation<>(frameDuration, deathFrames);
+            deathAnimation.setPlayMode(Animation.PlayMode.NORMAL); // NORMAL = não faz loop
         }
-        
-        // Define a animação com duração total de 2.0 segundos
-        // 25 frames / 2.0s = 0.08s por frame
-        float frameDuration = 3.5f / deathFrames.length; // 2.0 segundos dividido por 25 frames
-        
-        // Cria a animação que NÃO faz loop
-        deathAnimation = new Animation<>(frameDuration, deathFrames);
-        deathAnimation.setPlayMode(Animation.PlayMode.NORMAL); // NORMAL = não faz loop
     }
-}
 
     public static class DamageAnimations {
         public final Animation<TextureRegion> ritDamage;
@@ -327,12 +327,50 @@ public static class DeathAnimations {
         }
     }
 
+    // Dentro da classe PlayerAnimations, adicione uma nova classe interna:
+    public static class EnterAnimations {
+        public final Animation<TextureRegion> enterAnimation;
+
+        public EnterAnimations() {
+            // Ajuste o caminho da textura conforme seu projeto
+            Texture enterTexture = AnimationLoader.loadTexture("rober/EnterandBackDOR/Enter.png");
+            int frameCols = 9;
+            int frameRows = 1;
+            int frameWidth = enterTexture.getWidth() / frameCols;
+            int frameHeight = enterTexture.getHeight() / frameRows;
+            TextureRegion[][] temp = TextureRegion.split(enterTexture, frameWidth, frameHeight);
+            TextureRegion[] frames = temp[0]; // primeira (e única) linha
+            float frameDuration = 0.09f; // duração de cada frame (0.9s no total)
+            enterAnimation = new Animation<>(frameDuration, frames);
+            enterAnimation.setPlayMode(Animation.PlayMode.NORMAL);
+        }
+    }
+
+    public static class BackAnimations {
+        public final Animation<TextureRegion> backAnimation;
+
+        public BackAnimations() {
+            Texture backTexture = AnimationLoader.loadTexture("rober/EnterandBackDOR/Back.png"); // ajuste o caminho
+            int frameCols = 7; // mesma quantidade de frames da entrada
+            int frameRows = 1;
+            int frameWidth = backTexture.getWidth() / frameCols;
+            int frameHeight = backTexture.getHeight() / frameRows;
+            TextureRegion[][] temp = TextureRegion.split(backTexture, frameWidth, frameHeight);
+            TextureRegion[] frames = temp[0];
+            float frameDuration = 0.09f; // mesma duração da entrada
+            backAnimation = new Animation<>(frameDuration, frames);
+            backAnimation.setPlayMode(Animation.PlayMode.NORMAL);
+        }
+    }
+
     public final BasicAnimations basic;
     public final WeaponAnimations weapon;
     public final SpecialAnimations special;
     public final NoArmorAnimations noArmor;
     public final DamageAnimations damage;
     public final DeathAnimations death;
+    public final EnterAnimations enter;
+    public final BackAnimations back;
 
     private final Array<Texture> loadedTextures = new Array<>();
 
@@ -347,6 +385,8 @@ public static class DeathAnimations {
         noArmor = new NoArmorAnimations();
         damage = new DamageAnimations();
         death = new DeathAnimations();
+        enter = new EnterAnimations();
+        back = new BackAnimations();
     }
 
     private void loadAllTextures() {
@@ -373,7 +413,10 @@ public static class DeathAnimations {
                 "rober/corpo_a_corpo/ataque_sheet.png",
                 "rober/Parry/Parry_LEFT_AND_RIGHT-Sheet.png",
                 "rober/no_armor/robertinho_no_armor.png",
-                "rober/death/death-sheet.png"
+                "rober/death/death-sheet.png",
+                "rober/EnterandBackDOR/Enter.png",
+                "rober/EnterandBackDOR/Back.png"
+
         };
 
         // Carregar e armazenar texturas

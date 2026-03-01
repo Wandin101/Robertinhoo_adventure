@@ -24,6 +24,7 @@ import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Particulas.BloodParticleRenderer;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
+import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
 import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.TileRenderer;
@@ -41,12 +42,15 @@ import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.SistemaLuz;
+import io.github.some_example_name.MapConfig.Rooms.Boulder;
 import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
 import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0TileRenderer;
 import io.github.some_example_name.MapConfig.Rooms.Room0WallRenderer;
 import io.github.some_example_name.MapConfig.Rooms.StaticItem;
+import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Engraving;
+import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Pillar;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
 import io.github.some_example_name.Entities.Renderer.SpawnRoomRenderer;
@@ -87,6 +91,7 @@ public class MapRenderer {
     private ShapeRenderer hudShapeRenderer;
     private SpriteBatch hudSpriteBatch;
     private boolean useHudForInventory = true; // Co
+    private MagicParticleSystem magicParticleSystem;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -119,6 +124,7 @@ public class MapRenderer {
         this.tileRenderer = new TileRenderer(mapa, TILE_SIZE);
         this.projectileRenderer = new ProjectileRenderer(mapa, TILE_SIZE);
         this.playerRenderer = new PlayerRenderer(mapa.robertinhoo.getWeaponSystem());
+        mapa.robertinhoo.setRenderer(playerRenderer);
         this.ammoRenderer = new AmmoRenderer(TILE_SIZE);
 
         castorRenderer = new CastorRenderer();
@@ -151,7 +157,8 @@ public class MapRenderer {
         if (isRoom0) {
             this.room0TileRenderer = new Room0TileRenderer(mapa, TILE_SIZE);
             this.room0WallRenderer = new Room0WallRenderer(mapa, TILE_SIZE);
-            this.room0Door = mapa.getDoor0();
+
+            this.magicParticleSystem = mapa.getMagicParticleSystem();
             System.out.println("✅ Room0TileRenderer inicializado para Sala 0");
         } else {
             if (mapa.getMapGenerator() != null) {
@@ -159,9 +166,11 @@ public class MapRenderer {
                 if (spawnRoom != null && spawnRoom.getBounds() != null) {
                     System.out.println("🎨 Criando SpawnRoomRenderer para sala fixa");
                     spawnRoomRenderer = new SpawnRoomRenderer(spawnRoom, mapa, TILE_SIZE);
+
                 }
             }
         }
+        this.room0Door = mapa.getDoor0();
         this.sistemaLuz = new SistemaLuz();
         this.escurecedor = new EscurecedorAmbiente();
         bloodParticleSystem = mapa.getBloodParticleSystem();
@@ -184,16 +193,18 @@ public class MapRenderer {
         shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
         spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
         mapa.world.step(delta, 6, 2);
-        if (isRoom0 && room0Door != null) {
+        playerRenderer.update(delta, player);
+        if (room0Door != null) {
             room0Door.updateLightSpherePosition(offsetX, offsetY);
-            room0Door.update(delta); // Importante: atualizar a porta também
+            room0Door.update(delta);
         }
+
         List<ShadowEntity> shadowEntities = new ArrayList<>();
-        shadowEntities.add(player); // Jogador
+        shadowEntities.add(player);
+
         Vector2 cameraPosWorld = new Vector2(
-                cameraController.getCamera().position.x / TILE_SIZE, // Pixels → Unidades mundo
-                cameraController.getCamera().position.y / TILE_SIZE // Pixels → Unidades mundo
-        );
+                cameraController.getCamera().position.x / TILE_SIZE,
+                cameraController.getCamera().position.y / TILE_SIZE);
         bloodParticleSystem.update(delta, cameraPosWorld);
 
         for (Enemy enemy : mapa.getEnemies()) {
@@ -208,160 +219,168 @@ public class MapRenderer {
             }
         }
 
-        // 1. RENDERIZAÇÃO DO CHÃO (TILES) - MAIS ESCURO
+        // ==================== RENDERIZAÇÃO DO CENÁRIO ====================
         spriteBatch.begin();
 
+        // 1. CENÁRIO (CHÃO, PAREDES, ELEMENTOS FIXOS)
         if (isRoom0 && room0TileRenderer != null) {
             room0TileRenderer.renderFloor(spriteBatch, offsetX, offsetY);
             room0WallRenderer.renderWalls(spriteBatch, offsetX, offsetY);
-
+            for (Boulder boulder : mapa.getBoulders()) {
+                boulder.render(spriteBatch, offsetX, offsetY, TILE_SIZE);
+            }
         } else {
             tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
             tileRenderer.setSpawnRoomBounds(mapa.getSpawnRoom().getBounds());
             spawnRoomRenderer.render(spriteBatch, offsetX, offsetY);
         }
-        spriteBatch.setColor(1f, 1f, 1f, 1f);
-        spriteBatch.end();
-        spriteBatch.begin();
 
-        // Renderiza fogueira (código existente)
+        // Fogueira
         if (isRoom0 && mapa.getCampFire() != null) {
             Vector2 campfireTilePos = mapa.getCampFire().getPosition();
             float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
             float screenY = offsetY + campfireTilePos.y * TILE_SIZE;
-
             mapa.getCampFire().update(delta);
             mapa.getCampFire().render(spriteBatch, screenX, screenY);
         }
 
+        // Cabanas
         for (Room0Cabana cabana : mapa.getCabanas()) {
             Vector2 cabanaTilePos = cabana.getPosition();
             float screenX = offsetX + cabanaTilePos.x * TILE_SIZE;
             float screenY = offsetY + cabanaTilePos.y * TILE_SIZE;
-
             cabana.render(spriteBatch, screenX, screenY);
         }
 
+        // Itens estáticos
         for (StaticItem staticItem : mapa.getStaticItems()) {
             Vector2 itemTilePos = staticItem.getPosition();
             float screenX = offsetX + itemTilePos.x * TILE_SIZE;
             float screenY = offsetY + itemTilePos.y * TILE_SIZE;
-
             staticItem.update(delta);
             staticItem.render(spriteBatch, screenX, screenY);
         }
 
-        spriteBatch.end();
+        if (room0Door != null) {
+            room0Door.render(spriteBatch, offsetX, offsetY, cameraController.getCamera().combined);
+        }
 
-        // 3. RENDERIZAÇÃO DAS SOMBRAS
+        for (Pillar pillar : mapa.pillars) {
+            pillar.update(delta);
+            pillar.render(spriteBatch, offsetX, offsetY, TILE_SIZE);
+        }
+        if (mapa.engraving != null) {
+
+            mapa.engraving.render(spriteBatch, offsetX, offsetY, TILE_SIZE);
+        }
+
+        spriteBatch.end(); // Fim do cenário
+
+        // ==================== SOMBRAS ====================
         shadowRenderer.renderShadows(shadowEntities, offsetX, offsetY, TILE_SIZE);
 
-        // 4. RENDERIZAÇÃO DOS OBJETOS E ENTIDADES
+        // ==================== ENTIDADES ====================
         spriteBatch.begin();
-        {
-            destructibleRenderer.render(spriteBatch, mapa.getDestructibles(), offsetX, offsetY);
-            projectileRenderer.render(spriteBatch, delta, offsetX, offsetY);
 
-            float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
-            float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
-            corpseManager.render(spriteBatch, offsetX, offsetY);
+        destructibleRenderer.render(spriteBatch, mapa.getDestructibles(), offsetX, offsetY);
+        projectileRenderer.render(spriteBatch, delta, offsetX, offsetY);
+        corpseManager.render(spriteBatch, offsetX, offsetY);
 
-            playerRenderer.render(spriteBatch, player, delta, offsetX, offsetY);
-            player.getWeaponSystem().renderWeapon(spriteBatch, delta, player, playerX, playerY);
+        // Jogador
+        playerRenderer.render(spriteBatch, player, delta, offsetX, offsetY);
 
-            // Renderiza inimigos
-            for (Enemy enemy : mapa.getEnemies()) {
-                if (enemy instanceof Ratinho) {
-                    Ratinho rat = (Ratinho) enemy;
+        // Arma do jogador (precisa das coordenadas do jogador)
+        float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
+        float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
+        player.getWeaponSystem().renderWeapon(spriteBatch, delta, player, playerX, playerY);
 
-                    if (rat.isDead()) {
-                        if (rat.isDeathAnimationFinished()) {
-                            if (!rat.isMarkedForDestruction()) {
-                                corpseManager.addCorpse(rat, ratRenderer);
-                                rat.markForDestruction();
-                            }
-                        } else {
-                            ratRenderer.render(spriteBatch, delta, rat, offsetX, offsetY);
-                        }
+        // Inimigos
+        for (Enemy enemy : mapa.getEnemies()) {
+            if (enemy instanceof Ratinho) {
+                Ratinho rat = (Ratinho) enemy;
+                if (rat.isDead()) {
+                    if (rat.isDeathAnimationFinished() && !rat.isMarkedForDestruction()) {
+                        corpseManager.addCorpse(rat, ratRenderer);
+                        rat.markForDestruction();
                     } else {
                         ratRenderer.render(spriteBatch, delta, rat, offsetX, offsetY);
                     }
+                } else {
+                    ratRenderer.render(spriteBatch, delta, rat, offsetX, offsetY);
                 }
+            }
 
-                if (enemy instanceof Castor) {
-                    Castor castor = (Castor) enemy;
-
-                    if (!ScreenFreezeSystem.isFrozen()) {
-                        castor.update(delta);
-                    }
-                    if (castor.isDead()) {
-                        if (castor.isDeathAnimationFinished()) {
-                            if (!castor.isMarkedForDestruction()) {
-                                corpseManager.addCorpse(castor, castorRenderer);
-                                castor.markForDestruction();
-                            }
-                        } else {
-                            castorRenderer.render(spriteBatch, castor, offsetX, offsetY, delta);
-                        }
+            if (enemy instanceof Castor) {
+                Castor castor = (Castor) enemy;
+                if (!ScreenFreezeSystem.isFrozen()) {
+                    castor.update(delta);
+                }
+                if (castor.isDead()) {
+                    if (castor.isDeathAnimationFinished() && !castor.isMarkedForDestruction()) {
+                        corpseManager.addCorpse(castor, castorRenderer);
+                        castor.markForDestruction();
                     } else {
                         castorRenderer.render(spriteBatch, castor, offsetX, offsetY, delta);
-                        Vector2 worldPos = castor.getBody().getPosition();
-                        float screenX = offsetX + worldPos.x * TILE_SIZE;
-                        float screenY = offsetY + worldPos.y * TILE_SIZE;
-                        castor.ai.getStateEnemy().updatePosition(new Vector2(screenX, screenY));
-                        castor.ai.getStateEnemy().render(spriteBatch);
                     }
+                } else {
+                    castorRenderer.render(spriteBatch, castor, offsetX, offsetY, delta);
+                    Vector2 worldPos = castor.getBody().getPosition();
+                    float screenX = offsetX + worldPos.x * TILE_SIZE;
+                    float screenY = offsetY + worldPos.y * TILE_SIZE;
+                    castor.ai.getStateEnemy().updatePosition(new Vector2(screenX, screenY));
+                    castor.ai.getStateEnemy().render(spriteBatch);
                 }
             }
-
-            // Renderiza armas no chão
-            for (Weapon weapon : mapa.getWeapons()) {
-                weapon.update(delta);
-                TextureRegion frame = weapon.getCurrentFrame(delta);
-                float floatY = weapon.getPosition().y * TILE_SIZE + weapon.getFloatOffset();
-
-                spriteBatch.draw(
-                        frame,
-                        offsetX + weapon.getPosition().x * TILE_SIZE,
-                        offsetY + floatY,
-                        40, 25);
-            }
-
-            ammoRenderer.render(spriteBatch, mapa.getAmmo(), offsetX, offsetY);
-            craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
         }
-        spriteBatch.end(); // ✅ FECHA o spriteBatch principal PRIMEIRO
 
-        // ========== PARTÍCULAS (SANGUE + CÁPSULAS) ==========
+        // Armas no chão
+        for (Weapon weapon : mapa.getWeapons()) {
+            weapon.update(delta);
+            TextureRegion frame = weapon.getCurrentFrame(delta);
+            float floatY = weapon.getPosition().y * TILE_SIZE + weapon.getFloatOffset();
+            spriteBatch.draw(
+                    frame,
+                    offsetX + weapon.getPosition().x * TILE_SIZE,
+                    offsetY + floatY,
+                    40, 25);
+        }
+
+        // Munição
+        ammoRenderer.render(spriteBatch, mapa.getAmmo(), offsetX, offsetY);
+
+        // Itens de craft
+        craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
+
+        spriteBatch.end(); // Fim das entidades
+
+        // ==================== PARTÍCULAS ====================
         particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
-
-        // ✅ UPDATE (fora do batch)
         bloodParticleSystem.update(delta, cameraPosWorld);
         ShellSystem.getInstance().update(delta);
+        if (magicParticleSystem != null) {
+            float left = offsetX;
+            float right = offsetX + mapa.mapWidth * TILE_SIZE;
+            float bottom = offsetY;
+            float top = offsetY + mapa.mapHeight * TILE_SIZE;
+            magicParticleSystem.update(delta, left, right, bottom, top);
+        }
 
         particleBatch.begin();
-
-        // Sangue
         bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
         bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
-
-        // 🎯 Cápsulas da Calibre12 – usando o mesmo batch
         ShellSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
-
+        if (magicParticleSystem != null) {
+            magicParticleSystem.render(particleBatch);
+        }
         particleBatch.end();
 
+        // ==================== ILUMINAÇÃO ====================
         if (isRoom0 && room0Door != null) {
             room0Door.updateLightSpherePosition(offsetX, offsetY);
         }
 
         escurecedor.aplicarEscurecimentoSuave(cameraController.getCamera().combined);
-        spriteBatch.begin();
-        if (isRoom0 && room0Door != null) {
-            room0Door.render(spriteBatch, offsetX, offsetY, cameraController.getCamera().combined);
-        }
-        spriteBatch.end();
 
-        // 4. Quarto: RENDERIZAR SISTEMA LUZ (DEPOIS do escurecedor)
         sistemaLuz.setProjectionMatrix(cameraController.getCamera().combined);
         sistemaLuz.begin();
 
@@ -371,7 +390,7 @@ public class MapRenderer {
         float playerScreenY = offsetY + playerWorldPos.y * TILE_SIZE;
         sistemaLuz.renderLight(playerScreenX, playerScreenY, 90f, new Color(0.7f, 0.8f, 1.0f, 0.3f));
 
-        // FOGUEIRA
+        // Fogueira
         if (isRoom0 && mapa.getCampFire() != null) {
             Vector2 campfireTilePos = mapa.getCampFire().getPosition();
             float screenX = offsetX + campfireTilePos.x * TILE_SIZE;
@@ -381,10 +400,17 @@ public class MapRenderer {
             sistemaLuz.renderFogueira(lightX, lightY, 350f, delta);
         }
 
-        // PORTA - SistemaLuz (agora vai adicionar brilho VISUAL sobre a área já
-        // iluminada)
+        // Luz da caveira da porta
         if (isRoom0 && room0Door != null) {
             room0Door.renderLight(sistemaLuz, offsetX, offsetY);
+        }
+        // Luz dos pilares
+        for (Pillar pillar : mapa.pillars) {
+            pillar.renderLight(sistemaLuz, offsetX, offsetY, TILE_SIZE);
+        }
+
+        if (mapa.engraving != null) {
+            mapa.engraving.renderLight(sistemaLuz, offsetX, offsetY, TILE_SIZE);
         }
 
         sistemaLuz.end();
@@ -394,19 +420,20 @@ public class MapRenderer {
                 escurecedor.adicionarLightSphere(room0Door.getLightSphere());
             }
         }
-        shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
 
-        // Renderiza mira apenas se jogador estiver com arma equipada
+        // ==================== MIRA E INTERFACE ====================
+        shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
         if (player.getInventory().getEquippedWeapon() != null) {
             player.getWeaponSystem().renderMiraArma(shapeRenderer);
         }
 
-        // --- RENDERIZAÇÃO DA INTERFACE ---
+        // Inventário
         InventoryController ctrl = player.getInventoryController();
         if (ctrl.GetIsOpen() || ctrl.isInPlacementMode()) {
             renderInventoryWithHUD(player, ctrl.isInPlacementMode());
         }
 
+        // RayHandler (se ainda estiver usando)
         if (rayHandler != null) {
             rayHandler.setCombinedMatrix(
                     cameraController.getCamera().combined,
@@ -417,28 +444,21 @@ public class MapRenderer {
             rayHandler.updateAndRender();
         }
 
+        // Interação com cabana
         if (mapa.getCabanaInteractionSystem() != null) {
             CabanaInteractionSystem cabanaSystem = mapa.getCabanaInteractionSystem();
-
-            // 1. Primeiro renderiza o ícone E (com projeção normal da câmera)
             if (cabanaSystem.shouldShowInteractPrompt()) {
                 spriteBatch.begin();
-                // ✅ MANTER a projeção da câmera para o ícone E
                 spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
                 cabanaSystem.renderInteractPrompt(spriteBatch, offsetX, offsetY);
                 spriteBatch.end();
             }
-
-            // 2. Depois renderiza a transição (sobre TUDO, com projeção de tela)
             if (cabanaSystem.isTransitioning()) {
                 spriteBatch.begin();
-                // ✅ TRANSIÇÃO usa projeção de tela completa
                 spriteBatch.setProjectionMatrix(
                         new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
                 cabanaSystem.renderTransitionEffect(spriteBatch);
                 spriteBatch.end();
-
-                System.out.println("⬛ Transição renderizada sobre tudo");
             }
         }
     }
@@ -555,5 +575,10 @@ public class MapRenderer {
         hudSpriteBatch.dispose();
 
         ShellSystem.getInstance().dispose();
+
+        if (magicParticleSystem != null) {
+            magicParticleSystem.dispose();// Isso deve liberar a textura interna
+            magicParticleSystem = null;
+        }
     }
 }

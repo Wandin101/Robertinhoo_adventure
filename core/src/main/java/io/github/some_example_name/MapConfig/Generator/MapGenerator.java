@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-
 public class MapGenerator {
     public static final int MAX_SALA_WIDTH = 15;
     public static final int MIN_SALA_WIDTH = 10;
@@ -32,6 +31,7 @@ public class MapGenerator {
     private List<FixedRoom> fixedRooms = new ArrayList<>();
     private boolean hasStartRoom = false;
     private FixedRoom spawnRoom;
+    private StartRoom startRoomInstance;
 
     public MapGenerator(int width, int height, boolean includeStartRoom) {
         Gdx.app.log("MapGenerator", "Iniciando MapGenerator...");
@@ -70,30 +70,31 @@ public class MapGenerator {
         int numSalas = 3 + rand.nextInt(3); // 3-5 salas aleatórias
         rooms.clear();
 
-         if (hasStartRoom && spawnRoom != null) {
-        Rectangle spawnRect = placeStartRoomInMap();
+        if (hasStartRoom && spawnRoom != null) {
+            Rectangle spawnRect = placeStartRoomInMap();
 
-        // ✅ ALTERAÇÃO CRÍTICA: Carrega os tiles da StartRoom
-        StartRoom startRoom = new StartRoom(); // Cria a sala de spawn real
-        int[][] spawnTiles = startRoom.getTiles(); // Pega os tiles da imagem
-        
-        // ✅ Usa os tiles corretos da StartRoom
-        drawRoom(spawnRect, spawnTiles); // Passe os tiles reais da imagem
-        rooms.add(spawnRect);
-        spawnRoom.setBounds(spawnRect);
+            // ✅ ALTERAÇÃO CRÍTICA: Carrega os tiles da StartRoom
+            StartRoom startRoom = new StartRoom();
+            this.startRoomInstance = startRoom;
+            int[][] spawnTiles = startRoom.getTiles(); // Pega os tiles da imagem
 
-        // ✅ Usa a posição de spawn da StartRoom
-        Vector2 relativeStartPos = startRoom.getStartPosition(); // Da StartRoom, não da FixedRoom
-        startPosition = new Vector2(
-                spawnRect.x + relativeStartPos.x,
-                spawnRect.y + relativeStartPos.y);
+            // ✅ Usa os tiles corretos da StartRoom
+            drawRoom(spawnRect, spawnTiles); // Passe os tiles reais da imagem
+            rooms.add(spawnRect);
+            spawnRoom.setBounds(spawnRect);
 
-        Gdx.app.log("MapGenerator", "✅ Sala SPAWN posicionada em: " + spawnRect);
-        Gdx.app.log("MapGenerator", "✅ Posição inicial: " + startPosition);
-        
-        // ✅ DEBUG: Verifique se as paredes foram colocadas
-        debugSpawnRoomTiles(spawnRect);
-    }
+            // ✅ Usa a posição de spawn da StartRoom
+            Vector2 relativeStartPos = startRoom.getStartPosition(); // Da StartRoom, não da FixedRoom
+            startPosition = new Vector2(
+                    spawnRect.x + relativeStartPos.x,
+                    spawnRect.y + relativeStartPos.y);
+
+            Gdx.app.log("MapGenerator", "✅ Sala SPAWN posicionada em: " + spawnRect);
+            Gdx.app.log("MapGenerator", "✅ Posição inicial: " + startPosition);
+
+            // ✅ DEBUG: Verifique se as paredes foram colocadas
+            debugSpawnRoomTiles(spawnRect);
+        }
 
         // 2. DEPOIS: Cria salas aleatórias normais
         for (int i = 0; i < numSalas; i++) {
@@ -434,27 +435,32 @@ public class MapGenerator {
     public List<Rectangle> getRooms() {
         return rooms;
     }
-    private void debugSpawnRoomTiles(Rectangle spawnRect) {
-    System.out.println("=== DEBUG SPAWN ROOM TILES ===");
-    for (int y = (int)spawnRect.y + (int)spawnRect.height - 1; y >= spawnRect.y; y--) {
-        for (int x = (int)spawnRect.x; x < spawnRect.x + spawnRect.width; x++) {
-            System.out.print(tiles[x][y] + " ");
-        }
-        System.out.println();
-    }
-    System.out.println("=== END DEBUG ===");
-}
 
-private Rectangle placeStartRoomInMap() {
-    // Posiciona a StartRoom em uma posição fixa (canto inferior esquerdo)
-    int x = 5;
-    int y = 5;
-    
-    // Usa o tamanho REAL da StartRoom
-    int width = spawnRoom.getWidth();  // 16
-    int height = spawnRoom.getHeight(); // 16
-    
-    return new Rectangle(x, y, width, height);
-}
+    private void debugSpawnRoomTiles(Rectangle spawnRect) {
+        System.out.println("=== DEBUG SPAWN ROOM TILES ===");
+        for (int y = (int) spawnRect.y + (int) spawnRect.height - 1; y >= spawnRect.y; y--) {
+            for (int x = (int) spawnRect.x; x < spawnRect.x + spawnRect.width; x++) {
+                System.out.print(tiles[x][y] + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("=== END DEBUG ===");
+    }
+
+    private Rectangle placeStartRoomInMap() {
+        // Posiciona a StartRoom em uma posição fixa (canto inferior esquerdo)
+        int x = 5;
+        int y = 5;
+
+        // Usa o tamanho REAL da StartRoom
+        int width = spawnRoom.getWidth(); // 16
+        int height = spawnRoom.getHeight(); // 16
+
+        return new Rectangle(x, y, width, height);
+    }
+
+    public StartRoom getStartRoomInstance() {
+        return startRoomInstance;
+    }
 
 }
