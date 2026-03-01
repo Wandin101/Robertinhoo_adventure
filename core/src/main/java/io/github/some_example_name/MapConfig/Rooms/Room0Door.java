@@ -12,7 +12,8 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
-import io.github.some_example_name.Luz.EscurecedorAmbiente;
+import io.github.some_example_name.Entities.Player.Robertinhoo;
+import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
 import io.github.some_example_name.Luz.EsferaDeLuz;
 import io.github.some_example_name.Luz.SistemaLuz;
 import io.github.some_example_name.MapConfig.Mapa;
@@ -25,7 +26,6 @@ public class Room0Door {
     private int tileSize;
 
     private boolean lightEnabled = false;
-
     private EsferaDeLuz lightSphere;
 
     private static final float LIGHT_SPHERE_RADIUS = 200f;
@@ -34,6 +34,9 @@ public class Room0Door {
 
     private float interactionCooldown = 0;
     private static final float INTERACTION_DELAY = 0.5f;
+    private boolean interactive;
+    private boolean waitingForPlayerExit = false;
+    private boolean exitTransitionPending = false;
 
     // Estados da porta
     public enum DoorState {
@@ -63,10 +66,14 @@ public class Room0Door {
     private static final float FRAME_DURATION_ABERTA = 0.15f;
     private static final float MAX_DISTANCE_FOR_CONTACT = 3.0f;
 
-    public Room0Door(Mapa mapa, int tileX, int tileY) {
+    private boolean waitingForPlayerEnter = false;
+    private boolean transitionPending = false;
+
+    public Room0Door(Mapa mapa, int tileX, int tileY, boolean interactive) {
         this.mapa = mapa;
         this.tileSize = 64;
         this.position = new Vector2(tileX, tileY);
+        this.interactive = interactive;
         this.currentState = DoorState.FECHADA;
         this.stateTime = 0;
         this.playerInContact = false;
@@ -76,22 +83,27 @@ public class Room0Door {
         loadSpriteSheet();
         extractFrames();
         setupAnimations();
-        createPhysicsBody();
-        Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
-        float sphereX = worldPos.x * tileSize;
-        float sphereY = worldPos.y * tileSize;
-        this.lightSphere = new EsferaDeLuz(sphereX, sphereY, LIGHT_SPHERE_RADIUS,
-                new Color(1f, 1f, 1f, 1f)); // Cor branca
-        this.lightSphere.setActive(false);
-        System.out.println("🚪 Porta criada em: " + position);
+        if (interactive) {
+            createPhysicsBody();
+            Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
+            float sphereX = worldPos.x * tileSize;
+            float sphereY = worldPos.y * tileSize;
+            this.lightSphere = new EsferaDeLuz(sphereX, sphereY, LIGHT_SPHERE_RADIUS,
+                    new Color(1f, 1f, 1f, 1f));
+            this.lightSphere.setActive(false);
+        } else {
+            // Porta não interativa: começa aberta e aguarda a animação de saída
+            currentState = DoorState.ABERTA;
+            lightEnabled = false;
+            waitingForPlayerExit = true;
+        }
+        System.out.println("🚪 Porta criada em: " + position + (interactive ? " (interativa)" : " (estática)"));
     }
 
     private void createPhysicsBody() {
         try {
             BodyDef bodyDef = new BodyDef();
             bodyDef.type = BodyDef.BodyType.StaticBody;
-
-            // ✅ CORREÇÃO: Converter coordenadas de tile para mundo (com Y invertido)
             Vector2 worldPos = convertTileToWorldPosition((int) position.x, (int) position.y);
             bodyDef.position.set(worldPos.x, worldPos.y);
 
@@ -118,11 +130,8 @@ public class Room0Door {
     }
 
     private Vector2 convertTileToWorldPosition(int tileX, int tileY) {
-        // Se o mapa tem altura 20 tiles, e queremos a porta no topo (tileY=0),
-        // no mundo isso deve ser Y=19.5 (próximo ao topo do mundo)
-        float worldX = tileX + 0.5f; // Centro do tile em X
-        float worldY = (mapa.mapHeight - 1 - tileY) + 0.5f; // Inverter Y e centralizar
-
+        float worldX = tileX + 0.5f;
+        float worldY = (mapa.mapHeight - 1 - tileY) + 0.3f;
         return new Vector2(worldX, worldY);
     }
 
@@ -154,17 +163,10 @@ public class Room0Door {
 
         TextureRegion[][] tempFrames = TextureRegion.split(doorSpriteSheet, frameWidth, frameHeight);
 
-        // Debug completo do sprite sheet
-        System.out.println("🔍 Debug do Sprite Sheet:");
-        System.out.println("  Dimensões: " + doorSpriteSheet.getWidth() + "x" + doorSpriteSheet.getHeight());
-        System.out.println("  Frames: " + cols + "x" + rows + " = " + (cols * rows) + " frames");
-        System.out.println("  Tamanho de cada frame: " + frameWidth + "x" + frameHeight);
-
         frameFechada = tempFrames[0][0];
 
         framesAbrindo = new TextureRegion[10];
         int frameIndex = 0;
-
         for (int row = 0; row < 3 && frameIndex < 10; row++) {
             for (int col = 0; col < 4 && frameIndex < 10; col++) {
                 framesAbrindo[frameIndex] = tempFrames[row][col];
@@ -172,70 +174,92 @@ public class Room0Door {
             }
         }
 
-        // Extrair frames da porta aberta baseado na descrição
         framesAberta = new TextureRegion[4];
+        framesAberta[0] = tempFrames[2][2];
+        framesAberta[1] = tempFrames[2][3];
+        framesAberta[2] = tempFrames[3][0];
+        framesAberta[3] = tempFrames[3][1];
 
-        // Seguindo a descrição: "linha 3 coluna 3 até linha 4 coluna 2"
-        // Isso significa:
-        // - Linha 3: colunas 2 e 3 (frames 2 e 3)
-        // - Linha 4: colunas 0 e 1 (frames 0 e 1)
-        framesAberta[0] = tempFrames[2][2]; // L3C3
-        framesAberta[1] = tempFrames[2][3]; // L3C4
-        framesAberta[2] = tempFrames[3][0]; // L4C1
-        framesAberta[3] = tempFrames[3][1]; // L4C2
-
-        System.out.println("✅ Frames da porta aberta extraídos das posições:");
-        System.out.println("  [2][2], [2][3], [3][0], [3][1]");
+        System.out.println("✅ Frames da porta aberta extraídos das posições: [2][2], [2][3], [3][0], [3][1]");
     }
 
     private void setupAnimations() {
         animacaoAbrindo = new Animation<TextureRegion>(FRAME_DURATION_ABRINDO, framesAbrindo);
         animacaoAbrindo.setPlayMode(Animation.PlayMode.NORMAL);
-
         animacaoAberta = new Animation<TextureRegion>(FRAME_DURATION_ABERTA, framesAberta);
         animacaoAberta.setPlayMode(Animation.PlayMode.LOOP);
     }
 
     public void update(float delta) {
+        // Atualiza o tempo do estado sempre
         stateTime += delta;
         updateState();
 
-        if (interactionCooldown > 0) {
-            interactionCooldown -= delta;
-        }
-        checkDoorInteraction();
+        if (interactive) {
+            // Lógica interativa (sala 0)
+            if (interactionCooldown > 0) {
+                interactionCooldown -= delta;
+            }
+            checkDoorInteraction();
 
-        if (lightSphere != null) {
-            lightSphere.update(delta);
-
-            // ✅ CONTROLE MAIS PRECISO DOS ESTADOS
-            if (lightEnabled) {
-                lightSphere.setActive(true);
-                lightSphere.setIntensity(Math.min(1f, lightSphere.getIntensity() + delta * LIGHT_TRANSITION_SPEED));
-
-                // ✅ SE ESTÁ TOTALMENTE EXPANDIDA, INICIA PULSAÇÃO
-                if (lightSphere.isFullyExpanded() && !lightSphere.isPulsating()) {
-                    lightSphere.startPulsation();
-                }
-            } else {
-                lightSphere.setIntensity(Math.max(0f, lightSphere.getIntensity() - delta * LIGHT_TRANSITION_SPEED));
-
-                // ✅ SE A INTENSIDADE ESTÁ BAIXA, PARA A PULSAÇÃO
-                if (lightSphere.getIntensity() <= 0.3f && lightSphere.isPulsating()) {
-                    lightSphere.stopPulsation();
-                }
-
-                // ✅ SE CONTRAIU COMPLETAMENTE, DESATIVA
-                if (lightSphere.isFullyContracted() && lightSphere.getIntensity() <= 0.01f) {
-                    lightSphere.setActive(false);
+            if (waitingForPlayerEnter) {
+                if (mapa.robertinhoo != null) {
+                    PlayerRenderer renderer = mapa.robertinhoo.getRenderer();
+                    boolean playing = renderer.isEnterAnimationPlaying();
+                    boolean complete = renderer.isEnterAnimationComplete();
+                    if (playing && complete) {
+                        waitingForPlayerEnter = false;
+                        if (currentState == DoorState.ABERTA) {
+                            currentState = DoorState.FECHANDO;
+                            stateTime = 0;
+                            transitionPending = true;
+                        }
+                    }
                 }
             }
-        }
-        // Fallback: verificação manual de distância
-        checkPlayerDistanceFallback();
-        // Debug menos frequente
-        if (Math.random() < 0.003f) {
-            debugState();
+
+            if (lightSphere != null) {
+                lightSphere.update(delta);
+                if (lightEnabled) {
+                    lightSphere.setActive(true);
+                    lightSphere.setIntensity(Math.min(1f, lightSphere.getIntensity() + delta * LIGHT_TRANSITION_SPEED));
+                    if (lightSphere.isFullyExpanded() && !lightSphere.isPulsating()) {
+                        lightSphere.startPulsation();
+                    }
+                } else {
+                    lightSphere.setIntensity(Math.max(0f, lightSphere.getIntensity() - delta * LIGHT_TRANSITION_SPEED));
+                    if (lightSphere.getIntensity() <= 0.3f && lightSphere.isPulsating()) {
+                        lightSphere.stopPulsation();
+                    }
+                    if (lightSphere.isFullyContracted() && lightSphere.getIntensity() <= 0.01f) {
+                        lightSphere.setActive(false);
+                    }
+                }
+            }
+            // Fallback de contato
+            checkPlayerDistanceFallback();
+            if (Math.random() < 0.003f) {
+                debugState();
+            }
+        } else {
+            if (waitingForPlayerExit) {
+                if (mapa.robertinhoo != null) {
+                    boolean complete = mapa.robertinhoo.getRenderer().isBackAnimationComplete();
+                    if (complete) {
+                        waitingForPlayerExit = false;
+                        mapa.robertinhoo.setSensor(false);
+                        mapa.robertinhoo.setState(Robertinhoo.IDLE);
+                        mapa.robertinhoo.lastDir = Robertinhoo.DOWN;
+                        mapa.robertinhoo.getRenderer().resetBackAnimation();
+                        if (currentState == DoorState.ABERTA) {
+                            currentState = DoorState.FECHANDO;
+                            stateTime = 0;
+                            exitTransitionPending = true;
+                        }
+                    }
+                }
+            }
+
         }
     }
 
@@ -245,21 +269,28 @@ public class Room0Door {
                 if (animacaoAbrindo.isAnimationFinished(stateTime)) {
                     currentState = DoorState.ABERTA;
                     stateTime = 0;
-                    lightEnabled = true; // Ativa a luz quando a porta termina de abrir
-                    System.out.println("🚪 Porta: Totalmente aberta - Luz da caveira ativada");
+                    lightEnabled = true;
+                    System.out.println("🚪 Porta: Totalmente aberta");
                 }
                 break;
-
             case FECHANDO:
                 float reverseTime = animacaoAbrindo.getAnimationDuration() - stateTime;
                 if (reverseTime <= 0) {
                     currentState = DoorState.FECHADA;
                     stateTime = 0;
-                    lightEnabled = false; // Desativa a luz quando a porta fecha
-                    System.out.println("🚪 Porta: Totalmente fechada - Luz da caveira desativada");
+                    lightEnabled = false;
+                    System.out.println("🚪 Porta: Totalmente fechada");
+
+                    if (transitionPending) {
+                        transitionPending = false;
+                        triggerRoomTransition();
+                    }
+                    if (exitTransitionPending) {
+                        exitTransitionPending = false;
+                        // Fim da sequência de saída
+                    }
                 }
                 break;
-
             case FECHADA:
             case ABERTA:
                 break;
@@ -274,20 +305,21 @@ public class Room0Door {
         float distance = Vector2.dst(doorWorldPos.x, doorWorldPos.y, playerBodyPos.x, playerBodyPos.y);
         boolean shouldBeInContact = distance <= MAX_DISTANCE_FOR_CONTACT;
         if (shouldBeInContact && !playerInContact) {
-            System.out.println("🚪 [FALLBACK] Correção: Player deveria estar em contato (distância: " + distance + ")");
+            System.out.println("🚪 [FALLBACK] Correção: Player deveria estar em contato");
             onPlayerEnter();
         } else if (!shouldBeInContact && playerInContact) {
-            System.out.println("🚪 [FALLBACK] Correção: Player deveria estar fora (distância: " + distance + ")");
+            System.out.println("🚪 [FALLBACK] Correção: Player deveria estar fora");
             onPlayerExit();
         }
     }
 
     public void onPlayerEnter() {
+        if (!interactive)
+            return;
         contactCount++;
         if (!playerInContact) {
             playerInContact = true;
             System.out.println("🚪 onPlayerEnter() - Contatos: " + contactCount + ", Estado: " + currentState);
-
             if (currentState == DoorState.FECHADA || currentState == DoorState.FECHANDO) {
                 currentState = DoorState.ABRINDO;
                 stateTime = 0;
@@ -297,12 +329,13 @@ public class Room0Door {
     }
 
     public void onPlayerExit() {
+        if (!interactive)
+            return;
         contactCount = Math.max(0, contactCount - 1);
         if (contactCount <= 0 && playerInContact) {
             playerInContact = false;
             contactCount = 0;
             System.out.println("🚪 onPlayerExit() - Contatos: " + contactCount + ", Estado: " + currentState);
-
             if (currentState == DoorState.ABERTA || currentState == DoorState.ABRINDO) {
                 currentState = DoorState.FECHANDO;
                 stateTime = 0;
@@ -324,16 +357,8 @@ public class Room0Door {
         if (lightSphere != null && lightSphere.isActive()) {
             float intensity = lightSphere.getIntensity();
             float brightness = 0.5f + (0.5f * intensity);
-
             batch.setColor(brightness, brightness, brightness, 1f);
-            if (Math.random() < 0.01f) {
-                Gdx.app.log("DOOR_BRIGHTNESS",
-                        "Intensidade: " + intensity +
-                                " | Brilho: " + brightness +
-                                " | Estado: " + currentState);
-            }
         } else {
-            // Quando a luz está inativa: cor ESCURA
             batch.setColor(0.5f, 0.5f, 0.5f, 1f);
         }
 
@@ -372,20 +397,14 @@ public class Room0Door {
     public void renderLight(SistemaLuz sistemaLuz, float offsetX, float offsetY) {
         if (!lightEnabled || lightSphere == null || !lightSphere.isActive())
             return;
-
         Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
         float screenX = offsetX + worldPos.x * tileSize;
         float screenY = offsetY + worldPos.y * tileSize;
-
         float lightX = screenX;
         float lightY = screenY + tileSize * 0.4f;
-
         float visualIntensity = lightSphere.getIntensity();
-
-        if (lightSphere.isPulsating()) {
+        if (lightSphere.isPulsating())
             visualIntensity = 1.0f;
-        }
-
         sistemaLuz.renderDoorSkullLight(lightX, lightY, 80f * visualIntensity, Gdx.graphics.getDeltaTime());
     }
 
@@ -393,25 +412,37 @@ public class Room0Door {
         if (lightSphere != null) {
             Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
             float screenX = offsetX + worldPos.x * tileSize;
-            float screenY = offsetY + worldPos.y * tileSize;
-
-            screenY += tileSize;
-
+            float screenY = offsetY + worldPos.y * tileSize + tileSize;
             lightSphere.setPosition(screenX, screenY - 35f);
         }
     }
-private void checkDoorInteraction() {
-    if (currentState == DoorState.ABERTA && playerInContact && interactionCooldown <= 0) {
-        if (isInteractKeyPressed()) {
-            System.out.println("🚪 Jogador interagiu com a porta!");
-            playerInteracting = true;
-            triggerRoomTransition();
-            interactionCooldown = INTERACTION_DELAY;
-        }
-    } else {
-        playerInteracting = false;
+
+    private void startPlayerEntering() {
+        if (mapa.robertinhoo == null)
+            return;
+        Vector2 doorWorldPos = convertTileToWorldPosition((int) position.x, (int) position.y);
+        mapa.robertinhoo.getBody().setTransform(doorWorldPos, 0);
+        mapa.robertinhoo.getBody().setLinearVelocity(0, 0);
+        mapa.robertinhoo.getBody().setAngularVelocity(0);
+        mapa.robertinhoo.state = Robertinhoo.ENTERING_DOOR;
+        waitingForPlayerEnter = true;
+        mapa.robertinhoo.setSensor(true);
     }
-}
+
+    private void checkDoorInteraction() {
+        if (waitingForPlayerEnter || transitionPending || !interactive)
+            return;
+        if (currentState == DoorState.ABERTA && playerInContact && interactionCooldown <= 0) {
+            if (isInteractKeyPressed()) {
+                playerInteracting = true;
+                startPlayerEntering();
+                interactionCooldown = INTERACTION_DELAY;
+            }
+        } else {
+            playerInteracting = false;
+        }
+    }
+
     private boolean isInteractKeyPressed() {
         return com.badlogic.gdx.Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.E);
     }
@@ -423,9 +454,8 @@ private void checkDoorInteraction() {
     }
 
     public void dispose() {
-        if (doorSpriteSheet != null) {
+        if (doorSpriteSheet != null)
             doorSpriteSheet.dispose();
-        }
     }
 
     public Vector2 getPosition() {
@@ -448,4 +478,9 @@ private void checkDoorInteraction() {
         return playerInteracting;
     }
 
+    public Vector2 getSpawnPosition() {
+        Vector2 worldPos = mapa.tileToWorld((int) position.x, (int) position.y);
+        float offsetY = -0.5f; // ajuste fino
+        return new Vector2(worldPos.x, worldPos.y + offsetY);
+    }
 }

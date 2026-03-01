@@ -23,23 +23,19 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
 import box2dLight.RayHandler;
-import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.Entities.Enemies.Enemy;
 import io.github.some_example_name.Entities.Enemies.IA.PathfindingSystem;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Itens.Ammo.Ammo;
-import io.github.some_example_name.Entities.Itens.Ammo.Ammo9mm;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Barrel;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Contact.GameContactListener;
 import io.github.some_example_name.Entities.Itens.CraftinItens.Polvora;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
-import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraReforcada;
-import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
-import io.github.some_example_name.Entities.Itens.Weapon.Calibre12.Calibre12;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Particulas.BloodPoolSystem;
+import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
@@ -47,40 +43,45 @@ import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
-import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.MapConfig.Generator.MapGenerator;
+import io.github.some_example_name.MapConfig.Generator.StartRoom;
+import io.github.some_example_name.MapConfig.MapDisposer.MapDisposer;
+import io.github.some_example_name.MapConfig.Rooms.Boulder;
 import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
 import io.github.some_example_name.MapConfig.Rooms.Room0Door;
 import io.github.some_example_name.MapConfig.Rooms.Room0LayoutLoader;
 import io.github.some_example_name.MapConfig.Rooms.StaticItem;
 import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
-import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
-import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
+import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Engraving;
+import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Pillar;
+import io.github.some_example_name.MapConfig.Spawner.EntitySpawner;
 
 public class Mapa implements RoomTransitionManager {
 
-    private List<Enemy> enemies;
-    private List<Weapon> weapons;
-    private List<Ammo> ammo;
-    private List<Polvora> polvoras;
-    private List<Projectile> projectiles = new ArrayList<>();
-    private List<Destructible> destructibles = new ArrayList<>();
-    private List<Item> craftItems = new ArrayList<>();
-    private List<Runnable> pendingActions = new ArrayList<>();
-    private List<Rectangle> rooms = new ArrayList<>();
+    public static List<Enemy> enemies;
+    public static List<Weapon> weapons;
+    public List<Ammo> ammo;
+    public List<Polvora> polvoras;
+    public List<Projectile> projectiles = new ArrayList<>();
+    public List<Destructible> destructibles = new ArrayList<>();
+    public List<Item> craftItems = new ArrayList<>();
+    public List<Runnable> pendingActions = new ArrayList<>();
+    public List<Rectangle> rooms = new ArrayList<>();
     public static final float BOX2D_SCALE = 1 / 64f;
-    private List<Room0Cabana> cabanas = new ArrayList<>();
+    public List<Room0Cabana> cabanas = new ArrayList<>();
     public CabanaInteractionSystem cabanaInteraction;
-    private List<StaticItem> staticItems = new ArrayList<>();
-    private Room0Door room0Door;
-    private boolean isRoom0;
-    private RoomTransitionListener roomTransitionListener;
-    private final int mapaId;
-    private static int mapaCounter = 0;
-
+    public List<StaticItem> staticItems = new ArrayList<>();
+    public Room0Door room0Door;
+    public boolean isRoom0;
+    public RoomTransitionListener roomTransitionListener;
+    public final int mapaId;
+    public static int mapaCounter = 0;
+    public static List<Boulder> boulders = new ArrayList<>();
+    public List<Pillar> pillars = new ArrayList<>();
     public PathfindingSystem pathfindingSystem;
-    private CampFire campFire;
+    public CampFire campFire;
+    public Engraving engraving;
 
     public World world;
     public WallOtimizations agruparParedes;
@@ -94,7 +95,9 @@ public class Mapa implements RoomTransitionManager {
     public static int AMMO09MM = 0Xffffff; // #FFFFFF
     public static int BARRIL = 0Xff8f00; // #ff8f00
 
-    ArrayList<Vector2> wallPositions = new ArrayList<>();
+    private MagicParticleSystem magicParticleSystem;
+
+    public ArrayList<Vector2> wallPositions = new ArrayList<>();
 
     public int mapWidth;
     public int mapHeight;
@@ -104,16 +107,16 @@ public class Mapa implements RoomTransitionManager {
 
     public Robertinhoo robertinhoo;
     public Ratinho ratinho;
-    private RayHandler rayHandler;
-    private boolean lightsInitialized = false;
-    private MapCleanUpManager cleanupManager;
-    private boolean obstaclesChanged = false;
-    private int previousDestructiblesCount = 0;
-    private Set<Vector2> previousBarrelPositions = new HashSet<>();
+    public RayHandler rayHandler;
+    public boolean lightsInitialized = false;
+    public MapCleanUpManager cleanupManager;
+    public boolean obstaclesChanged = false;
+    public int previousDestructiblesCount = 0;
+    public Set<Vector2> previousBarrelPositions = new HashSet<>();
 
-    private GameContactListener contactListener;
-    private BloodParticleSystem bloodParticleSystem;
-    private BloodPoolSystem bloodPoolSystem;
+    public GameContactListener contactListener;
+    public BloodParticleSystem bloodParticleSystem;
+    public BloodPoolSystem bloodPoolSystem;
 
     public void setRayHandler(RayHandler rayHandler) {
         this.rayHandler = rayHandler;
@@ -160,6 +163,12 @@ public class Mapa implements RoomTransitionManager {
 
         if (isRoom0) {
             setupRoom0();
+            Texture magicParticleTex = new Texture(Gdx.files.internal("ParticulasMagicas/magic.png"));
+            TextureRegion magicRegion = new TextureRegion(magicParticleTex);
+            magicParticleSystem = new MagicParticleSystem(magicRegion);
+            System.out.println("🔮 [Mapa] MagicParticleSystem CRIADO. Textura: " + magicParticleTex);
+            EntitySpawner spawner = new EntitySpawner(this);
+            spawner.spawnAll();
         } else {
             this.mapGenerator = new MapGenerator(50, 50, true);
             this.mapWidth = mapGenerator.getMapWidth();
@@ -171,10 +180,51 @@ public class Mapa implements RoomTransitionManager {
             robertinhoo = new Robertinhoo(this, worldStartPos.x, worldStartPos.y, null, null);
             this.startPosition = mapGenerator.getStartPosition();
             agruparEPCriarParedes();
-            addRandomEntities();
+
             generateProceduralMap(mapWidth, mapHeight, mapGenerator);
+            EntitySpawner spawner = new EntitySpawner(this);
+            spawner.spawnAll();
+            if (mapGenerator != null) {
+                FixedRoom spawnRoom = mapGenerator.getSpawnRoom();
+                if (spawnRoom != null && spawnRoom.getBounds() != null) {
+                    Rectangle bounds = spawnRoom.getBounds();
+
+                    // Cria a porta (já existente)
+                    int doorX = (int) bounds.x + StartRoom.DOOR_TILE_X;
+                    int doorY = (int) bounds.y + StartRoom.DOOR_TILE_Y;
+                    Room0Door door = new Room0Door(this, doorX, doorY, false);
+                    setDoor(door);
+                    System.out.println("🚪 Porta criada em tile mundial: (" + doorX + "," + doorY + ")");
+
+                    // Cria os pilares
+                    StartRoom startRoom = mapGenerator.getStartRoomInstance();
+                    if (startRoom != null) {
+                        for (Vector2 pos : startRoom.getPillarPositions()) {
+                            int worldX = (int) bounds.x + (int) pos.x;
+                            int worldY = (int) bounds.y + (int) pos.y;
+                            System.out.println("🏛️ Criando pilar em tile mundial: (" + worldX + "," + worldY + ")");
+                            Pillar pillar = new Pillar(this, worldX, worldY, "rooms/pilar.png");
+                            addPillar(pillar);
+                        }
+                        // Cria a gravura
+                        if (startRoom.getEngravingPosition() != null) {
+                            Vector2 pos = startRoom.getEngravingPosition();
+                            int worldX = (int) bounds.x + (int) pos.x;
+                            int worldY = (int) bounds.y + (int) pos.y;
+                            System.out.println("🎨 Criando gravura em tile mundial: (" + worldX + "," + worldY + ")");
+                            Engraving engraving = new Engraving(this, worldX, worldY, "rooms/gravura.png");
+                            setEngraving(engraving);
+                        }
+
+                    }
+                }
+            }
 
         }
+    }
+
+    public void setDoor(Room0Door door) {
+        this.room0Door = door;
     }
 
     private void generateProceduralMap(int width, int height, MapGenerator mapGenerator) {
@@ -185,7 +235,7 @@ public class Mapa implements RoomTransitionManager {
         this.startPosition = mapGenerator.getStartPosition();
         this.wallPositions = mapGenerator.getWallPositions();
         this.rooms = mapGenerator.getRooms();
-        addRandomEntities();
+
         agruparEPCriarParedes();
     }
 
@@ -198,8 +248,6 @@ public class Mapa implements RoomTransitionManager {
         cabanaInteraction = new CabanaInteractionSystem(this, robertinhoo);
         agruparEPCriarParedes();
         setupContactListener(robertinhoo);
-        addTestWeaponsToRoom0();
-        addTestEnemiesToRoom0();
 
         System.out.println("Sala 0 criada - Tamanho: " + mapWidth + "x" + mapHeight);
     }
@@ -263,12 +311,9 @@ public class Mapa implements RoomTransitionManager {
         if (rayHandler == null) {
             try {
                 rayHandler = new RayHandler(world);
-                rayHandler.setAmbientLight(1f, 1f, 1f, 1f);
-                rayHandler.setShadows(true);
-
-                rayHandler.setBlurNum(1);
-                RayHandler.useDiffuseLight(true);
-                RayHandler.setGammaCorrection(true);
+                rayHandler.setAmbientLight(1, 1, 1, 1);
+                rayHandler.setShadows(false); // desativa sombras para não crashar
+                rayHandler.setBlurNum(0);
 
                 lightsInitialized = true;
                 System.out.println("✅ RayHandler com sombras suaves");
@@ -276,119 +321,6 @@ public class Mapa implements RoomTransitionManager {
                 System.err.println("❌ Erro no RayHandler: " + e.getMessage());
             }
         }
-    }
-
-    private void addRandomEntities() {
-        Random rand = new Random();
-        List<Vector2> validRoomPositions = new ArrayList<>();
-
-        for (Rectangle room : rooms) {
-            // Verifica configuração da sala
-            boolean roomAllowsEnemies = roomAllowsEnemies(room);
-            boolean roomAllowsItems = roomAllowsItems(room);
-
-            for (int x = (int) room.x + 1; x < room.x + room.width - 1; x++) {
-                for (int y = (int) room.y + 1; y < room.y + room.height - 1; y++) {
-                    if (tiles[x][y] == TILE) {
-                        // Não spawna na posição inicial do jogador
-                        if (x != (int) startPosition.x || y != (int) startPosition.y) {
-                            validRoomPositions.add(new Vector2(x, y));
-                        }
-                    }
-                }
-            }
-
-            // Se sala não permite inimigos, remove posições para inimigos
-            if (!roomAllowsEnemies) {
-                // Remover posições desta sala para spawn de inimigos
-                // (vamos lidar com isso depois, no loop de inimigos)
-            }
-
-            // Se sala não permite itens, remove posições para itens
-            if (!roomAllowsItems) {
-                // Remover posições desta sala para spawn de itens
-                // (vamos lidar com isso depois, no loop de itens)
-            }
-        }
-
-        java.util.Collections.shuffle(validRoomPositions, rand);
-
-        // Spawn de armas/munição (respeitando configurações de sala)
-        int itemsSpawned = 0;
-        for (int i = 0; i < validRoomPositions.size() && itemsSpawned < 3; i++) {
-            Vector2 tilePos = validRoomPositions.get(i);
-            Rectangle room = findRoomContainingTile(tilePos);
-
-            if (room != null && roomAllowsItems(room)) {
-                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-
-                if (rand.nextBoolean()) {
-                    weapons.add(new Pistol(this, worldPos.x, worldPos.y, robertinhoo.getInventory()));
-                    weapons.add(new Calibre12(this, worldPos.x + 1.2f, worldPos.y, robertinhoo.getInventory()));
-                } else {
-                    ammo.add(new Ammo9mm(this, worldPos.x, worldPos.y));
-                }
-                itemsSpawned++;
-            }
-        }
-
-        // Spawn de ratos (respeitando configurações de sala)
-        int ratsAdded = 0;
-        for (int i = 0; i < validRoomPositions.size() && ratsAdded < 14; i++) {
-            Vector2 tilePos = validRoomPositions.get(i);
-            Rectangle room = findRoomContainingTile(tilePos);
-
-            if (room != null && roomAllowsEnemies(room)) {
-                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-                enemies.add(new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room));
-                ratsAdded++;
-            }
-        }
-
-        // Spawn de castores (respeitando configurações de sala)
-        int castoresAdded = 0;
-        for (int i = 0; i < validRoomPositions.size() && castoresAdded < 4; i++) {
-            Vector2 tilePos = validRoomPositions.get(i);
-            Rectangle room = findRoomContainingTile(tilePos);
-
-            if (room != null && roomAllowsEnemies(room)) {
-                Vector2 worldPos = tileToWorld((int) tilePos.x, (int) tilePos.y);
-                enemies.add(new Castor(this, worldPos.x, worldPos.y, robertinhoo));
-                castoresAdded++;
-            }
-        }
-
-        // Spawn de barris e grama (já ajustados para respeitar configurações)
-        BarrelSpawner.spawnBarrels(this, 10);
-        GrassSpawner.spawnGrass(this, 80);
-    }
-
-    private boolean roomAllowsEnemies(Rectangle room) {
-        if (mapGenerator == null)
-            return true;
-
-        if (mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
-            FixedRoom spawnRoom = mapGenerator.getSpawnRoom();
-            if (spawnRoom != null) {
-                return spawnRoom.getConfiguration().hasEnemies();
-            }
-            return false;
-        }
-        return true; // Salas aleatórias têm inimigos
-    }
-
-    private boolean roomAllowsItems(Rectangle room) {
-        if (mapGenerator == null)
-            return true;
-
-        if (mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
-            FixedRoom spawnRoom = mapGenerator.getSpawnRoom();
-            if (spawnRoom != null) {
-                return false;
-            }
-            return false;
-        }
-        return true;
     }
 
     public Rectangle findRoomContainingTile(Vector2 tilePos) {
@@ -528,7 +460,6 @@ public class Mapa implements RoomTransitionManager {
         if (room0Door != null) {
             room0Door.update(deltaTime);
         }
-        checkRoomTransition();
 
     }
 
@@ -752,6 +683,14 @@ public class Mapa implements RoomTransitionManager {
         staticItems.add(item);
     }
 
+    public void addBoulder(Boulder boulder) {
+        boulders.add(boulder);
+    }
+
+    public List<Boulder> getBoulders() {
+        return boulders;
+    }
+
     public List<StaticItem> getStaticItems() {
         return staticItems;
     }
@@ -804,157 +743,8 @@ public class Mapa implements RoomTransitionManager {
         }
     }
 
-    private void checkRoomTransition() {
-        if (isRoom0 && room0Door != null && room0Door.isPlayerInteracting()) {
-            transitionToRoom1();
-        }
-
-    }
-
     public void disposeSafely() {
-        System.out.println("🧹 [Mapa] disposeSafely iniciado");
-
-        // 1. Limpar contact listener
-        this.roomTransitionListener = null;
-
-        // 2. Parar todos os sons
-        AudioManager.getInstance().stopAllAmbientSounds();
-
-        // 3. Destruir corpos de todos os itens ANTES de destruir o mundo
-        System.out.println("💥 Destruindo corpos de todos os itens...");
-
-        // CraftItems
-        for (Item item : craftItems) {
-            if (item.getBody() != null) {
-                try {
-                    item.destroyBody();
-                } catch (Exception e) {
-                    System.err.println("Erro ao destruir corpo de craftItem: " + e.getMessage());
-                }
-            }
-        }
-
-        // Weapons
-        for (Weapon weapon : weapons) {
-            if (weapon.getBody() != null) {
-                try {
-                    weapon.destroyBody();
-                } catch (Exception e) {
-                    System.err.println("Erro ao destruir corpo de weapon: " + e.getMessage());
-                }
-            }
-        }
-
-        // Ammo
-        for (Ammo ammo : ammo) {
-            if (ammo.getBody() != null) {
-                try {
-                    ammo.destroyBody();
-                } catch (Exception e) {
-                    System.err.println("Erro ao destruir corpo de ammo: " + e.getMessage());
-                }
-            }
-        }
-
-        // 4. Destruir RayHandler
-        if (rayHandler != null) {
-            try {
-                rayHandler.dispose();
-            } catch (Exception e) {
-                System.err.println("⚠️ Erro ao dispor rayHandler: " + e.getMessage());
-            }
-            rayHandler = null;
-        }
-
-        // 5. Destruir o World (isso vai destruir quaisquer corpos restantes)
-        if (world != null) {
-            System.out.println("💥 Destruindo World...");
-            try {
-                world.dispose();
-                System.out.println("✅ World destruído");
-            } catch (Exception e) {
-                System.err.println("❌ ERRO ao dispor world: " + e.getMessage());
-            }
-            world = null;
-        }
-
-        // 6. Limpar todas as listas
-        clearAllLists();
-
-        System.out.println("✅ disposeSafely completo");
-    }
-
-    /**
-     * Limpa todas as listas de forma segura
-     */
-    private void clearAllLists() {
-
-        if (campFire != null) {
-            campFire.dispose();
-            campFire = null;
-        }
-        // Limpa enemies
-        if (enemies != null) {
-            for (Enemy enemy : enemies) {
-                // Remove referência ao body, mas não destrói aqui
-                enemy.getBody().setUserData(null);
-            }
-            enemies.clear();
-        }
-
-        // Limpa weapons
-        if (weapons != null) {
-            for (Weapon weapon : weapons) {
-                if (weapon.getBody() != null) {
-                    weapon.getBody().setUserData(null);
-                }
-            }
-            weapons.clear();
-        }
-
-        // Limpa ammo
-        if (ammo != null) {
-            for (Ammo ammoItem : ammo) {
-                if (ammoItem.getBody() != null) {
-                    ammoItem.getBody().setUserData(null);
-                }
-            }
-            ammo.clear();
-        }
-
-        // Limpa projectiles
-        if (projectiles != null) {
-            for (Projectile projectile : projectiles) {
-                if (projectile.getBody() != null) {
-                    projectile.getBody().setUserData(null);
-                }
-            }
-            projectiles.clear();
-        }
-
-        // Limpa destructibles
-        if (destructibles != null) {
-            for (Destructible destructible : destructibles) {
-                if (destructible.getBody() != null) {
-                    destructible.getBody().setUserData(null);
-                }
-            }
-            destructibles.clear();
-        }
-        if (polvoras != null)
-            polvoras.clear();
-        if (craftItems != null)
-            craftItems.clear();
-        if (pendingActions != null)
-            pendingActions.clear();
-        if (rooms != null)
-            rooms.clear();
-        if (cabanas != null)
-            cabanas.clear();
-        if (staticItems != null)
-            staticItems.clear();
-        if (wallPositions != null)
-            wallPositions.clear();
+        MapDisposer.disposeSafely(this);
     }
 
     public void setupContactListener(Robertinhoo player) {
@@ -998,119 +788,19 @@ public class Mapa implements RoomTransitionManager {
 
     }
 
-    private void addTestWeaponsToRoom0() {
-        System.out.println("🔫 Adicionando armas de teste na Sala 0...");
-
-        Vector2 pistolPos = tileToWorld(3, 3);
-        Vector2 calibre12Pos = tileToWorld(6, 3);
-
-        // Adicionar Pistol
-        Pistol pistol = new Pistol(this, pistolPos.x, pistolPos.y, robertinhoo.getInventory());
-        weapons.add(pistol);
-        System.out.println("✅ Pistol adicionada em: " + pistolPos);
-
-        // Adicionar Calibre12
-        Calibre12 calibre12 = new Calibre12(this, calibre12Pos.x, calibre12Pos.y, robertinhoo.getInventory());
-        weapons.add(calibre12);
-        System.out.println("✅ Calibre12 adicionada em: " + calibre12Pos);
-
-        // Adicionar munição
-        Vector2 ammoPos1 = tileToWorld(3, 5);
-        Vector2 ammoPos2 = tileToWorld(6, 5);
-
-        Ammo9mm ammo1 = new Ammo9mm(this, ammoPos1.x, ammoPos1.y);
-        Ammo9mm ammo2 = new Ammo9mm(this, ammoPos2.x, ammoPos2.y);
-
-        ammo.add(ammo1);
-        ammo.add(ammo2);
-        System.out.println("✅ Munição 9mm adicionada para teste");
-        // 🔥 TESTE: adicionar 4 Polvoras Reforçadas
-        for (int i = 0; i < 4; i++) {
-            Vector2 polvoraPos = tileToWorld(4 + i, 7);
-
-            PolvoraReforcada polvora = new PolvoraReforcada(
-                    this.world,
-                    polvoraPos.x,
-                    polvoraPos.y);
-
-            polvora.createBody(polvoraPos);
-            addCraftItem(polvora);
-
-            System.out.println("🧪 Polvora Reforçada adicionada em: " + polvoraPos);
-        }
-
-        // 🔥 TESTE: adicionar 4 Polvoras Brutas
-        for (int i = 0; i < 4; i++) {
-            Vector2 polvoraPos = tileToWorld(4 + i, 8);
-
-            PolvoraBruta polvora = new PolvoraBruta(
-                    this.world,
-                    polvoraPos.x,
-                    polvoraPos.y);
-
-            polvora.createBody(polvoraPos);
-            addCraftItem(polvora);
-
-            System.out.println("🧪 Polvora Bruta adicionada em: " + polvoraPos);
-        }
-
-    }
-
-    private void addTestEnemiesToRoom0() {
-        System.out.println("🐀🐿️ Adicionando inimigos de teste na Sala 0");
-
-        // Define a área jogável da sala 0
-        Rectangle room0Rect = new Rectangle(1, 1, mapWidth - 2, mapHeight - 2);
-
-        // ========== RATOS ==========
-        float[][] ratPositions = {
-                { startPosition.x + 3, startPosition.y + 2 }, // Leste
-                { startPosition.x - 3, startPosition.y - 2 }, // Oeste
-                { startPosition.x + 2, startPosition.y - 3 }, // Sudeste
-                { startPosition.x - 2, startPosition.y + 3 } // Noroeste
-        };
-
-        for (float[] pos : ratPositions) {
-            int tileX = (int) pos[0];
-            int tileY = (int) pos[1];
-
-            if (isValidTile(tileX, tileY)) {
-                Vector2 worldPos = tileToWorld(tileX, tileY);
-                Ratinho rat = new Ratinho(this, worldPos.x, worldPos.y, robertinhoo, room0Rect);
-                enemies.add(rat);
-                System.out.println("✅ Rato adicionado em: (" + tileX + ", " + tileY + ")");
-            }
-        }
-
-        // ========== CASTORES ==========
-        float[][] castorPositions = {
-                { startPosition.x + 5, startPosition.y + 1 }, // Mais distante leste
-                { startPosition.x - 5, startPosition.y - 1 }, // Mais distante oeste
-                { startPosition.x + 1, startPosition.y - 5 }, // Sul
-                { startPosition.x - 1, startPosition.y + 5 } // Norte
-        };
-
-        for (float[] pos : castorPositions) {
-            int tileX = (int) pos[0];
-            int tileY = (int) pos[1];
-
-            if (isValidTile(tileX, tileY)) {
-                Vector2 worldPos = tileToWorld(tileX, tileY);
-                Castor castor = new Castor(this, worldPos.x, worldPos.y, robertinhoo);
-                enemies.add(castor);
-                System.out.println("✅ Castor adicionado em: (" + tileX + ", " + tileY + ")");
-            }
-        }
-    }
-
-    // Método auxiliar para validar tiles (evita repetição)
-    private boolean isValidTile(int tileX, int tileY) {
-        return tileX > 0 && tileX < mapWidth - 1 &&
-                tileY > 0 && tileY < mapHeight - 1 &&
-                tiles[tileX][tileY] == TILE;
+    public MagicParticleSystem getMagicParticleSystem() {
+        return magicParticleSystem;
     }
 
     public BloodPoolSystem getBloodPoolSystem() {
         return bloodPoolSystem;
+    }
+
+    public void addPillar(Pillar pillar) {
+        pillars.add(pillar);
+    }
+
+    public void setEngraving(Engraving engraving) {
+        this.engraving = engraving;
     }
 }

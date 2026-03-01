@@ -1,8 +1,5 @@
 package io.github.some_example_name.Entities.Renderer;
 
-import javax.swing.plaf.metal.MetalBorders.PaletteBorder;
-
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -23,32 +20,76 @@ public class PlayerRenderer {
     private boolean deathAnimationFinished = false;
     private Animation<TextureRegion> deathAnimation;
 
+    private boolean isPlayingEnterAnimation = false;
+    private float enterAnimationTime = 0f;
+    private Animation<TextureRegion> enterAnimation;
+    private boolean enterAnimationFinished = false;
+
+    private boolean isPlayingBackAnimation = false;
+    private float backAnimationTime = 0f;
+    private Animation<TextureRegion> backAnimation;
+    private boolean backAnimationFinished = false;
+
+    private int lastFrameIndex = -1;
+
     public PlayerRenderer(PlayerWeaponSystem weaponSystem) {
         this.weaponSystem = weaponSystem;
         animations = new PlayerAnimations();
         currentAnimation = null;
     }
 
-    public void startDeathAnimation() {
-        System.out.println("🎬 [PlayerRenderer.startDeathAnimation] INICIANDO");
-        System.out.println("   - Animação disponível: " + (animations.death != null));
-        System.out.println("   - Animação deathAnimation: " + (animations.death.deathAnimation != null));
+    public void startEnterAnimation() {
+        isPlayingEnterAnimation = true;
+        enterAnimationFinished = false;
+        enterAnimation = animations.enter.enterAnimation;
+        currentAnimation = enterAnimation;
+        animationTime = 0f;
+    }
 
+    public void startBackAnimation() {
+        isPlayingBackAnimation = true;
+        backAnimationFinished = false;
+        backAnimation = animations.back.backAnimation;
+        currentAnimation = backAnimation;
+        animationTime = 0f;
+        backAnimationTime = 0f;
+    }
+
+    public boolean isBackAnimationComplete() {
+        boolean complete = (isPlayingBackAnimation && backAnimation != null
+                && backAnimation.isAnimationFinished(backAnimationTime));
+        if (complete && !backAnimationFinished) {
+            backAnimationFinished = true;
+            isPlayingBackAnimation = false;
+            backAnimationTime = 0f;
+        }
+        return complete;
+    }
+
+    public boolean isBackAnimationPlaying() {
+        return isPlayingBackAnimation;
+    }
+
+    public boolean isEnterAnimationComplete() {
+        if (!isPlayingEnterAnimation || enterAnimation == null)
+            return false;
+        float animDuration = enterAnimation.getAnimationDuration();
+        boolean complete = enterAnimationTime >= animDuration - 0.06f;
+        if (complete && !enterAnimationFinished) {
+            enterAnimationFinished = true;
+            isPlayingEnterAnimation = false;
+            enterAnimationTime = 0f;
+        }
+        return complete;
+    }
+
+    public void startDeathAnimation() {
         isPlayingDeathAnimation = true;
         deathAnimationTime = 0f;
         deathAnimationFinished = false;
         deathAnimation = animations.death.deathAnimation;
         currentAnimation = deathAnimation;
         animationTime = 0f;
-
-        if (deathAnimation != null) {
-            System.out.println("   ✅ Animação configurada:");
-            System.out.println("   - Duração total: " + deathAnimation.getAnimationDuration() + "s");
-            System.out.println("   - Frames: " + deathAnimation.getKeyFrames().length);
-            System.out.println("   - PlayMode: " + deathAnimation.getPlayMode());
-        } else {
-            System.err.println("❌ deathAnimation é null!");
-        }
     }
 
     public boolean isDeathAnimationComplete() {
@@ -64,6 +105,13 @@ public class PlayerRenderer {
     }
 
     private Animation<TextureRegion> selectAnimation(Robertinhoo player) {
+        if (isPlayingEnterAnimation) {
+            return animations.enter.enterAnimation;
+        }
+
+        if (isPlayingBackAnimation) {
+            return animations.back.backAnimation;
+        }
         if (isPlayingDeathAnimation) {
             return animations.death.deathAnimation;
         }
@@ -94,14 +142,12 @@ public class PlayerRenderer {
             }
         }
 
-        // Se está mirando e tem arma equipada
         if (weaponSystem.isAiming() && equippedWeapon != null) {
             return getAimedAnimation(player, (player.dir != Robertinhoo.IDLE));
         }
 
-        // Se está se movendo sem arma equipada
         if (player.dir != Robertinhoo.IDLE) {
-            // Se não tem arma ou não está mirando, usar animações básicas com 8 direções
+
             if (equippedWeapon == null || !weaponSystem.isAiming()) {
                 return getMovementAnimation(player);
             }
@@ -370,17 +416,26 @@ public class PlayerRenderer {
         return areOpposite(movementDir, aimingDir);
     }
 
-    public void render(SpriteBatch batch, Robertinhoo player, float delta, float offsetX, float offsetY) {
-
-        if (isPlayingDeathAnimation) {
-            deathAnimationTime += delta;
-            // Verifica se a animação terminou
-            if (animations.death.deathAnimation.isAnimationFinished(deathAnimationTime)) {
-                deathAnimationFinished = true;
-            }
+    public void update(float delta, Robertinhoo player) {
+        if (player.state == Robertinhoo.EXITING_DOOR && !isPlayingBackAnimation && !backAnimationFinished) {
+            startBackAnimation();
         }
-
+        if (player.state == Robertinhoo.ENTERING_DOOR && !isPlayingEnterAnimation && !enterAnimationFinished) {
+            startEnterAnimation();
+        }
+        if (isPlayingEnterAnimation) {
+            enterAnimationTime += delta;
+        }
+        if (isPlayingBackAnimation) {
+            backAnimationTime += delta;
+        }
         animationTime += delta;
+    }
+
+    public void render(SpriteBatch batch, Robertinhoo player, float delta, float offsetX, float offsetY) {
+        if (enterAnimationFinished) {
+            return;
+        }
 
         Animation<TextureRegion> selectedAnimation = selectAnimation(player);
         if (selectedAnimation != currentAnimation) {
@@ -515,5 +570,17 @@ public class PlayerRenderer {
 
     public void dispose() {
         animations.dispose();
+    }
+
+    public boolean isEnterAnimationPlaying() {
+        return isPlayingEnterAnimation;
+    }
+
+    public void resetBackAnimation() {
+        backAnimationFinished = false;
+        isPlayingBackAnimation = false;
+        backAnimationTime = 0f;
+        // Opcional: forçar a atualização da animação no próximo frame
+        currentAnimation = null;
     }
 }

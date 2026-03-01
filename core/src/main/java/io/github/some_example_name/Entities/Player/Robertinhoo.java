@@ -21,6 +21,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import io.github.some_example_name.Entities.Enemies.Box2dLocation;
 import io.github.some_example_name.Entities.Itens.Ammo.Ammo;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
+import io.github.some_example_name.Entities.Itens.Contact.GameContactListener;
 import io.github.some_example_name.Entities.Itens.Contact.PlayerItemHandler;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
@@ -62,6 +63,8 @@ public class Robertinhoo implements ShadowEntity {
     public static final int SOUTH_WEST = 12;
     public static final int SOUTH_EAST = 13;
     public static final int MELEE_ATTACK = 14;
+    public static final int ENTERING_DOOR = 15;
+    public static final int EXITING_DOOR = 16;
 
     public boolean hasArmor = true;
 
@@ -105,6 +108,7 @@ public class Robertinhoo implements ShadowEntity {
     private PlayerItemHandler itemHandler;
     private FootstepSystem footstepSystem;
     private RobertinhoFaceHUD faceHUD;
+    private PlayerRenderer renderer;
 
     public Robertinhoo(Mapa map, float x, float y, MapRenderer mapRenderer, PlayerRenderer playerRenderer) {
         this.map = map;
@@ -179,7 +183,8 @@ public class Robertinhoo implements ShadowEntity {
         fixtureDef.filter.categoryBits = Constants.BIT_PLAYER;
         fixtureDef.filter.maskBits = Constants.BIT_OBJECT | Constants.BIT_PLAYER_ATTACK |
                 Constants.BIT_ENEMY | Constants.BIT_PROJECTILE |
-                Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR | Constants.BIT_ROOM0_PLANT;
+                Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR | Constants.BIT_ROOM0_PLANT
+                | Constants.BIT_INTERACTABLE;
 
         body.createFixture(fixtureDef);
         body.setAngularDamping(2f);
@@ -187,6 +192,7 @@ public class Robertinhoo implements ShadowEntity {
     }
 
     public void update(float deltaTime) {
+
         inventoryController.update(deltaTime);
         playerController.update(deltaTime);
         meleeSystem.getParrySystem().update(deltaTime);
@@ -551,4 +557,28 @@ public class Robertinhoo implements ShadowEntity {
         this.faceHUD = hud;
     }
 
+    public void setRenderer(PlayerRenderer renderer) {
+        this.renderer = renderer;
+    }
+
+    public PlayerRenderer getRenderer() {
+        return renderer;
+    }
+
+    public void setSensor(boolean sensor) {
+        if (body == null)
+            return;
+        for (Fixture fixture : body.getFixtureList()) {
+            fixture.setSensor(sensor);
+        }
+    }
+
+    public GameContactListener getContactListener() {
+        return map.getContactListener();
+    }
+
+    public void setState(int newState) {
+        this.state = newState;
+
+    }
 }
