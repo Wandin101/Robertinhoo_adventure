@@ -1,0 +1,34 @@
+{
+  "npcs": {
+    "esmeralda": {
+      "welcome": [
+        "Olha só. Um gatinho perdido na caverna.",
+        "Hm. Cliente novo… ou futura estatística?",
+        "Se veio pedir direções, sinto informar: o caminho é sempre pra pior.",
+        "Você parece frágil demais pra esse lugar."
+      ],
+      "options": {
+        "talk": "Conversar",
+        "shop": "Ver mercadorias",
+        "leave": "Sair"
+      },
+      "talk_responses": [
+        "EntãO, qual burrada te trouxe pra esse buraco?",
+        "Relaxa. Todo mundo chega confiante assim na primeira vez.",
+        "A boa notícia é que eu vendo armas. A má é que você vai precisar de muitas.",
+        "Hmm… aposto três moedas que você não passa da próxima câmara.",
+        "Gosto de clientes como você. Ingênuos e cheios de esperança.",
+        "Se morrer rápido, pelo menos não vai desperdiçar meu tempo.",
+        "Você tem cara de quem ainda acredita que essa caverna tem final feliz.",
+        "Não me olha assim, gatinho. Eu só vendo o equipamento."
+      ],
+      "shop_not_available": "Calma, filhotinho. Ainda estou organizando minhas coisas.",
+      "goodbye": [
+        "Vai lá, herói. A caverna adora gente confiante.",
+        "Boa sorte… você vai precisar.",
+        "Tenta não morrer muito rápido.",
+        "Volta inteiro. Cliente morto não compra nada."
+      ]
+    }
+  }
+}

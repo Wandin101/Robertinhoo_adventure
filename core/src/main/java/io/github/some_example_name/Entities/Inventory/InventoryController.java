@@ -210,33 +210,24 @@ public class InventoryController {
         if (currentPlacementItem == null)
             return;
 
-        // Obtém as dimensões atuais
         int oldWidth = currentPlacementItem.getGridWidth();
         int oldHeight = currentPlacementItem.getGridHeight();
 
-        // Simula a rotação: novas dimensões são trocadas
         int newWidth = oldHeight;
         int newHeight = oldWidth;
 
-        // Calcula a melhor posição possível, mantendo a mesma se possível
         int newX = placementGridX;
         int newY = placementGridY;
-
-        // Ajusta para não ultrapassar os limites do grid
         if (newX + newWidth > inventory.gridCols) {
             newX = inventory.gridCols - newWidth;
         }
         if (newY + newHeight > inventory.gridRows) {
             newY = inventory.gridRows - newHeight;
         }
-
-        // Garante que não seja negativo (caso o item seja maior que o grid)
         newX = Math.max(0, newX);
         newY = Math.max(0, newY);
 
-        // Verifica se a nova posição é válida (células livres)
         if (inventory.canPlaceAt(newX, newY, currentPlacementItem)) {
-            // Aplica a rotação
             currentPlacementItem.rotate();
             placementGridX = newX;
             placementGridY = newY;
@@ -259,22 +250,14 @@ public class InventoryController {
         if (isOpen) {
             player.state = Robertinhoo.IDLE;
             player.body.setLinearVelocity(Vector2.Zero);
-
-            // Salva o processador atual
             previousInputProcessor = Gdx.input.getInputProcessor();
-
-            // Cria novo multiplexer
             InputMultiplexer multiplexer = new InputMultiplexer();
             multiplexer.addProcessor(mouseController);
-
-            // Mantém o processador anterior se existir
             if (previousInputProcessor != null) {
                 multiplexer.addProcessor(previousInputProcessor);
             }
 
             Gdx.input.setInputProcessor(multiplexer);
-
-            // Reseta estados
             selectedItem = null;
             cursorGridX = 0;
             cursorGridY = 0;
@@ -288,8 +271,6 @@ public class InventoryController {
                 selectedItem = null;
                 System.out.println("[DEBUG] Inventário fechado, item recolocado na posição original");
             }
-
-            // Reseta estados
             craftingMode = false;
             selectedItem = null;
         }

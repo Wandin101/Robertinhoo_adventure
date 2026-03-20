@@ -10,10 +10,12 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.Fixture;
 
+import io.github.some_example_name.Entities.Interatibles.Interactable;
 import io.github.some_example_name.Entities.Itens.Contact.Constants;
+import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.MapConfig.Mapa;
 
-public class Room0Cabana {
+public class Room0Cabana implements Interactable {
 
     private Vector2 position;
     private Texture cabanaTexture; // Para NPCs
@@ -28,22 +30,35 @@ public class Room0Cabana {
     public enum CabanaType {
         PLAYER_HOUSE,
         NPC_HOUSE_1,
-        NPC_HOUSE_2
+        NPC_HOUSE_2,
+        NPC_SHOP // 👈 Nova tenda de compras
     }
 
     private CabanaType type;
+    private float renderSize; // Tamanho de renderização específico por tipo
 
     public Room0Cabana(Mapa mapa, int tileX, int tileY, CabanaType type) {
         this.mapa = mapa;
         this.type = type;
 
+        // Define o tamanho de renderização baseado no tipo
+        switch (type) {
+            case NPC_SHOP:
+                renderSize = 250f; // Textura de 300x300
+                break;
+            default:
+                renderSize = 92f; // Tamanho original para as outras cabanas
+                break;
+        }
+
         // Inversão do Y (mesmo da fogueira)
         this.position = new Vector2(tileX, mapa.mapHeight - 1 - tileY);
 
         System.out.println("🏠 Cabana criada em Tile: " + tileX + "," + tileY +
-                " | Mundo invertido: " + position + " | Tipo: " + type);
+                " | Mundo invertido: " + position + " | Tipo: " + type +
+                " | Tamanho render: " + renderSize);
 
-        loadTextures(); // Agora carrega cabana e solo
+        loadTextures();
         createPhysicsBody();
     }
 
@@ -65,9 +80,12 @@ public class Room0Cabana {
                         groundTexture = null;
                     }
                     break;
+                case NPC_SHOP:
+                    cabanaTexture = new Texture(Gdx.files.internal("sala_0/cabanas/Cabana_esmeralda.png"));
+                    groundTexture = null;
+                    break;
                 case NPC_HOUSE_1:
                     cabanaTexture = new Texture(Gdx.files.internal("sala_0/cabanas/cabana_npc1.png"));
-                    // Se houver solo para NPC1, carregue aqui
                     groundTexture = null;
                     break;
                 case NPC_HOUSE_2:
@@ -140,13 +158,14 @@ public class Room0Cabana {
     public void render(SpriteBatch batch, float screenX, float screenY) {
         // Primeiro desenha o solo (se existir)
         if (groundTexture != null) {
-            float scale = 0.8f; // Ajuste conforme necessário (0.5, 0.6, 0.7...)
+            float scale = 0.8f; // Ajuste conforme necessário
             float groundWidth = groundTexture.getWidth() * scale;
             float groundHeight = groundTexture.getHeight() * scale;
             float groundX = screenX - (groundWidth - 64) / 2f;
             float groundY = screenY - (groundHeight - 64) / 2f;
             batch.draw(groundTexture, groundX, groundY - 10, groundWidth, groundHeight);
         }
+
         // Depois desenha a cabana
         Texture currentTexture;
         if (type == CabanaType.PLAYER_HOUSE) {
@@ -156,15 +175,11 @@ public class Room0Cabana {
         }
 
         if (currentTexture != null) {
-            float renderSize = 92f; // Mantém o tamanho original da cabana
+            // Usa o tamanho de renderização específico do tipo
             float centeredX = screenX - (renderSize - 64) / 2f;
             float centeredY = screenY - (renderSize - 64) / 2f;
             batch.draw(currentTexture, centeredX, centeredY, renderSize, renderSize);
         }
-    }
-
-    public Vector2 getPosition() {
-        return position;
     }
 
     public void setHasArmorStored(boolean hasArmor) {
@@ -186,6 +201,34 @@ public class Room0Cabana {
 
     public CabanaType getType() {
         return type;
+    }
+
+    @Override
+    public Vector2 getPosition() {
+        return body.getPosition();
+    }
+
+    @Override
+    public void onInteract() {
+        System.out.println("🛒 onInteract() chamado para cabana tipo: " + type);
+        if (type == CabanaType.NPC_SHOP) {
+            // Inicia o diálogo com a Esmeralda
+            io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue dialogo = new io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue();
+            NpcInteractionHUD.getInstance().startDialogue(dialogo);
+        } else {
+            // Para outras cabanas, apenas alterna a moldura simples
+            NpcInteractionHUD.getInstance().toggle();
+        }
+    }
+
+    @Override
+    public String getInteractionPrompt() {
+        return "Pressione E para falar com o vendedor";
+    }
+
+    @Override
+    public boolean isActive() {
+        return true; // sempre ativo enquanto a cabana existir
     }
 
     public void dispose() {

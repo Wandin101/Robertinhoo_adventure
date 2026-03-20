@@ -22,6 +22,7 @@ import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Entities.Npcs.NPC;
 import io.github.some_example_name.Entities.Particulas.BloodParticleRenderer;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
@@ -250,6 +251,10 @@ public class MapRenderer {
             float screenX = offsetX + cabanaTilePos.x * TILE_SIZE;
             float screenY = offsetY + cabanaTilePos.y * TILE_SIZE;
             cabana.render(spriteBatch, screenX, screenY);
+        }
+
+        for (NPC npc : mapa.getNPCs()) {
+            npc.render(spriteBatch, offsetX, offsetY);
         }
 
         // Itens estáticos

@@ -59,6 +59,13 @@ public class GameGameSoundsPaths {
         public static final String FOGUEIRA_SOUND = "fogueira_sound";
     }
 
+    public static class Voices {
+        public static final String ESMERALDA_NEUTRAL_1 = "esmeralda_neutral_1";
+        public static final String ESMERALDA_NEUTRAL_2 = "esmeralda_neutral_2";
+        public static final String ESMERALDA_NEUTRAL_3 = "esmeralda_neutral_3";
+        public static final String ESMERALDA_NEUTRAL_4 = "esmeralda_neutral_4";
+    }
+
     public static void loadAllAssets() {
         AudioManager audio = AudioManager.getInstance();
 
@@ -105,7 +112,10 @@ public class GameGameSoundsPaths {
         // audio.loadMusic(Music.BOSS_BATTLE, "music/boss_battle.mp3");
         // audio.loadMusic(Music.MENU_MUSIC, "music/menu_music.mp3");
         audio.loadMusic(Music.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
-
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_1, "sounds/voices/Esmeralda_voice_line_neutral2.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_2, "sounds/voices/Esmeralda_voice_line_neutral3.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_3, "sounds/voices/Esmeralda_voice_line_neutral4.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_4, "sounds/voices/Esmeralda_voice_line_neutral5.ogg");
         Gdx.app.log("ASSETS", "Todos os assets de áudio carregados!");
     }
 }

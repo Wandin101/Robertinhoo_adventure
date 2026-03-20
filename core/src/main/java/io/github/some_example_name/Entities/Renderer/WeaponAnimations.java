@@ -1,11 +1,11 @@
 package io.github.some_example_name.Entities.Renderer;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
-import com.badlogic.gdx.Gdx;
 
 public class WeaponAnimations implements Disposable {
 
@@ -20,16 +20,18 @@ public class WeaponAnimations implements Disposable {
     private final Animation<TextureRegion>[][] animations;
     private final Texture[] loadedTextures;
     private final WeaponType weaponType;
-    private Texture shotgunReloadSheet; // Variável separada para o spritesheet de reload da shotgun
+    private Texture shotgunReloadSheet;
+    private Texture revolverIdleSheet; // Para o idle separado do revólver
 
     public WeaponAnimations(String weaponTypeStr) {
-        // Determinar tipo de arma
         if (weaponTypeStr.equals("Pistol")) {
             this.weaponType = WeaponType.PISTOL;
         } else if (weaponTypeStr.equals("Calibre12")) {
             this.weaponType = WeaponType.SHOTGUN;
+        } else if (weaponTypeStr.equals("Revolver")) {
+            this.weaponType = WeaponType.REVOLVER;
         } else {
-            this.weaponType = WeaponType.PISTOL; // Padrão
+            this.weaponType = WeaponType.PISTOL;
         }
 
         animations = new Animation[WeaponDirection.values().length][Weapon.WeaponState.values().length];
@@ -40,28 +42,57 @@ public class WeaponAnimations implements Disposable {
         java.util.List<Texture> texturesList = new java.util.ArrayList<>();
 
         if (weaponTypeStr.equals("Pistol")) {
-            // Pistol: 1 arquivo, 8 linhas × 6 colunas
             loadMultiRowAnimation(texturesList, "ITENS/Pistol/Pistol_shoot_idle.png",
                     WeaponType.PISTOL, 8, 6);
-
         } else if (weaponTypeStr.equals("Calibre12")) {
-            // Primeiro carregar o spritesheet de reload para shotgun
             shotgunReloadSheet = new Texture(Gdx.files.internal("ITENS/12/RELOAD_SHEET.png"));
             texturesList.add(shotgunReloadSheet);
             System.out.println("✅ [WeaponAnimations] Spritesheet de reload da shotgun carregado");
-
-            // Depois carregar o spritesheet normal
             loadMultiRowAnimation(texturesList, "ITENS/12/12_shoot.png",
                     WeaponType.SHOTGUN, 6, 11);
+        } else if (weaponTypeStr.equals("Revolver")) {
+            // Carrega a folha de tiro (5 linhas × 6 colunas)
+            loadMultiRowAnimation(texturesList, "ITENS/Revolver/revolver_shoot.png",
+                    WeaponType.REVOLVER, 5, 6);
+            // Carrega a folha de idle (1 linha × 4 colunas)
+            revolverIdleSheet = new Texture(Gdx.files.internal("ITENS/Revolver/idle.png"));
+            texturesList.add(revolverIdleSheet);
+            System.out.println("✅ [WeaponAnimations] Spritesheet de idle do revólver carregado");
+            setupRevolverIdle();
         }
 
         return texturesList.toArray(new Texture[0]);
     }
 
-    // Tipos de arma para configuração
+    // Configura as animações de idle do revólver a partir da folha separada
+    private void setupRevolverIdle() {
+        int cols = 4;
+        int rows = 1;
+        int frameWidth = revolverIdleSheet.getWidth() / cols;
+        int frameHeight = revolverIdleSheet.getHeight();
+
+        // Colunas: 0 = W (L), 1 = E, 2 = S, 3 = N
+        WeaponDirection[] idleDirs = {
+            WeaponDirection.W, // col 0
+            WeaponDirection.E, // col 1
+            WeaponDirection.S, // col 2
+            WeaponDirection.N  // col 3
+        };
+
+        for (int col = 0; col < cols; col++) {
+            TextureRegion idleFrame = new TextureRegion(revolverIdleSheet,
+                    col * frameWidth, 0, frameWidth, frameHeight);
+            Animation<TextureRegion> idleAnim = new Animation<>(0.2f, idleFrame);
+            animations[idleDirs[col].ordinal()][WeaponState.IDLE.ordinal()] = idleAnim;
+        }
+
+        // Para direções diagonais, deixamos nulo – serão convertidas para cardeais no renderer
+    }
+
     private enum WeaponType {
         PISTOL(8, 6, 0.5f / 6.0f, 0.1f, false),
-        SHOTGUN(6, 11, 1.0f / 11.0f, 0.15f, true);
+        SHOTGUN(6, 11, 1.0f / 11.0f, 0.15f, true),
+        REVOLVER(5, 6, 0.5f / 6.0f, 0.1f, true); // usa flip para E, SE, NW
 
         public final int rows;
         public final int cols;
@@ -88,47 +119,15 @@ public class WeaponAnimations implements Disposable {
             WeaponDirection[] rowDirections = getRowDirectionsForWeapon(type);
 
             if (rowDirections.length != rows) {
+                System.err.println("Número de linhas não corresponde às direções esperadas.");
                 return;
             }
 
-            for (int i = 0; i < rowDirections.length; i++) {
-                System.out.println("   Linha " + i + " -> " + rowDirections[i]);
-            }
-
-            // Para cada linha (direção), criar animações
+            // Para cada linha (direção), criar animações de SHOOTING
             for (int row = 0; row < rows; row++) {
                 WeaponDirection direction = rowDirections[row];
 
-                // IDLE: apenas o primeiro frame
-                TextureRegion[] idleFrames = new TextureRegion[1];
-
-                // PARA A SHOTGUN (Calibre12), usar o frame 0 do spritesheet de reload APENAS
-                // para a direção SUL (S)
-                if (type == WeaponType.SHOTGUN && shotgunReloadSheet != null && direction == WeaponDirection.S) {
-                    // Usar o primeiro frame do reload sheet (linha 0, coluna 0) APENAS para direção
-                    // SUL
-                    int reloadRows = 2;
-                    int reloadCols = 5;
-                    int reloadFrameWidth = shotgunReloadSheet.getWidth() / reloadCols;
-                    int reloadFrameHeight = shotgunReloadSheet.getHeight() / reloadRows;
-
-                    idleFrames[0] = new TextureRegion(shotgunReloadSheet, 0, 0, reloadFrameWidth, reloadFrameHeight);
-                    System.out.println(
-                            "🔫 [WeaponAnimations] Usando frame de reload para idle da shotgun APENAS na direção: "
-                                    + direction);
-                } else {
-                    // Para outras direções ou outras armas, usar o primeiro frame do spritesheet
-                    // normal
-                    idleFrames[0] = new TextureRegion(sheet, 0, row * frameHeight, frameWidth, frameHeight);
-                    if (type == WeaponType.SHOTGUN && direction != WeaponDirection.S) {
-                        System.out.println("🎯 [WeaponAnimations] Direção " + direction
-                                + " usando frame normal do spritesheet de shoot");
-                    }
-                }
-
-                animations[direction.ordinal()][WeaponState.IDLE.ordinal()] = new Animation<>(0.2f, idleFrames);
-
-                // SHOOTING: todos os frames do spritesheet normal (para todas as direções)
+                // SHOOTING: todos os frames da linha
                 TextureRegion[] shootFrames = new TextureRegion[cols];
                 for (int col = 0; col < cols; col++) {
                     shootFrames[col] = new TextureRegion(sheet,
@@ -137,12 +136,21 @@ public class WeaponAnimations implements Disposable {
                             frameWidth,
                             frameHeight);
                 }
-                animations[direction.ordinal()][WeaponState.SHOOTING.ordinal()] = new Animation<>(type.shootSpeed,
-                        shootFrames);
+                animations[direction.ordinal()][WeaponState.SHOOTING.ordinal()] =
+                        new Animation<>(type.shootSpeed, shootFrames);
+
+                // Para revólver, o IDLE é carregado separadamente; para outras armas, usamos o primeiro frame
+                if (type != WeaponType.REVOLVER) {
+                    TextureRegion idleFrame = new TextureRegion(sheet, 0, row * frameHeight, frameWidth, frameHeight);
+                    animations[direction.ordinal()][WeaponState.IDLE.ordinal()] =
+                            new Animation<>(0.2f, idleFrame);
+                }
             }
 
-            // Carregar animação de recarga se existir
-            loadReloadAnimation(texturesList, type, sheet);
+            // Carregar animação de recarga se existir (ignoramos para revólver por enquanto)
+            if (type != WeaponType.REVOLVER) {
+                loadReloadAnimation(texturesList, type, sheet);
+            }
 
             texturesList.add(sheet);
 
@@ -154,34 +162,40 @@ public class WeaponAnimations implements Disposable {
     private WeaponDirection[] getRowDirectionsForWeapon(WeaponType type) {
         switch (type) {
             case PISTOL:
-                // Ordem das linhas na pistola: E, W, N, S, NE, NW, SE, SW
                 return new WeaponDirection[] {
-                        WeaponDirection.E, // linha 0
-                        WeaponDirection.W, // linha 1
-                        WeaponDirection.N, // linha 2
-                        WeaponDirection.S, // linha 3
-                        WeaponDirection.NE, // linha 4
-                        WeaponDirection.NW, // linha 5
-                        WeaponDirection.SE, // linha 6
-                        WeaponDirection.SW // linha 7
+                        WeaponDirection.E,
+                        WeaponDirection.W,
+                        WeaponDirection.N,
+                        WeaponDirection.S,
+                        WeaponDirection.NE,
+                        WeaponDirection.NW,
+                        WeaponDirection.SE,
+                        WeaponDirection.SW
                 };
-
             case SHOTGUN:
-                // Ordem das linhas na shotgun: S, W, E, N, NE, SE
                 return new WeaponDirection[] {
-                        WeaponDirection.S, // linha 0 (Sul) - IMPORTANTE: esta é a direção que usará o frame de reload
-                        WeaponDirection.W, // linha 1 (Oeste)
-                        WeaponDirection.E, // linha 2 (Leste)
-                        WeaponDirection.NE, // linha 3 (Nordeste)
-                        WeaponDirection.SE, // linha 4 (Sudeste)
-                        WeaponDirection.N // linha 5 (Norte)
+                        WeaponDirection.S,
+                        WeaponDirection.W,
+                        WeaponDirection.E,
+                        WeaponDirection.NE,
+                        WeaponDirection.SE,
+                        WeaponDirection.N
+                };
+            case REVOLVER:
+                // Ordem das linhas: L (W), SW, S, NE, N
+                return new WeaponDirection[] {
+                        WeaponDirection.W,  // linha 0
+                        WeaponDirection.SW, // linha 1
+                        WeaponDirection.S,  // linha 2
+                        WeaponDirection.NE, // linha 3
+                        WeaponDirection.N   // linha 4
                 };
             default:
                 return new WeaponDirection[0];
         }
     }
 
-    private void loadReloadAnimation(java.util.List<Texture> texturesList, WeaponType type, Texture mainSheet) {
+  private void loadReloadAnimation(java.util.List<Texture> texturesList, WeaponType type, Texture mainSheet) {
         try {
             String reloadPath;
 
@@ -250,18 +264,7 @@ public class WeaponAnimations implements Disposable {
             Gdx.app.log("WeaponAnimations", "Animação de recarga não encontrada para " + type);
         }
     }
-
-    @Override
-    public void dispose() {
-        for (Texture texture : loadedTextures) {
-            if (texture != null) {
-                texture.dispose();
-            }
-        }
-    }
-
     public Animation<TextureRegion> getAnimation(WeaponDirection direction, Weapon.WeaponState state) {
-        // Verificar se a animação existe
         Animation<TextureRegion> anim = animations[direction.ordinal()][state.ordinal()];
 
         if (anim == null) {
@@ -279,7 +282,19 @@ public class WeaponAnimations implements Disposable {
                 case SW:
                     return animations[WeaponDirection.SE.ordinal()][state.ordinal()];
                 default:
-                    // Para direções que não existem na shotgun, usar idle da direção S
+                    return animations[WeaponDirection.S.ordinal()][Weapon.WeaponState.IDLE.ordinal()];
+            }
+        } else if (weaponType == WeaponType.REVOLVER) {
+            // Direções que devem ser obtidas por flip dos opostos
+            switch (direction) {
+                case E:
+                    return animations[WeaponDirection.W.ordinal()][state.ordinal()];
+                case SE:
+                    return animations[WeaponDirection.SW.ordinal()][state.ordinal()];
+                case NW:
+                    return animations[WeaponDirection.NE.ordinal()][state.ordinal()];
+                default:
+                    // Fallback para idle de S se algo mais faltar
                     return animations[WeaponDirection.S.ordinal()][Weapon.WeaponState.IDLE.ordinal()];
             }
         } else {
@@ -288,7 +303,23 @@ public class WeaponAnimations implements Disposable {
     }
 
     public boolean needsFlip(WeaponDirection direction) {
-        return weaponType == WeaponType.SHOTGUN &&
-                (direction == WeaponDirection.NW || direction == WeaponDirection.SW);
+        if (weaponType == WeaponType.SHOTGUN) {
+            return (direction == WeaponDirection.NW || direction == WeaponDirection.SW);
+        } else if (weaponType == WeaponType.REVOLVER) {
+            // Direções que não existem na sheet e serão obtidas por flip
+            return (direction == WeaponDirection.E ||
+                    direction == WeaponDirection.SE ||
+                    direction == WeaponDirection.NW);
+        }
+        return false;
+    }
+
+    @Override
+    public void dispose() {
+        for (Texture texture : loadedTextures) {
+            if (texture != null) {
+                texture.dispose();
+            }
+        }
     }
 }
