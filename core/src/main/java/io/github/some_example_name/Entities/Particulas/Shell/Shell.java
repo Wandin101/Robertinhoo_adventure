@@ -101,8 +101,6 @@ public class Shell {
     }
 
     public void render(SpriteBatch batch, float offsetX, float offsetY, int tileSize) {
-        if (!alive || texture == null)
-            return;
 
         float screenX = offsetX + (position.x * tileSize);
         float screenY = offsetY + (position.y * tileSize);

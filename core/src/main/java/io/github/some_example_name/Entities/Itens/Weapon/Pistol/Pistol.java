@@ -58,14 +58,9 @@ public class Pistol extends Weapon {
         this.icon = new TextureRegion(new Texture("ITENS/Pistol/GUN_01_[square_frame]_01_V1.00.png"));
         createBody(this.position);
         loadTexturesAndAnimations();
-        this.gridWidth = 2;
+        this.gridWidth = 3;
         this.gridHeight = 2;
-        this.occupiedCells = new Vector2[] {
-                new Vector2(0, 0),
-                new Vector2(1, 0),
-                new Vector2(0, 1)
-        };
-
+        rebuildOccupiedCells();
         this.setMuzzleOffset(WeaponDirection.N, new Vector2(2, 2));
         this.setMuzzleOffset(WeaponDirection.NE, new Vector2(6, 2));
         this.setMuzzleOffset(WeaponDirection.NW, new Vector2(6, 2));
@@ -231,13 +226,6 @@ public class Pistol extends Weapon {
     public Vector2 getMuzzleOffset() {
 
         return new Vector2(0.001f, 0.001f);
-    }
-
-    @Override
-    public void rotate() {
-        int temp = gridWidth;
-        gridWidth = gridHeight;
-        gridHeight = temp;
     }
 
     @Override

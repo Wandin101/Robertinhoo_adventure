@@ -8,13 +8,11 @@ import com.badlogic.gdx.utils.Array;
 public class ShellSystem {
     private static ShellSystem instance;
     private Array<Shell> activeShells;
-    private Array<Shell> pool;
     private float scale;
-    private static final float SHELL_LIFE = 0.8f; // tempo de vida das cápsulas
+    private static final int MAX_SHELLS = 50;
 
     private ShellSystem() {
         activeShells = new Array<>();
-        pool = new Array<>();
         scale = 1.0f;
     }
 
@@ -28,30 +26,21 @@ public class ShellSystem {
         this.scale = scale;
     }
 
-    public void spawn(Vector2 position, Vector2 direction, TextureRegion texture) {
-        Shell shell = obtainShell();
-        shell.init(position, direction, texture, scale, SHELL_LIFE);
+    public void spawn(Vector2 position, Vector2 direction, TextureRegion texture, float groundY) {
+        Shell shell = new Shell();
+        shell.init(position, direction, texture, scale, groundY);
         activeShells.add(shell);
-    }
 
-    private Shell obtainShell() {
-        if (pool.size > 0)
-            return pool.pop();
-        return new Shell();
-    }
-
-    private void freeShell(Shell shell) {
-        pool.add(shell);
+        // FIFO: remove as mais antigas se exceder o limite
+        while (activeShells.size > MAX_SHELLS) {
+            Shell oldest = activeShells.first();
+            activeShells.removeIndex(0);
+        }
     }
 
     public void update(float delta) {
-        for (int i = activeShells.size - 1; i >= 0; i--) {
-            Shell shell = activeShells.get(i);
+        for (Shell shell : activeShells) {
             shell.update(delta);
-            if (!shell.isAlive()) {
-                activeShells.removeIndex(i);
-                freeShell(shell);
-            }
         }
     }
 
@@ -63,6 +52,5 @@ public class ShellSystem {
 
     public void dispose() {
         activeShells.clear();
-        pool.clear();
     }
 }

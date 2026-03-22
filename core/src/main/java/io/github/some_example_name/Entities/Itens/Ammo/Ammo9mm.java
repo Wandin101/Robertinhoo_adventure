@@ -84,9 +84,4 @@ public class Ammo9mm extends Ammo {
         return body;
     }
 
-    @Override
-    public float getRotation() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
 }

@@ -286,7 +286,8 @@ public class Calibre12 extends Weapon {
                                 shootDir.y * -backAmount + perpY * sideAmount);
 
                         Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
-                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir, shellTexture);
+                        float groundY = playerPos.y - 0.25f;
+                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir, shellTexture, groundY);
                     }
                 }, 0.5f);
             }
