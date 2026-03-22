@@ -30,7 +30,7 @@ public class Pistol extends Weapon {
 
     private float animationTime = 0f;
     private int maxAmmo;
-    private int pistolMaxAmmo = 15;
+    private int pistolMaxAmmo = 10;
 
     private float reloadTime = 0;
     private float reloadDuration = 2.1f; // Tempo de duração da recarga em segundos
@@ -48,7 +48,7 @@ public class Pistol extends Weapon {
 
     public Pistol(Mapa mapa, float x, float y, Inventory inventory) {
         super();
-        this.maxAmmo = 99999;
+        this.maxAmmo = pistolMaxAmmo;
         this.ammo = this.maxAmmo;
         this.position = new Vector2(x, y);
         this.mapa = mapa;
@@ -192,18 +192,10 @@ public class Pistol extends Weapon {
         return anim;
     }
 
+    @Override
     public TextureRegion getCurrentFrame(float delta) {
-        if (currentState == WeaponState.SHOOTING) {
-            animationTime += delta;
-            TextureRegion frame = shootAnim.getKeyFrame(animationTime, false);
-            if (shootAnim.isAnimationFinished(animationTime)) {
-                currentState = WeaponState.IDLE;
-                animationTime = 0f;
-            }
-            return frame;
-        }
 
-        return shootAnim.getKeyFrame(0);
+        return icon;
     }
 
     @Override

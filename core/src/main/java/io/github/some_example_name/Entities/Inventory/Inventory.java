@@ -474,4 +474,8 @@ public class Inventory {
             return true;
         return grid[gridRows - 1 - y][x];
     }
+
+    public InventoryController getInventoryController() {
+        return robertinhoo.getInventoryController();
+    }
 }

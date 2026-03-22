@@ -4,16 +4,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import io.github.some_example_name.MapConfig.Mapa;
 
 public class ShellSystem {
     private static ShellSystem instance;
-
     private Array<Shell> activeShells;
     private Array<Shell> pool;
-    private TextureRegion shellTexture;
-    private Mapa mapa;
     private float scale;
+    private static final float SHELL_LIFE = 0.8f; // tempo de vida das cápsulas
 
     private ShellSystem() {
         activeShells = new Array<>();
@@ -22,30 +19,25 @@ public class ShellSystem {
     }
 
     public static ShellSystem getInstance() {
-        if (instance == null) {
+        if (instance == null)
             instance = new ShellSystem();
-        }
         return instance;
     }
 
-    public void init(Mapa mapa, TextureRegion shellTexture, float scale) {
-        this.mapa = mapa;
-        this.shellTexture = shellTexture;
+    public void init(float scale) {
         this.scale = scale;
     }
 
-    public void spawn(Vector2 position, Vector2 shootDirection) {
+    public void spawn(Vector2 position, Vector2 direction, TextureRegion texture) {
         Shell shell = obtainShell();
-        shell.init(position, shootDirection, shellTexture, scale);
+        shell.init(position, direction, texture, scale, SHELL_LIFE);
         activeShells.add(shell);
     }
 
     private Shell obtainShell() {
-        if (pool.size > 0) {
+        if (pool.size > 0)
             return pool.pop();
-        } else {
-            return new Shell();
-        }
+        return new Shell();
     }
 
     private void freeShell(Shell shell) {
@@ -55,7 +47,7 @@ public class ShellSystem {
     public void update(float delta) {
         for (int i = activeShells.size - 1; i >= 0; i--) {
             Shell shell = activeShells.get(i);
-            shell.update(delta, mapa);
+            shell.update(delta);
             if (!shell.isAlive()) {
                 activeShells.removeIndex(i);
                 freeShell(shell);
@@ -63,14 +55,6 @@ public class ShellSystem {
         }
     }
 
-    /**
-     * Renderiza todas as cápsulas ativas.
-     * 
-     * @param batch    SpriteBatch (já deve estar com begin() chamado)
-     * @param offsetX  offset da câmera em X (pixels)
-     * @param offsetY  offset da câmera em Y (pixels)
-     * @param tileSize tamanho do tile (ex: 64)
-     */
     public void render(SpriteBatch batch, float offsetX, float offsetY, int tileSize) {
         for (Shell shell : activeShells) {
             shell.render(batch, offsetX, offsetY, tileSize);
