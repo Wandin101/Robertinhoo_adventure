@@ -285,11 +285,11 @@ public class Revolver extends Weapon {
 
     @Override
     public WeaponSight getWeaponSight() {
-        WeaponSight.ConeSight sight = new WeaponSight.ConeSight();
-        sight.color = new Color(1f, 0.8f, 0.2f, 0.3f);
-        sight.lineWidth = 1f;
-        sight.spreadAngle = 5f;
-        sight.coneSegments = 8;
+
+        WeaponSight.BrawlPistolSight sight = new WeaponSight.BrawlPistolSight();
+        sight.color = new Color(0.9f, 0.9f, 0.9f, 0.25f); // Branco transparente
+        sight.lineWidth = 4f;
+        sight.endMarkerSize = 6;
         return sight;
     }
 

@@ -19,6 +19,7 @@ public abstract class Ammo implements Item {
     private Vector2[] occupiedCells;
     protected Vector2 position;
     private String ammoType;
+    protected float rotation = 0f;
 
     public Ammo(String caliber, int quantity, int maxStack, TextureRegion icon, int gridWidth, int gridHeight) {
         this.caliber = caliber;
@@ -72,11 +73,17 @@ public abstract class Ammo implements Item {
         return cells;
     }
 
-    @Override
+    // Dentro de rotate() na classe Ammo
     public void rotate() {
+        System.out.println("Ammo.rotate() chamado. rotation antes: " + rotation);
+        rotation = (rotation == 0f) ? 90f : 0f;
+        System.out.println("rotation depois: " + rotation);
+
         int temp = gridWidth;
         gridWidth = gridHeight;
         gridHeight = temp;
+        rebuildOccupiedCells();
+        System.out.println("Novas dimensões: " + gridWidth + "x" + gridHeight);
     }
 
     @Override
@@ -116,8 +123,23 @@ public abstract class Ammo implements Item {
     public void reduceQuantity(int amount) {
         this.quantity = Math.max(0, this.quantity - amount);
     }
-    
+
     public void setMapa(Mapa mapa) {
         this.mapa = mapa;
     }
+
+    public float getRotation() {
+        return rotation;
+    }
+
+    public void rebuildOccupiedCells() {
+        occupiedCells = new Vector2[gridWidth * gridHeight];
+        int index = 0;
+        for (int y = 0; y < gridHeight; y++) {
+            for (int x = 0; x < gridWidth; x++) {
+                occupiedCells[index++] = new Vector2(x, y);
+            }
+        }
+    }
+
 }

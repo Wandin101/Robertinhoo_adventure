@@ -180,7 +180,8 @@ public class RenderInventory {
 
         // ========== ÍCONES DOS ITENS (BATCH PRÓPRIO) ==========
         itemRenderer.updateSize(position, cellSize);
-        itemRenderer.renderItemIcons(selectedItem, isValid, cursorGridX, cursorGridY);
+        boolean valid = (selectedItem == null) ? false : inventory.canPlaceAt(cursorGridX, cursorGridY, selectedItem);
+        itemRenderer.renderItemIcons(selectedItem, valid, cursorGridX, cursorGridY);
 
         if (placementItem != null) {
             itemRenderer.renderPlacementIcon(placementItem, placementX, placementY, placementValid);

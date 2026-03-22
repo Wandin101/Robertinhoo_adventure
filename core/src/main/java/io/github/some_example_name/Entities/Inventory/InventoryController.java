@@ -48,6 +48,7 @@ public class InventoryController {
     private int cellSize = 40;
 
     private Vector2 inventoryPosition;
+    private float originalRotation;
 
     public InventoryController(Robertinhoo player, Inventory inventory, Mapa mapa) {
         this.player = player;
@@ -169,11 +170,26 @@ public class InventoryController {
                     selectedItem = null;
                     System.out.println("[DEBUG] Item colocado em (" + cursorGridX + "," + cursorGridY + ")");
                 } else {
-                    // Não coube, volta pra original
-                    inventory.placeItem(selectedItem, originalGridX, originalGridY);
-                    selectedItem = null;
-                    System.out.println(
-                            "[DEBUG] Não coube, item voltou para (" + originalGridX + "," + originalGridY + ")");
+                    // Tenta colocar na posição original com a rotação atual
+                    if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
+                        selectedItem = null;
+                        System.out.println("[DEBUG] Item voltou para posição original com nova rotação");
+                    } else {
+                        // Se não couber na original, reverte a rotação e tenta de novo
+                        while (selectedItem.getRotation() != originalRotation) {
+                            selectedItem.rotate();
+                        }
+                        if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
+                            selectedItem = null;
+                            System.out.println("[DEBUG] Item voltou para posição original (rotação revertida)");
+                        } else {
+                            // Caso extremo: não coube nem com rotação original (deveria ser impossível)
+                            // Nesse caso, o item é perdido – mas aqui podemos, por exemplo, dropar no chão
+                            dropItem(selectedItem);
+                            selectedItem = null;
+                            System.out.println("[ERRO] Não foi possível recolocar o item, soltando no chão");
+                        }
+                    }
                 }
             }
         }
@@ -210,33 +226,27 @@ public class InventoryController {
         if (currentPlacementItem == null)
             return;
 
-        int oldWidth = currentPlacementItem.getGridWidth();
-        int oldHeight = currentPlacementItem.getGridHeight();
-
-        int newWidth = oldHeight;
-        int newHeight = oldWidth;
+        currentPlacementItem.rotate();
 
         int newX = placementGridX;
         int newY = placementGridY;
-        if (newX + newWidth > inventory.gridCols) {
-            newX = inventory.gridCols - newWidth;
+        if (newX + currentPlacementItem.getGridWidth() > inventory.gridCols) {
+            newX = inventory.gridCols - currentPlacementItem.getGridWidth();
         }
-        if (newY + newHeight > inventory.gridRows) {
-            newY = inventory.gridRows - newHeight;
+        if (newY + currentPlacementItem.getGridHeight() > inventory.gridRows) {
+            newY = inventory.gridRows - currentPlacementItem.getGridHeight();
         }
         newX = Math.max(0, newX);
         newY = Math.max(0, newY);
 
-        if (inventory.canPlaceAt(newX, newY, currentPlacementItem)) {
-            currentPlacementItem.rotate();
-            placementGridX = newX;
-            placementGridY = newY;
-            updatePlacementValidity();
-            System.out.println(
-                    "Item rotacionado para " + newWidth + "x" + newHeight + " na posição (" + newX + "," + newY + ")");
-        } else {
-            System.out.println("Não é possível rotacionar: sem espaço na posição " + newX + "," + newY);
-        }
+        placementGridX = newX;
+        placementGridY = newY;
+
+        updatePlacementValidity();
+
+        System.out.println("Item rotacionado para " +
+                currentPlacementItem.getGridWidth() + "x" + currentPlacementItem.getGridHeight() +
+                " na posição (" + placementGridX + "," + placementGridY + ")");
     }
 
     private InputProcessor previousInputProcessor;
@@ -644,6 +654,7 @@ public class InventoryController {
             this.selectedItem = item;
             this.originalGridX = gridX;
             this.originalGridY = gridY;
+            this.originalRotation = item.getRotation(); // ← salva rotação original
             this.cursorGridX = gridX;
             this.cursorGridY = gridY;
             System.out.println("[DEBUG] Item selecionado: " + item.getName() + " em (" + gridX + "," + gridY + ")");

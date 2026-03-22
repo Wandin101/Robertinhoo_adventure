@@ -10,6 +10,7 @@ import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Inventory.InventorySlot;
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Itens.Ammo.Ammo;
+import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Fonts.FontsManager;
 
 public class InventoryItemRenderer {
@@ -66,24 +67,35 @@ public class InventoryItemRenderer {
         float baseY = position.y + ((inventory.getGridRows() - 1 - gridY) * cellSize);
         baseY -= (gridHeight - 1) * cellSize;
 
-        // Dimensões originais do ícone
         int iconWidth = icon.getRegionWidth();
         int iconHeight = icon.getRegionHeight();
 
-        // Se o item está rotacionado, as dimensões efetivas trocam
         boolean isRotated = (rotation == 90 || rotation == 270);
         int effectiveIconWidth = isRotated ? iconHeight : iconWidth;
         int effectiveIconHeight = isRotated ? iconWidth : iconHeight;
+        float scaleX = (gridWidth * cellSize) / (float) effectiveIconWidth;
+        float scaleY = (gridHeight * cellSize) / (float) effectiveIconHeight;
 
-        // Escala para caber na área do grid, mantendo a proporção
-        float scale = Math.min(
-                (gridWidth * cellSize) / effectiveIconWidth,
-                (gridHeight * cellSize) / effectiveIconHeight);
+        float scaledWidth = iconWidth * scaleX;
+        float scaledHeight = iconHeight * scaleY;
 
-        float scaledWidth = iconWidth * scale;
-        float scaledHeight = iconHeight * scale;
+        if (item instanceof Ammo) {
+            if (isRotated) {
+                scaledWidth *= 1.69f;
+                scaledHeight *= 0.95f;
+            } else {
+                scaledHeight *= 1.69f;
+            }
+        }
+        if (item instanceof Weapon) {
 
-        // Centro da área ocupada
+            if (isRotated) {
+                scaledWidth *= 1.25f;
+                scaledHeight *= 0.95f;
+            } else {
+                scaledHeight *= 1.25f;
+            }
+        }
         float centerX = baseX + (gridWidth * cellSize) / 2;
         float centerY = baseY + (gridHeight * cellSize) / 2;
 
