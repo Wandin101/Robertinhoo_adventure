@@ -11,7 +11,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import java.util.Map;
 
+import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Inventory.Item;
+
 import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
@@ -31,6 +33,7 @@ public abstract class Weapon implements Item {
     protected boolean reloadJustTriggered = false;
     protected Map<WeaponDirection, Vector2> renderOffsets;
     protected float reloadDuration = 1.5f;
+    protected Inventory inventory;
     protected float rotation = 0f;
 
     public Body body;
@@ -254,4 +257,16 @@ public abstract class Weapon implements Item {
         return rotation;
     }
 
+    // Na classe Weapon
+    public Inventory getInventory() {
+        return inventory;
+    }
+
+    public int getCurrentAmmo() {
+        return ammo;
+    }
+
+    public void setCurrentAmmo(int ammo) {
+        this.ammo = ammo;
+    }
 }

@@ -13,6 +13,7 @@ import io.github.some_example_name.Entities.Interatibles.InteractionManager;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Interface.DebugHUD;
+import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
@@ -50,6 +51,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
     private float respawnTimer = 0f;
     private static final float RESPAWN_TRANSITION_DURATION = 1.5f;
     private int currentRoom = 0;
+    private NpcInteractionHUD npcInteractionHUD;
 
     public GameScreen(Game game) {
         super(game);
@@ -74,6 +76,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         weaponHUD.setBatch(hudBatch);
 
         debugHUD = new DebugHUD();
+        npcInteractionHUD = NpcInteractionHUD.getInstance();
 
         System.out.println("Sala 0 carregada - Player posicionado no centro");
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -153,6 +156,10 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         weaponHUD.draw();
         robertinhoFaceHUD.draw(hudBatch, animationDelta);
         InteractionManager.getInstance().render(hudBatch);
+        if (npcInteractionHUD != null) {
+            npcInteractionHUD.update(animationDelta);
+            npcInteractionHUD.render(hudBatch);
+        }
 
         hudBatch.end();
 
@@ -380,6 +387,8 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         }
 
         robertinhoFaceHUD.updateScreenSize(width, height);
+        if (npcInteractionHUD != null)
+            npcInteractionHUD.recalcularPosicoes();
 
         System.out.println("[RESIZE] Tela: " + width + "x" + height);
     }
@@ -445,7 +454,9 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         if (audioManager != null) {
             audioManager.dispose();
         }
-
+        if (npcInteractionHUD != null) {
+            npcInteractionHUD.dispose();
+        }
         if (mapa != null) {
             mapa.setRoomTransitionListener(null);
         }

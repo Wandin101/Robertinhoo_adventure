@@ -38,6 +38,8 @@ import io.github.some_example_name.Entities.Particulas.BloodPoolSystem;
 import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Entities.Npcs.EsmeraldaNPC;
+import io.github.some_example_name.Entities.Npcs.NPC;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
@@ -72,6 +74,8 @@ public class Mapa implements RoomTransitionManager {
     public List<Room0Cabana> cabanas = new ArrayList<>();
     public CabanaInteractionSystem cabanaInteraction;
     public List<StaticItem> staticItems = new ArrayList<>();
+    private List<NPC> npcs = new ArrayList<>();
+
     public Room0Door room0Door;
     public boolean isRoom0;
     public RoomTransitionListener roomTransitionListener;
@@ -460,6 +464,11 @@ public class Mapa implements RoomTransitionManager {
         if (room0Door != null) {
             room0Door.update(deltaTime);
         }
+        if (npcs != null) {
+            for (NPC npc : npcs) {
+                npc.update(deltaTime);
+            }
+        }
 
     }
 
@@ -798,6 +807,14 @@ public class Mapa implements RoomTransitionManager {
 
     public void addPillar(Pillar pillar) {
         pillars.add(pillar);
+    }
+
+    public void addNPC(NPC npc) {
+        npcs.add(npc);
+    }
+
+    public List<NPC> getNPCs() {
+        return npcs;
     }
 
     public void setEngraving(Engraving engraving) {

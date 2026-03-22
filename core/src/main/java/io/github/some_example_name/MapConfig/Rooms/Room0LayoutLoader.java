@@ -11,19 +11,21 @@ import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Flower;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Room0Grass;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
+import io.github.some_example_name.Entities.Npcs.EsmeraldaNPC;
 
 public class Room0LayoutLoader {
     // Cores para identificar elementos no layout
     public static final Color COLOR_CAMPFIRE = new Color(0x99e550ff);
-    public static final Color COLOR_PLAYER_SPAWN = new Color(0xff0000ff); // Mantemos por compatibilidade
-    public static final Color COLOR_GRASS = new Color(0xdeff00ff); // Grama - #deff00
-    public static final Color COLOR_FLOWER = new Color(0xc800ffff); // Flor - #c800ff
-    public static final Color COLOR_RUSTY_SWORD = new Color(0xf6a4a4ff); // espada - #f6a4a4
-    public static final Color COLOR_DOOR = new Color(0xffffffff); // porta - #ffffffff
-    public static final Color COLOR_BOULDER = new Color(0x335215ff); // Pedregulho - #335215
+    public static final Color COLOR_PLAYER_SPAWN = new Color(0xff0000ff);
+    public static final Color COLOR_GRASS = new Color(0xdeff00ff);
+    public static final Color COLOR_FLOWER = new Color(0xc800ffff);
+    public static final Color COLOR_RUSTY_SWORD = new Color(0xf6a4a4ff);
+    public static final Color COLOR_DOOR = new Color(0xffffffff);
+    public static final Color COLOR_BOULDER = new Color(0x335215ff);
 
-    // Novas cores para cabanas
-    public static final Color COLOR_CABANA_PLAYER = new Color(0x351e1eff);// #351e1e
+    // Cores para cabanas
+    public static final Color COLOR_CABANA_PLAYER = new Color(0x351e1eff); // #351e1e
+    public static final Color COLOR_CABANA_NPC_SHOP = new Color(0xff8c00ff); // #ff8c00 (laranja)
 
     public static void loadRoom0Specifics(Mapa mapa, String imagePath) {
         try {
@@ -46,9 +48,8 @@ public class Room0LayoutLoader {
                     if (colorsMatch(pixelColor, COLOR_PLAYER_SPAWN)) {
                         playerSpawnPos = new Vector2(x, y);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
-                        System.out
-                                .println("🎯 Spawn tradicional em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
-                                        + ") -> mundo: " + worldPos);
+                        System.out.println("🎯 Spawn tradicional em pixel: " + x + "," + y + " -> tile: (" + x + ", "
+                                + y + ") -> mundo: " + worldPos);
                     } else if (colorsMatch(pixelColor, COLOR_CAMPFIRE)) {
                         addCampfire(mapa, x, y);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
@@ -69,33 +70,33 @@ public class Room0LayoutLoader {
                         Vector2 worldPos = mapa.tileToWorld(x, y);
                         System.out.println("🏠 Cabana do Player em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
                                 + ") -> mundo: " + worldPos);
-
                         playerCabanaPos = new Vector2(x, y + 1F);
-                        System.out.println("📍 Cabana definida como spawn point: " + x + ", " + y + 1F);
+                        System.out.println("📍 Cabana definida como spawn point: " + x + ", " + (y + 1));
+                    } else if (colorsMatch(pixelColor, COLOR_CABANA_NPC_SHOP)) { // 👈 NOVO
+                        addCabana(mapa, x, y, Room0Cabana.CabanaType.NPC_SHOP);
+                        mapa.addNPC(new EsmeraldaNPC(mapa, x, y)); // Adiciona NPC da loja
+                        Vector2 worldPos = mapa.tileToWorld(x, y);
+                        System.out.println("🏪 Tenda de compras (NPC_SHOP) em pixel: " + x + "," + y + " -> tile: (" + x
+                                + ", " + y + ") -> mundo: " + worldPos);
                     } else if (colorsMatch(pixelColor, COLOR_RUSTY_SWORD)) {
                         addStaticItem(mapa, x, y, StaticItem.ItemType.RUSTY_SWORD);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
-                        System.out
-                                .println("⚔️ Espada enferrujada em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
-                                        + ") -> mundo: " + worldPos);
+                        System.out.println("⚔️ Espada enferrujada em pixel: " + x + "," + y + " -> tile: (" + x + ", "
+                                + y + ") -> mundo: " + worldPos);
                     } else if (colorsMatch(pixelColor, COLOR_DOOR)) {
                         addDoor(mapa, x, y);
                         Vector2 worldPos = mapa.tileToWorld(x, y);
                         System.out.println("🚪 Porta em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
                                 + ") -> mundo: " + worldPos);
-                    }
-
-                    else if (colorsMatch(pixelColor, COLOR_BOULDER)) {
-                        Vector2 worldPos = mapa.tileToWorld(x, y);
+                    } else if (colorsMatch(pixelColor, COLOR_BOULDER)) {
                         addBoulder(mapa, x, y);
-                        System.out.println("🚪 Passarela: " + x + "," + y + " -> tile: (" + x + ", " + y
+                        Vector2 worldPos = mapa.tileToWorld(x, y);
+                        System.out.println("🪨 Pedregulho em pixel: " + x + "," + y + " -> tile: (" + x + ", " + y
                                 + ") -> mundo: " + worldPos);
                     }
-
                 }
             }
 
-            // ✅ PRIORIDADE: Spawn na cabana tem precedência sobre spawn tradicional
             Vector2 finalSpawnPos = null;
             if (playerCabanaPos != null) {
                 finalSpawnPos = playerCabanaPos;
@@ -114,8 +115,7 @@ public class Room0LayoutLoader {
                 Vector2 worldSpawnPos = mapa.tileToWorld((int) finalSpawnPos.x, (int) finalSpawnPos.y);
                 mapa.robertinhoo.body.setTransform(worldSpawnPos, 0);
                 mapa.robertinhoo.pos.set(finalSpawnPos);
-                System.out.println("✅ Player posicionado em: " + worldSpawnPos +
-                        " | Tile: " + finalSpawnPos);
+                System.out.println("✅ Player posicionado em: " + worldSpawnPos + " | Tile: " + finalSpawnPos);
             }
 
             pixmap.dispose();
@@ -184,7 +184,6 @@ public class Room0LayoutLoader {
     private static void addDoor(Mapa mapa, int tileX, int tileY) {
         try {
             Room0Door door = new Room0Door(mapa, tileX, tileY, true);
-
             mapa.addDoor(door);
             System.out.println("🚪 Porta criada em tile: " + tileX + ", " + tileY);
         } catch (Exception e) {
@@ -194,7 +193,7 @@ public class Room0LayoutLoader {
 
     private static void addBoulder(Mapa mapa, int tileX, int tileY) {
         try {
-            Boulder boulder = new Boulder(mapa, tileX, tileY); // passa os inteiros
+            Boulder boulder = new Boulder(mapa, tileX, tileY);
             mapa.addBoulder(boulder);
             System.out.println("🪨 Pedregulho criado em tile: " + tileX + ", " + tileY);
         } catch (Exception e) {

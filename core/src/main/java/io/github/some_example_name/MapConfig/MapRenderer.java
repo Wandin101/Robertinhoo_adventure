@@ -22,9 +22,11 @@ import io.github.some_example_name.Entities.Enemies.Castor.Castor;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
 
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.Entities.Npcs.NPC;
 import io.github.some_example_name.Entities.Particulas.BloodParticleRenderer;
 import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
+import io.github.some_example_name.Entities.Particulas.RevolverShell.RevolverShellEjector;
 import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.TileRenderer;
@@ -252,6 +254,10 @@ public class MapRenderer {
             cabana.render(spriteBatch, screenX, screenY);
         }
 
+        for (NPC npc : mapa.getNPCs()) {
+            npc.render(spriteBatch, offsetX, offsetY);
+        }
+
         // Itens estáticos
         for (StaticItem staticItem : mapa.getStaticItems()) {
             Vector2 itemTilePos = staticItem.getPosition();
@@ -342,7 +348,7 @@ public class MapRenderer {
                     frame,
                     offsetX + weapon.getPosition().x * TILE_SIZE,
                     offsetY + floatY,
-                    40, 25);
+                    25, 25);
         }
 
         // Munição
@@ -357,6 +363,7 @@ public class MapRenderer {
         particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
         bloodParticleSystem.update(delta, cameraPosWorld);
         ShellSystem.getInstance().update(delta);
+        RevolverShellEjector.getInstance().update(delta);
         if (magicParticleSystem != null) {
             float left = offsetX;
             float right = offsetX + mapa.mapWidth * TILE_SIZE;
@@ -369,6 +376,7 @@ public class MapRenderer {
         bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
         bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
         ShellSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
+        RevolverShellEjector.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
         if (magicParticleSystem != null) {
             magicParticleSystem.render(particleBatch);
         }

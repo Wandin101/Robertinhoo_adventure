@@ -21,6 +21,17 @@ public class GameGameSoundsPaths {
         public static final String SHOTGUN_RELOAD_INSERT = "recarga";
         public static final String SHOTGUN_RELOAD_TILT = "inclinacao";
 
+        // Dentro da classe Sounds
+        public static final String REVOLVER_SHOOT = "revolver_shoot";
+        public static final String REVOLVER_RELOAD_OPEN = "revolver_reload_open";
+        public static final String REVOLVER_RELOAD_INSERT = "revolver_reload_insert";
+        public static final String REVOLVER_RELOAD_ROTATE = "revolver_reload_rotate";
+        public static final String REVOLVER_RELOAD_CLICK = "revolver_reload_click";
+
+        public static final String BULLET_GROUND_1 = "bullet_ground_1";
+        public static final String BULLET_GROUND_2 = "bullet_ground_2";
+        public static final String BULLET_GROUND_3 = "bullet_ground_3";
+
         // public static final String MELEE_ATTACK = "melee_attack";
         // public static final String RANGED_ATTACK = "ranged_attack";
         // public static final String RELOAD = "reload";
@@ -57,6 +68,13 @@ public class GameGameSoundsPaths {
 
     public static class Ambient {
         public static final String FOGUEIRA_SOUND = "fogueira_sound";
+    }
+
+    public static class Voices {
+        public static final String ESMERALDA_NEUTRAL_1 = "esmeralda_neutral_1";
+        public static final String ESMERALDA_NEUTRAL_2 = "esmeralda_neutral_2";
+        public static final String ESMERALDA_NEUTRAL_3 = "esmeralda_neutral_3";
+        public static final String ESMERALDA_NEUTRAL_4 = "esmeralda_neutral_4";
     }
 
     public static void loadAllAssets() {
@@ -105,7 +123,20 @@ public class GameGameSoundsPaths {
         // audio.loadMusic(Music.BOSS_BATTLE, "music/boss_battle.mp3");
         // audio.loadMusic(Music.MENU_MUSIC, "music/menu_music.mp3");
         audio.loadMusic(Music.FOOTSTEP_GRASS, "Sounds/passos_grama.wav");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_1, "sounds/voices/Esmeralda_voice_line_neutral2.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_2, "sounds/voices/Esmeralda_voice_line_neutral3.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_3, "sounds/voices/Esmeralda_voice_line_neutral4.ogg");
+        audio.loadSound(Voices.ESMERALDA_NEUTRAL_4, "sounds/voices/Esmeralda_voice_line_neutral5.ogg");
 
+        audio.loadSound(Sounds.REVOLVER_SHOOT, "Sounds/revolver/revolver_shoot.ogg");
+        audio.loadSound(Sounds.REVOLVER_RELOAD_OPEN, "Sounds/revolver/revolver_reload_open.ogg");
+        audio.loadSound(Sounds.REVOLVER_RELOAD_INSERT, "Sounds/revolver/revolver_reload_insert.ogg");
+        audio.loadSound(Sounds.REVOLVER_RELOAD_ROTATE, "Sounds/revolver/revolver_reload_rotate.ogg");
+        audio.loadSound(Sounds.REVOLVER_RELOAD_CLICK, "Sounds/revolver/revolver_reload_click.ogg");
+
+        audio.loadSound(Sounds.BULLET_GROUND_1, "Sounds/bullet_caindo1.ogg");
+        audio.loadSound(Sounds.BULLET_GROUND_2, "Sounds/bullet_caindo2.ogg");
+        audio.loadSound(Sounds.BULLET_GROUND_3, "Sounds/bullet_caindo3.ogg");
         Gdx.app.log("ASSETS", "Todos os assets de áudio carregados!");
     }
 }

@@ -210,33 +210,24 @@ public class InventoryController {
         if (currentPlacementItem == null)
             return;
 
-        // Obtém as dimensões atuais
         int oldWidth = currentPlacementItem.getGridWidth();
         int oldHeight = currentPlacementItem.getGridHeight();
 
-        // Simula a rotação: novas dimensões são trocadas
         int newWidth = oldHeight;
         int newHeight = oldWidth;
 
-        // Calcula a melhor posição possível, mantendo a mesma se possível
         int newX = placementGridX;
         int newY = placementGridY;
-
-        // Ajusta para não ultrapassar os limites do grid
         if (newX + newWidth > inventory.gridCols) {
             newX = inventory.gridCols - newWidth;
         }
         if (newY + newHeight > inventory.gridRows) {
             newY = inventory.gridRows - newHeight;
         }
-
-        // Garante que não seja negativo (caso o item seja maior que o grid)
         newX = Math.max(0, newX);
         newY = Math.max(0, newY);
 
-        // Verifica se a nova posição é válida (células livres)
         if (inventory.canPlaceAt(newX, newY, currentPlacementItem)) {
-            // Aplica a rotação
             currentPlacementItem.rotate();
             placementGridX = newX;
             placementGridY = newY;
@@ -259,22 +250,14 @@ public class InventoryController {
         if (isOpen) {
             player.state = Robertinhoo.IDLE;
             player.body.setLinearVelocity(Vector2.Zero);
-
-            // Salva o processador atual
             previousInputProcessor = Gdx.input.getInputProcessor();
-
-            // Cria novo multiplexer
             InputMultiplexer multiplexer = new InputMultiplexer();
             multiplexer.addProcessor(mouseController);
-
-            // Mantém o processador anterior se existir
             if (previousInputProcessor != null) {
                 multiplexer.addProcessor(previousInputProcessor);
             }
 
             Gdx.input.setInputProcessor(multiplexer);
-
-            // Reseta estados
             selectedItem = null;
             cursorGridX = 0;
             cursorGridY = 0;
@@ -288,35 +271,50 @@ public class InventoryController {
                 selectedItem = null;
                 System.out.println("[DEBUG] Inventário fechado, item recolocado na posição original");
             }
-
-            // Reseta estados
             craftingMode = false;
             selectedItem = null;
         }
     }
 
     private void updatePlacementMode() {
+        // Cancelamento
+        if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+            if (currentPlacementItem != null) {
+                Vector2 dropPosition = player.getPosition().cpy();
+                if (currentPlacementItem instanceof Weapon) {
+                    Weapon weapon = (Weapon) currentPlacementItem;
+                    weapon.createBody(dropPosition);
+                    mapa.getWeapons().add(weapon);
+                } else if (currentPlacementItem instanceof Ammo) {
+                    Ammo ammo = (Ammo) currentPlacementItem;
+                    ammo.setMapa(mapa);
+                    ammo.createBody(dropPosition);
+                    mapa.getAmmo().add(ammo);
+                } else {
+                    currentPlacementItem.createBody(dropPosition);
+                    mapa.getCraftItems().add(currentPlacementItem);
+                }
+            }
+            exitPlacementMode(false);
+            return;
+        }
 
-        System.out.println("updatePlacementMode() - placementMode = " + placementMode);
+        // Rotação
         if (Gdx.input.isKeyJustPressed(Keys.R)) {
-            System.out.println("Tecla R pressionada em updatePlacementMode");
             rotateItem();
         }
 
+        // Movimento
         if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
             placementGridX = Math.max(0, placementGridX - 1);
             updatePlacementValidity();
         }
         if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
-            placementGridX = Math.min(
-                    inventory.gridCols - currentPlacementItem.getGridWidth(),
-                    placementGridX + 1);
+            placementGridX = Math.min(inventory.gridCols - currentPlacementItem.getGridWidth(), placementGridX + 1);
             updatePlacementValidity();
         }
         if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
-            placementGridY = Math.min(
-                    inventory.gridRows - currentPlacementItem.getGridHeight(),
-                    placementGridY + 1);
+            placementGridY = Math.min(inventory.gridRows - currentPlacementItem.getGridHeight(), placementGridY + 1);
             updatePlacementValidity();
         }
         if (Gdx.input.isKeyJustPressed(Keys.UP)) {
@@ -324,20 +322,19 @@ public class InventoryController {
             updatePlacementValidity();
         }
 
+        // Confirmação
         if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
             if (validPlacement &&
-                    placementGridX >= 0 &&
-                    placementGridY >= 0 &&
+                    placementGridX >= 0 && placementGridY >= 0 &&
                     placementGridX + currentPlacementItem.getGridWidth() <= inventory.gridCols &&
                     placementGridY + currentPlacementItem.getGridHeight() <= inventory.gridRows) {
+
                 if (itemSelected) {
                     inventory.removeItem(selectedItem);
                     itemSelected = false;
-
                 }
 
                 if (inventory.placeItem(currentPlacementItem, placementGridX, placementGridY)) {
-
                     if (currentPlacementItem instanceof Weapon) {
                         ((Weapon) currentPlacementItem).destroyBody();
                         mapa.getWeapons().remove(currentPlacementItem);
@@ -345,14 +342,11 @@ public class InventoryController {
                         Ammo ammo = (Ammo) currentPlacementItem;
                         ammo.destroyBody();
                         mapa.getAmmo().remove(ammo);
-                        System.out.println("Munição " + ammo.getCaliber() + " adicionada ao inventário!");
                     }
-
                     exitPlacementMode(true);
                 }
             }
         }
-
     }
 
     public void dropItem(Item item) {

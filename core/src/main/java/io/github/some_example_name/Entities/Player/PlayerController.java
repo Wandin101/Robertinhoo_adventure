@@ -9,6 +9,7 @@ import io.github.some_example_name.Entities.Interatibles.Interactable;
 import io.github.some_example_name.Entities.Inventory.InventoryController;
 import io.github.some_example_name.Entities.Itens.Contact.InteractableHandler;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
+import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
 
 public class PlayerController {
     private final Robertinhoo player;
@@ -207,6 +208,12 @@ public class PlayerController {
             if (handler != null) {
                 Interactable interactable = handler.getCurrentInteractable();
                 if (interactable != null && interactable.isActive()) {
+                    if (interactable instanceof Room0Cabana) {
+                        Room0Cabana cabana = (Room0Cabana) interactable;
+                        if (cabana.getType() == Room0Cabana.CabanaType.PLAYER_HOUSE) {
+                            return; // Não chama onInteract()
+                        }
+                    }
                     interactable.onInteract();
                 }
             }

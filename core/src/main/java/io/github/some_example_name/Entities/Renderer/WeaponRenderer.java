@@ -6,6 +6,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Itens.Weapon.Calibre12.Calibre12;
+import io.github.some_example_name.Entities.Itens.Weapon.Revolver.Revolver;
+import io.github.some_example_name.Entities.Renderer.ReloadRenderer.RevolverReloadRenderer;
+import io.github.some_example_name.Entities.Renderer.ReloadRenderer.IReloadRenderer;
+
 import com.badlogic.gdx.graphics.g2d.Animation;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
 
@@ -20,7 +24,10 @@ public class WeaponRenderer {
     private Weapon weapon;
     private String weaponType;
 
-    // Variáveis específicas para recarga da espingarda
+    // Renderizadores de recarga específicos
+    private IReloadRenderer revolverReloadRenderer;
+
+    // Variáveis específicas para recarga da espingarda (ainda será mantida)
     private boolean isShotgunReloading = false;
     private int currentReloadStage = 0;
     private int currentShellInserted = 0;
@@ -32,6 +39,11 @@ public class WeaponRenderer {
         Gdx.app.log("WEAPON_RENDERER", "Carregando animações para: " + weaponType);
         this.animations = new WeaponAnimations(weaponType);
         this.currentState = Weapon.WeaponState.IDLE;
+
+        // Inicializa renderizadores específicos, se necessário
+        if (weapon instanceof Revolver) {
+            revolverReloadRenderer = new RevolverReloadRenderer();
+        }
     }
 
     public void update(float delta, Vector2 aimDirection, Weapon.WeaponState state,
@@ -39,17 +51,12 @@ public class WeaponRenderer {
 
         boolean isShotgun = weaponType.equals("Calibre12");
 
-        if (isShotgun && weapon instanceof Calibre12) {
-            Calibre12 shotgun = (Calibre12) weapon;
-
-            if (shotgun.getCurrentState() == Weapon.WeaponState.IDLE &&
-                    (isShotgunReloading || reloadTriggered)) {
-                isShotgunReloading = false;
-                reloadTriggered = false;
-                currentState = Weapon.WeaponState.IDLE;
-                animationCompleted = true;
-            }
+        if (state == Weapon.WeaponState.IDLE && reloadTriggered) {
+            reloadTriggered = false;
+            animationCompleted = true;
+            currentState = Weapon.WeaponState.IDLE;
         }
+
         if (reloadJustTriggered) {
             reloadTriggered = true;
             animationTime = 0f;
@@ -63,7 +70,8 @@ public class WeaponRenderer {
                 currentShellInserted = 0;
             }
         }
-        if (shotJustFired) {
+
+        else if (shotJustFired) {
             shotTriggered = true;
             animationTime = 0f;
             animationCompleted = false;
@@ -72,17 +80,33 @@ public class WeaponRenderer {
                 reloadTriggered = false;
                 isShotgunReloading = false;
             }
-        }
-        if (!reloadTriggered && !shotTriggered) {
+        } else {
+            // Sem eventos de transição: atualiza estado com o da arma e limpa flags se
+            // necessário
             currentState = state;
+
+            // Se a arma não está mais recarregando, limpa a flag de recarga
+            if (state != Weapon.WeaponState.RELOADING && reloadTriggered) {
+                reloadTriggered = false;
+                animationCompleted = true;
+            }
+            // Se a arma não está mais atirando, limpa a flag de tiro
+            if (state != Weapon.WeaponState.SHOOTING && shotTriggered) {
+                shotTriggered = false;
+            }
         }
 
+        // Atualiza a direção da mira
         currentDirection = getDirectionFromAngle(aimDirection.angleDeg());
         if (currentState == Weapon.WeaponState.IDLE && !shotTriggered && !reloadTriggered) {
             currentDirection = convertToCardinalDirection(currentDirection);
         }
+
+        // Atualiza o tempo da animação (se ainda não completou)
         if (!animationCompleted) {
             animationTime += delta;
+
+            // Lógica específica da espingarda
             if (isShotgun && isShotgunReloading && weapon instanceof Calibre12) {
                 Calibre12 shotgun = (Calibre12) weapon;
                 reloadAnimationTime += delta;
@@ -95,16 +119,26 @@ public class WeaponRenderer {
                     animationCompleted = true;
                 }
             }
+
             Weapon.WeaponState animState = getCurrentAnimationState();
             Animation<TextureRegion> anim = animations.getAnimation(currentDirection, animState);
 
-            if (anim != null && anim.isAnimationFinished(animationTime)) {
+            boolean isManualReload = (weapon instanceof Calibre12 && isShotgunReloading) ||
+                    (weapon instanceof Revolver && reloadTriggered);
+
+            if (!isManualReload && anim != null && anim.isAnimationFinished(animationTime)) {
                 animationCompleted = true;
                 shotTriggered = false;
                 if (!isShotgun && reloadTriggered) {
                     reloadTriggered = false;
                 }
             }
+        }
+
+        // Fallback: se a arma já está IDLE mas ainda em recarga manual, finaliza
+        if (currentState == Weapon.WeaponState.IDLE && reloadTriggered) {
+            reloadTriggered = false;
+            animationCompleted = true;
         }
     }
 
@@ -163,30 +197,27 @@ public class WeaponRenderer {
         TextureRegion frame = null;
         Animation<TextureRegion> anim = null;
         Weapon.WeaponState animState = getCurrentAnimationState();
-        boolean isShotgunReload = weaponType.equals("Calibre12") &&
-                animState == Weapon.WeaponState.RELOADING &&
-                isShotgunReloading;
 
-        if (isShotgunReload) {
-            frame = getShotgunReloadFrame();
+        boolean isReloading = (weapon instanceof Calibre12 && isShotgunReloading) ||
+                (weapon instanceof Revolver && reloadTriggered);
+
+        if (isReloading) {
+            frame = getReloadFrame();
         } else {
             WeaponDirection renderDirection = currentDirection;
-
-            if (animState == Weapon.WeaponState.IDLE && !shotTriggered) {
+            if (animState == Weapon.WeaponState.RELOADING) {
+                renderDirection = WeaponDirection.S;
+            } else if (animState == Weapon.WeaponState.IDLE && !shotTriggered) {
                 renderDirection = convertToCardinalDirection(currentDirection);
             }
 
             anim = animations.getAnimation(renderDirection, animState);
-
             if (anim != null) {
                 if (animState == Weapon.WeaponState.IDLE) {
-                    // Para IDLE, usar apenas o primeiro frame
                     frame = anim.getKeyFrame(0);
                 } else {
-                    // Para animações de shooting ou reloading (de outras armas)
                     frame = anim.getKeyFrame(animationTime, false);
                 }
-
                 if (animState == Weapon.WeaponState.SHOOTING && animations.needsFlip(renderDirection)) {
                     TextureRegion flipped = new TextureRegion(frame);
                     flipped.flip(true, false);
@@ -206,8 +237,9 @@ public class WeaponRenderer {
             return;
         }
 
+        // Determina a direção final para o offset de renderização
         WeaponDirection renderDirection = currentDirection;
-        if (isShotgunReload) {
+        if (animState == Weapon.WeaponState.RELOADING) {
             renderDirection = WeaponDirection.S;
         } else if (animState == Weapon.WeaponState.IDLE && !shotTriggered) {
             renderDirection = convertToCardinalDirection(currentDirection);
@@ -225,70 +257,67 @@ public class WeaponRenderer {
         batch.draw(frame, adjustedX, adjustedY, width, height);
     }
 
-    private TextureRegion getShotgunReloadFrame() {
-        if (!(weapon instanceof Calibre12)) {
-            return null;
+    private TextureRegion getReloadFrame() {
+        // Delegar para renderizadores especializados
+        if (weapon instanceof Revolver && revolverReloadRenderer != null) {
+            TextureRegion frame = revolverReloadRenderer.getReloadFrame(weapon, animations, reloadAnimationTime);
+            if (frame != null)
+                return frame;
         }
 
-        Calibre12 shotgun = (Calibre12) weapon;
+        // Fallback para lógica antiga (shotgun)
+        if (weapon instanceof Calibre12) {
+            return getShotgunReloadFrame((Calibre12) weapon);
+        }
+
+        return null;
+    }
+
+    private TextureRegion getShotgunReloadFrame(Calibre12 shotgun) {
         Animation<TextureRegion> reloadAnim = animations.getAnimation(WeaponDirection.S, Weapon.WeaponState.RELOADING);
-
-        if (reloadAnim == null) {
+        if (reloadAnim == null)
             return null;
-        }
-
         TextureRegion[] reloadFrames = reloadAnim.getKeyFrames();
-        if (reloadFrames.length < 10) {
+        if (reloadFrames.length < 10)
             return reloadFrames.length > 0 ? reloadFrames[0] : null;
-        }
 
         int stage = shotgun.getReloadStage();
         float progress = shotgun.getStageProgress();
 
         if (stage == 0) {
-            // Inclinação: frames 0-2
             int frameIndex = (int) (progress * 3);
             frameIndex = Math.min(frameIndex, 2);
             return reloadFrames[frameIndex];
-
         } else if (stage == 1) {
-            // Inserção das cápsulas: frames 3-9
             int frameIndex = 3 + (int) (progress * 7);
             frameIndex = Math.min(frameIndex, 9);
             return reloadFrames[frameIndex];
-
         } else if (stage == 2) {
-            // Finalização: inclinação reversa (primeira metade) + COCKING (segunda metade)
             if (progress < 0.5f) {
-                // 0.0 a 0.5: inclinação reversa (frames 2→0)
-                float reverseProgress = progress * 2; // 0 a 1
+                float reverseProgress = progress * 2;
                 int frameIndex = 2 - (int) (reverseProgress * 3);
                 frameIndex = Math.max(frameIndex, 0);
                 return reloadFrames[frameIndex];
             } else {
-                // 0.5 a 1.0: COCKING – frames 5,6,7 da animação de TIRO na direção SUL
                 Animation<TextureRegion> shootS = animations.getAnimation(WeaponDirection.S,
                         Weapon.WeaponState.SHOOTING);
                 if (shootS != null) {
                     TextureRegion[] shootFrames = shootS.getKeyFrames();
                     if (shootFrames.length >= 8) {
-                        float cockingProgress = (progress - 0.5f) * 2; // 0 a 1
+                        float cockingProgress = (progress - 0.5f) * 2;
                         int cockingIndex;
-                        if (cockingProgress < 0.33f) {
-                            cockingIndex = 5; // primeiro frame do cocking
-                        } else if (cockingProgress < 0.66f) {
-                            cockingIndex = 6; // segundo frame
-                        } else {
-                            cockingIndex = 7; // terceiro frame
-                        }
+                        if (cockingProgress < 0.33f)
+                            cockingIndex = 5;
+                        else if (cockingProgress < 0.66f)
+                            cockingIndex = 6;
+                        else
+                            cockingIndex = 7;
                         return shootFrames[cockingIndex];
                     }
                 }
-                // Fallback: se não conseguir os frames de tiro, retorna frame 0 do reload
                 return reloadFrames[0];
             }
         }
-
         return reloadFrames[0];
     }
 

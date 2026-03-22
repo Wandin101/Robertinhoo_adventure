@@ -76,7 +76,7 @@ public class Calibre12 extends Weapon {
             try {
                 Texture tex = new Texture("ITENS/12/bala.png");
                 shellTexture = new TextureRegion(tex);
-                ShellSystem.getInstance().init(mapa, shellTexture, 0.3f);
+                ShellSystem.getInstance().init(0.3f);
                 shellTextureLoaded = true;
                 System.out.println("✅ [Calibre12] Textura de cápsula carregada");
             } catch (Exception e) {
@@ -236,7 +236,7 @@ public class Calibre12 extends Weapon {
 
     @Override
     public TextureRegion getCurrentFrame(float delta) {
-        return new TextureRegion(iconTexture);
+        return icon;
     }
 
     @Override
@@ -286,7 +286,7 @@ public class Calibre12 extends Weapon {
                                 shootDir.y * -backAmount + perpY * sideAmount);
 
                         Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
-                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir);
+                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir, shellTexture);
                     }
                 }, 0.5f);
             }
