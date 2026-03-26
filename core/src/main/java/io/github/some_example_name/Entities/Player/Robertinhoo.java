@@ -28,11 +28,13 @@ import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
 import io.github.some_example_name.Entities.Inventory.Inventory;
 import io.github.some_example_name.Entities.Inventory.InventoryController;
+import io.github.some_example_name.Entities.Inventory.InventoryMapUpdater;
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations;
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowComponent;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
+import io.github.some_example_name.Entities.SoulShopSystem.SoulManager;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
@@ -109,6 +111,7 @@ public class Robertinhoo implements ShadowEntity {
     private FootstepSystem footstepSystem;
     private RobertinhoFaceHUD faceHUD;
     private PlayerRenderer renderer;
+    private SoulManager soulManager;
 
     public Robertinhoo(Mapa map, float x, float y, MapRenderer mapRenderer, PlayerRenderer playerRenderer) {
         this.map = map;
@@ -132,6 +135,7 @@ public class Robertinhoo implements ShadowEntity {
 
         createBody(x, y);
         this.footstepSystem = new FootstepSystem(this);
+        soulManager = new SoulManager();
 
     }
 
@@ -461,6 +465,7 @@ public class Robertinhoo implements ShadowEntity {
         this.map = newMap;
         this.pos.set(newPosition);
         updateInventoryControllerMap();
+        InventoryMapUpdater.updateInventoryForNewMap(inventoryController, newMap);
         createBody(newPosition.x, newPosition.y);
         // Mantém a vida atual
     }
@@ -580,5 +585,9 @@ public class Robertinhoo implements ShadowEntity {
     public void setState(int newState) {
         this.state = newState;
 
+    }
+
+    public SoulManager getSoulManager() {
+        return soulManager;
     }
 }

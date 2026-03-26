@@ -3,6 +3,7 @@ package io.github.some_example_name.Interface.Npcs;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.Random;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
+import io.github.some_example_name.Entities.Player.Robertinhoo;
+import io.github.some_example_name.Interface.ShopUI;
 
 public class EsmeraldaDialogue implements NpcDialogue {
     private Texture talkSheet;
@@ -24,7 +27,9 @@ public class EsmeraldaDialogue implements NpcDialogue {
     private String[] goodbyeMessages;
     private Random random = new Random();
     private boolean talking = true;
-
+    private int selectedOption = 0;
+    private ShopUI shopUI; // Referência para abrir a loja
+    private Robertinhoo player;
     // Listas de índices disponíveis para cada categoria (para evitar repetição)
     private List<Integer> availableWelcomeIndices;
     private List<Integer> availableTalkIndices;
@@ -43,7 +48,10 @@ public class EsmeraldaDialogue implements NpcDialogue {
     private String[] menuOptions = new String[3];
     private boolean waitingForChoice = false;
 
-    public EsmeraldaDialogue() {
+    public EsmeraldaDialogue(Robertinhoo player) {
+
+        this.player = player;
+        this.shopUI = new ShopUI(player); // l
         // Carrega sprite sheets
         talkSheet = new Texture("npcs/Esmeralda/Esmeralda_dialoge_neutral.png");
         int talkCols = 7;
@@ -242,8 +250,9 @@ public class EsmeraldaDialogue implements NpcDialogue {
                 break;
             case 1:
                 state = State.SHOP;
-                currentText = "A loja ainda não está pronta, volte depois.";
-                playRandomVoice();
+                if (shopUI != null) {
+                    shopUI.show();
+                }
                 break;
             case 2:
                 state = State.GOODBYE;
@@ -261,15 +270,46 @@ public class EsmeraldaDialogue implements NpcDialogue {
         return menuOptions;
     }
 
-    @Override
     public void reset() {
         state = State.WELCOME;
-        // Reinicia as listas de índices para começar um novo ciclo
         resetAvailableIndices();
         currentText = getNextWelcomeMessage();
         waitingForChoice = false;
         setTalking(true);
         playRandomVoice();
+        selectedOption = 0;
+    }
+
+    public void navigateUp() {
+        selectedOption--;
+        if (selectedOption < 0)
+            selectedOption = menuOptions.length - 1;
+    }
+
+    public void navigateDown() {
+        selectedOption++;
+        if (selectedOption >= menuOptions.length)
+            selectedOption = 0;
+    }
+
+    public int getSelectedOption() {
+        return selectedOption;
+    }
+
+    public void updateShop(float delta) {
+        if (shopUI != null && shopUI.isVisible()) {
+            shopUI.update(delta);
+        }
+    }
+
+    public void renderShop() {
+        if (shopUI != null && shopUI.isVisible()) {
+            shopUI.render();
+        }
+    }
+
+    public boolean isShopVisible() {
+        return shopUI != null && shopUI.isVisible();
     }
 
     @Override

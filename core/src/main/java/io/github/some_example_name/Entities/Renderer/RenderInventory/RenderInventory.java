@@ -168,7 +168,9 @@ public class RenderInventory {
 
         // ========== SHAPE RENDERER (COMPARTILHADO) ==========
         drawBackground(shapeRenderer);
-        gridRenderer.render(shapeRenderer);
+        uiBatch.begin();
+        gridRenderer.render(uiBatch);
+        uiBatch.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         if (placementItem != null) {

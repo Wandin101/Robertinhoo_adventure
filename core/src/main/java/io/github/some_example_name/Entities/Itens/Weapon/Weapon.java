@@ -35,6 +35,7 @@ public abstract class Weapon implements Item {
     protected float reloadDuration = 1.5f;
     protected Inventory inventory;
     protected float rotation = 0f;
+    protected Mapa mapa;
 
     public Body body;
 
@@ -90,6 +91,7 @@ public abstract class Weapon implements Item {
 
     public Weapon() {
         this.maxAmmo = 30;
+
         renderer.loadWeaponAnimations(this);
     }
 
@@ -269,4 +271,13 @@ public abstract class Weapon implements Item {
     public void setCurrentAmmo(int ammo) {
         this.ammo = ammo;
     }
+
+    public void setMapa(Mapa mapa) {
+        this.mapa = mapa;
+    }
+
+    public Mapa getMapa() {
+        return mapa;
+    }
+
 }

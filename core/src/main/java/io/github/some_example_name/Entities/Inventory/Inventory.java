@@ -478,4 +478,14 @@ public class Inventory {
     public InventoryController getInventoryController() {
         return robertinhoo.getInventoryController();
     }
+
+    public Vector2 getItemPosition(Item item) {
+        for (InventorySlot slot : slots) {
+            if (slot.item == item) {
+                return new Vector2(slot.x, slot.y);
+            }
+        }
+        return null;
+    }
+
 }

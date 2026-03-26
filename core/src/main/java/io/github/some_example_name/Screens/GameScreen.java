@@ -15,7 +15,10 @@ import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Interface.DebugHUD;
 import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
+import io.github.some_example_name.Interface.ShopUI;
 import io.github.some_example_name.Interface.WeaponHUD;
+import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
+import io.github.some_example_name.Interface.Npcs.NpcDialogue;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Screens.ScreenEffects.DeathSystem;
@@ -162,6 +165,13 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         }
 
         hudBatch.end();
+
+        NpcDialogue currentDialogue = npcInteractionHUD.getCurrentNpcDialogue();
+        if (currentDialogue instanceof EsmeraldaDialogue) {
+            EsmeraldaDialogue ed = (EsmeraldaDialogue) currentDialogue;
+            ed.updateShop(delta);
+            ed.renderShop(); // desenha o Stage
+        }
 
         // Debug HUD
         debugHUD.update(animationDelta);
