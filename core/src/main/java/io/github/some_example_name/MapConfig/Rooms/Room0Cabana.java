@@ -213,7 +213,8 @@ public class Room0Cabana implements Interactable {
         System.out.println("🛒 onInteract() chamado para cabana tipo: " + type);
         if (type == CabanaType.NPC_SHOP) {
             // Inicia o diálogo com a Esmeralda
-            io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue dialogo = new io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue();
+            io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue dialogo = new io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue(
+                    mapa.robertinhoo);
             NpcInteractionHUD.getInstance().startDialogue(dialogo);
         } else {
             // Para outras cabanas, apenas alterna a moldura simples

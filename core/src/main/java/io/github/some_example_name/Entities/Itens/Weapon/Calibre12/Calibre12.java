@@ -24,8 +24,6 @@ import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
 
 public class Calibre12 extends Weapon {
-
-    private Mapa mapa;
     private Inventory inventory;
     private Texture iconTexture;
     private float reloadTime = 0;
@@ -218,7 +216,7 @@ public class Calibre12 extends Weapon {
         bodyDef.type = BodyDef.BodyType.KinematicBody;
         bodyDef.position.set(position);
 
-        body = mapa.world.createBody(bodyDef);
+        body = getMapa().world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(0.7f, 0.7f);
@@ -257,7 +255,7 @@ public class Calibre12 extends Weapon {
         for (int i = 0; i < pelletCount; i++) {
             float angleVariation = (float) Math.toRadians(spreadAngle * (Math.random() - 0.5));
             Vector2 pelletDir = new Vector2(direction).rotateRad(angleVariation);
-            new Projectile(mapa, position, pelletDir.nor().scl(30f), damage * 0.7f, getName());
+            new Projectile(getMapa(), position, pelletDir.nor().scl(30f), damage * 0.7f, getName());
         }
 
         if (inventory != null && inventory.getPlayer() != null) {

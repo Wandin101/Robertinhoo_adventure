@@ -181,6 +181,14 @@ public class NpcInteractionHUD {
         if (!active)
             return;
 
+        if (currentNpcDialogue instanceof EsmeraldaDialogue) {
+            EsmeraldaDialogue ed = (EsmeraldaDialogue) currentNpcDialogue;
+            if (ed.isShopVisible()) {
+
+                return;
+            }
+        }
+
         stateTime += delta;
         animTime += delta;
 
@@ -205,44 +213,34 @@ public class NpcInteractionHUD {
                 displayedText = fullText.substring(0, charIndex);
                 if (charIndex >= fullText.length()) {
                     textFinished = true;
-                    currentNpcDialogue.setTalking(false); // para de falar
-                }
-            }
-        }
-
-        // Avançar fala com espaço
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            if (currentNpcDialogue != null) {
-                if (!textFinished) {
-                    // Completar instantaneamente
-                    displayedText = fullText;
-                    charIndex = fullText.length();
-                    textFinished = true;
                     currentNpcDialogue.setTalking(false);
-                } else {
-                    // Avança para a próxima fala
-                    if (!currentNpcDialogue.next()) {
-                        hide();
-                    } else {
-                        loadCurrentText();
-                        currentNpcDialogue.setTalking(true); // volta a falar
-                        currentBoxAlpha = 1f;
-                    }
                 }
-            } else {
-                hide();
             }
         }
 
-        // Opções numéricas para Esmeralda
+        // Lógica específica para Esmeralda (ou qualquer diálogo com opções)
         if (currentNpcDialogue instanceof EsmeraldaDialogue) {
             EsmeraldaDialogue ed = (EsmeraldaDialogue) currentNpcDialogue;
             if (ed.isWaitingForChoice()) {
-                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+                // Navegação por setas
+                if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+                    ed.navigateUp();
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+                    ed.navigateDown();
+                }
+                // Confirmação com Enter ou Espaço
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                    ed.chooseOption(ed.getSelectedOption());
+                    loadCurrentText();
+                    currentNpcDialogue.setTalking(true);
+                    textFinished = false;
+                }
+                // Também aceita números
+                else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
                     ed.chooseOption(0);
-                    loadCurrentText(); // carrega o novo texto (já definido em chooseOption)
-                    currentNpcDialogue.setTalking(true); // começa a falar a resposta
-                    textFinished = false; // reinicia digitação
+                    loadCurrentText();
+                    currentNpcDialogue.setTalking(true);
+                    textFinished = false;
                 } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
                     ed.chooseOption(1);
                     loadCurrentText();
@@ -253,6 +251,35 @@ public class NpcInteractionHUD {
                     loadCurrentText();
                     currentNpcDialogue.setTalking(true);
                     textFinished = false;
+                }
+            }
+        }
+
+        // Avançar fala com espaço (apenas se não estiver em menu e o texto já terminou)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            // Se não é Esmeralda ou não está esperando escolha, então avança
+            boolean isInMenu = (currentNpcDialogue instanceof EsmeraldaDialogue) &&
+                    ((EsmeraldaDialogue) currentNpcDialogue).isWaitingForChoice();
+            if (!isInMenu) {
+                if (currentNpcDialogue != null) {
+                    if (!textFinished) {
+                        // Completar instantaneamente
+                        displayedText = fullText;
+                        charIndex = fullText.length();
+                        textFinished = true;
+                        currentNpcDialogue.setTalking(false);
+                    } else {
+                        // Avança para a próxima fala
+                        if (!currentNpcDialogue.next()) {
+                            hide();
+                        } else {
+                            loadCurrentText();
+                            currentNpcDialogue.setTalking(true);
+                            currentBoxAlpha = 1f;
+                        }
+                    }
+                } else {
+                    hide();
                 }
             }
         }
@@ -301,13 +328,16 @@ public class NpcInteractionHUD {
             if (ed.isWaitingForChoice()) {
                 String[] options = ed.getMenuOptions();
                 float maxWidth = boxWidth - 2 * textMargin;
-                float baseY = boxY + boxHeight - textMargin - layout.height - 20; // abaixo do texto
+                float baseY = boxY + boxHeight - textMargin - layout.height - 20;
                 for (int i = 0; i < options.length; i++) {
-                    String opt = (i + 1) + ": " + options[i];
+                    String prefix = (i == ed.getSelectedOption()) ? "> " : "  ";
+                    String opt = prefix + (i + 1) + ": " + options[i];
                     layout.setText(font, opt, font.getColor(), maxWidth, Align.left, true);
                     float textY = baseY - i * (layout.height + 5);
+
                     font.draw(batch, layout, boxX + textMargin, textY);
                 }
+                font.setColor(1, 1, 1, 1);
             }
         }
 
@@ -316,6 +346,10 @@ public class NpcInteractionHUD {
 
     public boolean isActive() {
         return active;
+    }
+
+    public NpcDialogue getCurrentNpcDialogue() {
+        return currentNpcDialogue;
     }
 
     public void dispose() {

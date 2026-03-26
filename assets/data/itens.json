@@ -1,0 +1,9 @@
+[
+  {
+    "id": "pistol",
+    "name": "Pistola",
+    "price": 100,
+    "type": "weapon",
+    "iconPath": "ITENS/Pistol/GUN_01_[square_frame]_01_V1.00.png"
+  }
+]

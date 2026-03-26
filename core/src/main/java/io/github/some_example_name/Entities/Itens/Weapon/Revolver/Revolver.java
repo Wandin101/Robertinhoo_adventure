@@ -27,7 +27,6 @@ import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDire
 
 public class Revolver extends Weapon {
 
-    private Mapa mapa;
     private Texture iconTexture;
     private int revolverMaxAmmo = 6;
     protected Vector2 position;
@@ -102,6 +101,7 @@ public class Revolver extends Weapon {
         setRenderOffset(WeaponDirection.N, baseX + 8.0f, baseY + 10f);
         setRenderOffset(WeaponDirection.NE, baseX + 8f, baseY + 10f);
         setRenderOffset(WeaponDirection.NW, baseX + 8f, baseY + 10f);
+        setMapa(mapa);
     }
 
     @Override
@@ -199,7 +199,7 @@ public class Revolver extends Weapon {
         bodyDef.type = BodyDef.BodyType.KinematicBody;
         bodyDef.position.set(position);
 
-        body = mapa.world.createBody(bodyDef);
+        body = getMapa().world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(0.7f, 0.7f);
@@ -232,7 +232,7 @@ public class Revolver extends Weapon {
         if (!canShoot || ammo <= 0)
             return;
 
-        new Projectile(mapa, position, direction.nor().scl(40f), damage, getName());
+        new Projectile(getMapa(), position, direction.nor().scl(40f), damage, getName());
         shotsFired++;
 
         shotTriggered = true;

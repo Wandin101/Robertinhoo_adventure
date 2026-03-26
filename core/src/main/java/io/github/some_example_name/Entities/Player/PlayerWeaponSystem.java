@@ -72,38 +72,28 @@ public class PlayerWeaponSystem {
         if (weapon == null)
             return;
 
-        // Obtém a posição REAL do cano da arma
         Vector2 muzzleWorldPos = getTrueMuzzlePosition();
 
-        // Converte para coordenadas de tela
         float startX = mapRenderer.offsetX + muzzleWorldPos.x * MapRenderer.TILE_SIZE;
         float startY = mapRenderer.offsetY + muzzleWorldPos.y * MapRenderer.TILE_SIZE;
 
-        // Direção da mira (já normalizada)
         Vector2 direction = getAimDirection();
 
-        // Comprimento máximo da mira (em unidades do mundo)
-        float maxLengthWorld = 500f / MapRenderer.TILE_SIZE; // Ajuste conforme necessidade
+        float maxLengthWorld = 500f / MapRenderer.TILE_SIZE;
         float maxLengthPixels = maxLengthWorld * MapRenderer.TILE_SIZE;
 
-        // Verifica colisão com paredes usando raycast
         RayCastResult collision = rayCast(muzzleWorldPos, direction, maxLengthWorld);
 
-        // Calcula comprimento até colisão (em pixels)
         float collisionLengthPixels = 0;
         if (collision.hit) {
             collisionLengthPixels = collision.fraction * maxLengthPixels;
         }
-
-        // Obtém a mira da arma
         WeaponSight sight = weapon.getWeaponSight();
         if (sight != null) {
-            // Configurações de renderização
             Gdx.gl.glEnable(GL20.GL_BLEND);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             shapeRenderer.setColor(sight.color);
 
-            // Renderiza a mira customizada da arma
             sight.render(shapeRenderer,
                     new Vector2(startX, startY),
                     direction,
@@ -113,7 +103,7 @@ public class PlayerWeaponSystem {
             shapeRenderer.end();
             Gdx.gl.glDisable(GL20.GL_BLEND);
         } else {
-            // Fallback: mira padrão (linha cinza)
+
             Gdx.gl.glEnable(GL20.GL_BLEND);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             shapeRenderer.setColor(0.5f, 0.5f, 0.5f, 0.6f);

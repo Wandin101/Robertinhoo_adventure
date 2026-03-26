@@ -52,9 +52,11 @@ public class GameGameSoundsPaths {
         // public static final String CHEST_OPEN = "chest_open";
 
         // // UI
-        // public static final String UI_SELECT = "ui_select";
-        // public static final String UI_CONFIRM = "ui_confirm";
-        // public static final String UI_BACK = "ui_back";
+        // Inventory sounds
+        public static final String WEAPON_SELECTED = "arma_selecionada";
+        public static final String ITEM_PLACE_ERROR = "erro_incerir_item";
+        public static final String ITEM_PLACE_SUCCESS = "sucesso_incerir_item";
+        public static final String ITEM_DRAG_START = "arrasta_item_selecionado";
     }
 
     // === MÚSICAS ===
@@ -137,6 +139,10 @@ public class GameGameSoundsPaths {
         audio.loadSound(Sounds.BULLET_GROUND_1, "Sounds/bullet_caindo1.ogg");
         audio.loadSound(Sounds.BULLET_GROUND_2, "Sounds/bullet_caindo2.ogg");
         audio.loadSound(Sounds.BULLET_GROUND_3, "Sounds/bullet_caindo3.ogg");
+        audio.loadSound(Sounds.WEAPON_SELECTED, "Sounds/arma_selecionada.ogg");
+        audio.loadSound(Sounds.ITEM_PLACE_ERROR, "Sounds/erro_incerir_item.ogg");
+        audio.loadSound(Sounds.ITEM_PLACE_SUCCESS, "Sounds/sucesso_incerir_item.ogg");
+        audio.loadSound(Sounds.ITEM_DRAG_START, "Sounds/arrasta_item_selecionado.ogg");
         Gdx.app.log("ASSETS", "Todos os assets de áudio carregados!");
     }
 }

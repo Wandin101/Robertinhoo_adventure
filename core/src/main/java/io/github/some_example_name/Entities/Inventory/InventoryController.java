@@ -13,6 +13,8 @@ import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryContextMenu;
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryContextMenu;
 
 import java.util.ArrayList;
@@ -144,20 +146,31 @@ public class InventoryController {
             maxY = gridRows - selectedItem.getGridHeight();
         }
 
-        // Movimento do cursor
+        // Movimento do cursor com som de "arrastar" se houver item selecionado
+        boolean moved = false;
         if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
             cursorGridX = Math.max(0, cursorGridX - 1);
+            moved = true;
         }
         if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
             cursorGridX = Math.min(maxX, cursorGridX + 1);
+            moved = true;
         }
         if (Gdx.input.isKeyJustPressed(Keys.UP)) {
             cursorGridY = Math.max(0, cursorGridY - 1);
+            moved = true;
         }
         if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
             cursorGridY = Math.min(maxY, cursorGridY + 1);
+            moved = true;
+        }
+        // Toca som de arrastar quando move o cursor com item selecionado
+        if (moved && selectedItem != null) {
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START);
+            Gdx.app.log("INVENTORY", "ITEM_DRAG_START triggered (cursor move)");
         }
 
+        // ENTER: seleciona ou coloca
         if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
             if (selectedItem == null) {
                 Item item = inventory.getItemAt(cursorGridX, cursorGridY);
@@ -165,32 +178,7 @@ public class InventoryController {
                     selectItem(item, cursorGridX, cursorGridY);
                 }
             } else {
-                // Tenta colocar na posição do cursor
-                if (inventory.placeItem(selectedItem, cursorGridX, cursorGridY)) {
-                    selectedItem = null;
-                    System.out.println("[DEBUG] Item colocado em (" + cursorGridX + "," + cursorGridY + ")");
-                } else {
-                    // Tenta colocar na posição original com a rotação atual
-                    if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
-                        selectedItem = null;
-                        System.out.println("[DEBUG] Item voltou para posição original com nova rotação");
-                    } else {
-                        // Se não couber na original, reverte a rotação e tenta de novo
-                        while (selectedItem.getRotation() != originalRotation) {
-                            selectedItem.rotate();
-                        }
-                        if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
-                            selectedItem = null;
-                            System.out.println("[DEBUG] Item voltou para posição original (rotação revertida)");
-                        } else {
-                            // Caso extremo: não coube nem com rotação original (deveria ser impossível)
-                            // Nesse caso, o item é perdido – mas aqui podemos, por exemplo, dropar no chão
-                            dropItem(selectedItem);
-                            selectedItem = null;
-                            System.out.println("[ERRO] Não foi possível recolocar o item, soltando no chão");
-                        }
-                    }
-                }
+                attemptToPlaceSelectedItem(cursorGridX, cursorGridY);
             }
         }
 
@@ -200,7 +188,6 @@ public class InventoryController {
             selectedItem.rotate();
             System.out.println("[DEBUG] Item rotacionado. Novas dimensões: " + selectedItem.getGridWidth() + "x"
                     + selectedItem.getGridHeight());
-            // Ajusta cursor para não ultrapassar os limites (após rotação)
             int newMaxX = inventory.gridCols - selectedItem.getGridWidth();
             int newMaxY = inventory.gridRows - selectedItem.getGridHeight();
             cursorGridX = Math.min(cursorGridX, newMaxX);
@@ -345,6 +332,7 @@ public class InventoryController {
                 }
 
                 if (inventory.placeItem(currentPlacementItem, placementGridX, placementGridY)) {
+                    AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_SUCCESS);
                     if (currentPlacementItem instanceof Weapon) {
                         ((Weapon) currentPlacementItem).destroyBody();
                         mapa.getWeapons().remove(currentPlacementItem);
@@ -354,6 +342,9 @@ public class InventoryController {
                         mapa.getAmmo().remove(ammo);
                     }
                     exitPlacementMode(true);
+                } else {
+                    Gdx.app.log("INVENTORY", "ITEM_PLACE_ERROR (placement mode placeItem falhou)");
+                    AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR);
                 }
             }
         }
@@ -412,69 +403,9 @@ public class InventoryController {
 
     public void enterPlacementMode(Item item) {
 
-        System.out.println("\n=== 🎯 ENTER PLACEMENT MODE (DEBUG DETALHADO) ===");
-        System.out.println("   - Item: " + item);
-        System.out.println("   - Item class: " + item.getClass().getName());
-        System.out.println("   - Item hashCode: " + System.identityHashCode(item));
-
-        // DEBUG DO MAPA
-        System.out.println("\n🔍 DEBUG DO MAPA:");
-        System.out.println("   - mapa reference: " + mapa);
-        System.out.println("   - mapa hashCode: " + System.identityHashCode(mapa));
-        System.out.println("   - mapa.world field: " + mapa.world);
-        System.out.println("   - mapa.getWorld() method: " + (mapa != null ? mapa.world : "mapa é null"));
-
-        // DEBUG DO MUNDO
-        if (mapa != null && mapa.world != null) {
-            System.out.println("   - mapa.world is NOT null");
-            System.out.println("   - mapa.world hashCode: " + System.identityHashCode(mapa.world));
-            System.out.println("   - mapa.world.getBodyCount(): " + mapa.world.getBodyCount());
-        } else {
-            System.out.println("   - ⚠️ mapa.world É NULL!");
-        }
-
-        // DEBUG DO ITEM
-        System.out.println("\n🔍 DEBUG DO ITEM:");
-        System.out.println("   - item.getBody(): " + item.getBody());
-        if (item.getBody() != null) {
-            System.out.println("   - item.getBody().getWorld(): " + item.getBody().getWorld());
-            System.out.println("   - item.getBody().getWorld() hashCode: " +
-                    System.identityHashCode(item.getBody().getWorld()));
-
-            // Verificar se o mundo do item ainda é válido
-            try {
-                System.out.println("   - item.getBody().getWorld().getBodyCount(): " +
-                        item.getBody().getWorld().getBodyCount());
-            } catch (Exception e) {
-                System.out.println("   - ❌ ERRO ao acessar mundo do item: " + e.getMessage());
-            }
-        } else {
-            System.out.println("   - item.getBody() É NULL!");
-        }
-
-        // COMPARAÇÃO
-        System.out.println("\n🔍 COMPARAÇÃO DOS MUNDOS:");
-        if (mapa != null && mapa.world != null && item.getBody() != null) {
-            boolean worldsEqual = (item.getBody().getWorld() == mapa.world);
-            System.out.println("   - São o MESMO mundo? " + worldsEqual);
-            System.out.println("   - item world: " + item.getBody().getWorld());
-            System.out.println("   - mapa world: " + mapa.world);
-            System.out.println("   - São iguais por equals()? " +
-                    item.getBody().getWorld().equals(mapa.world));
-        } else {
-            System.out.println("   - ⚠️ Não é possível comparar (alguma referência é null)");
-        }
         if (item != null) {
             placementMode = true;
             currentPlacementItem = item;
-
-            boolean isInCorrectWorld = false;
-            if (item.getBody() != null) {
-                isInCorrectWorld = (item.getBody().getWorld() == mapa.world);
-                System.out.println("   - Item no mundo correto? " + isInCorrectWorld);
-                System.out.println("   - Mundo do item: " + item.getBody().getWorld());
-                System.out.println("   - Mundo do mapa: " + mapa.world);
-            }
 
             if (item instanceof Weapon) {
                 mapa.getWeapons().remove(item);
@@ -588,10 +519,10 @@ public class InventoryController {
 
     public void selectItemAtCursor() {
         if (selectedItem == null) {
-            selectedItem = inventory.getItemAt(cursorGridX, cursorGridY);
-            if (selectedItem != null) {
-                originalGridX = cursorGridX;
-                originalGridY = cursorGridY;
+            Item item = inventory.getItemAt(cursorGridX, cursorGridY);
+            if (item != null) {
+                selectItem(item, cursorGridX, cursorGridY);
+                AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.WEAPON_SELECTED);
             }
         } else {
             if (inventory.moveItem(selectedItem, cursorGridX, cursorGridY)) {
@@ -604,6 +535,8 @@ public class InventoryController {
         this.selectedItem = item;
         this.originalGridX = gridX;
         this.originalGridY = gridY;
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START);
+        Gdx.app.log("INVENTORY", "ITEM_DRAG_START triggered");
     }
 
     public void completeDrag(int gridX, int gridY) {
@@ -649,30 +582,66 @@ public class InventoryController {
         inventory.unequipWeapon();
     }
 
-    public void selectItem(Item item, int gridX, int gridY) {
+    public void selectItem(Item item, int clickGridX, int clickGridY) {
+        Vector2 realPos = inventory.getItemPosition(item);
+        if (realPos == null) {
+            Gdx.app.log("INVENTORY", "Item não encontrado nos slots do inventário!");
+            return;
+        }
+        int realX = (int) realPos.x;
+        int realY = (int) realPos.y;
+
         if (inventory.removeItem(item)) {
             this.selectedItem = item;
-            this.originalGridX = gridX;
-            this.originalGridY = gridY;
-            this.originalRotation = item.getRotation(); // ← salva rotação original
-            this.cursorGridX = gridX;
-            this.cursorGridY = gridY;
-            System.out.println("[DEBUG] Item selecionado: " + item.getName() + " em (" + gridX + "," + gridY + ")");
+            this.originalGridX = realX;
+            this.originalGridY = realY;
+            this.originalRotation = item.getRotation();
+            this.cursorGridX = clickGridX; // posição do clique (para o cursor)
+            this.cursorGridY = clickGridY;
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.WEAPON_SELECTED);
+        } else {
+            Gdx.app.log("INVENTORY", "Falha ao remover item do inventário em selectItem");
         }
     }
 
     public void tryPlaceSelectedItem(int gridX, int gridY) {
+        attemptToPlaceSelectedItem(gridX, gridY);
+    }
+
+    private boolean attemptToPlaceSelectedItem(int targetX, int targetY) {
         if (selectedItem == null)
-            return;
-        if (inventory.placeItem(selectedItem, gridX, gridY)) {
+            return false;
+
+        // Tenta colocar na posição alvo
+        if (inventory.placeItem(selectedItem, targetX, targetY)) {
             selectedItem = null;
-            System.out.println("[DEBUG] Item colocado em (" + gridX + "," + gridY + ")");
-        } else {
-            // Não coube, volta pra original
-            inventory.placeItem(selectedItem, originalGridX, originalGridY);
-            selectedItem = null;
-            System.out.println("[DEBUG] Não coube, item voltou para (" + originalGridX + "," + originalGridY + ")");
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_SUCCESS);
+            inventory.debugPrintGrid();
+            return true;
         }
+
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR);
+
+        if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
+            selectedItem = null;
+            inventory.debugPrintGrid();
+            return true; // recolocado, mas sem som adicional
+        }
+
+        while (selectedItem.getRotation() != originalRotation) {
+            selectedItem.rotate();
+        }
+        if (inventory.placeItem(selectedItem, originalGridX, originalGridY)) {
+            selectedItem = null;
+            inventory.debugPrintGrid();
+            return true;
+        }
+
+        // Falha total: solta item no chão
+        dropItem(selectedItem);
+        selectedItem = null;
+        inventory.debugPrintGrid();
+        return false;
     }
 
     public void cancelSelection() {

@@ -8,6 +8,8 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
 import io.github.some_example_name.Entities.Renderer.RenderInventory.InventoryContextMenu;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.Color;
@@ -80,10 +82,11 @@ public class InventoryMouseController implements InputProcessor {
                 return true;
             }
         } else if (button == Buttons.RIGHT) {
-            // Clique direito: se houver item selecionado, cancela (volta à posição
-            // original)
+
             if (controller.getSelectedItem() != null) {
                 controller.cancelSelection();
+
+                AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR);
                 return true;
             }
             // Caso contrário, prepara para abrir menu de contexto
@@ -146,33 +149,6 @@ public class InventoryMouseController implements InputProcessor {
         gridY = MathUtils.clamp(gridY, 0, gridRows - 1);
 
         return new Vector2(gridX, gridY);
-    }
-
-    public void renderDebugGridArea(ShapeRenderer shapeRenderer) {
-        if (!controller.isInventoryOpen())
-            return;
-
-        float startX = controller.getInventoryStartX();
-        float startY = controller.getInventoryStartY();
-        float cellSize = controller.getCellSize();
-        int gridCols = inventory.gridCols;
-        int gridRows = inventory.gridRows;
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.RED);
-
-        shapeRenderer.rect(startX, startY, gridCols * cellSize, gridRows * cellSize);
-
-        for (int x = 0; x <= gridCols; x++) {
-            float lineX = startX + x * cellSize;
-            shapeRenderer.line(lineX, startY, lineX, startY + gridRows * cellSize);
-        }
-        for (int y = 0; y <= gridRows; y++) {
-            float lineY = startY + y * cellSize;
-            shapeRenderer.line(startX, lineY, startX + gridCols * cellSize, lineY);
-        }
-
-        shapeRenderer.end();
     }
 
     @Override
