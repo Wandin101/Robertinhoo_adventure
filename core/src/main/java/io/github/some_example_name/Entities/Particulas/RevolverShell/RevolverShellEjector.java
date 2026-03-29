@@ -41,7 +41,7 @@ public class RevolverShellEjector {
             return;
 
         Vector2 baseDir = direction.cpy().nor();
-        float groundY = playerPos.y - 0.25f; // altura dos pés
+        float groundY = playerPos.y - 0.25f;
 
         for (int i = 0; i < count; i++) {
             float angleOffset = MathUtils.random(-22f, 22f);
@@ -51,12 +51,17 @@ public class RevolverShellEjector {
 
             Vector2 spawnPos = playerPos.cpy().add(baseDir.scl(0.45f));
 
+            // Gera rotação e velocidade angular aleatórias
+            float rotation = MathUtils.random(360f);
+            float angularVelocity = MathUtils.random(-400f, 400f);
+
             Shell shell = new Shell();
-            shell.init(spawnPos, ejectDir, texture, scale, groundY);
+            // Ajuste os parâmetros conforme a assinatura atual do Shell.init
+            // Se forem 8 parâmetros, adicione um último valor (ex: 0f)
+            shell.init(spawnPos, ejectDir, texture, scale, groundY, rotation, angularVelocity, 0f);
             activeShells.add(shell);
         }
 
-        // Se ultrapassou o limite, remove as mais antigas
         while (activeShells.size > MAX_SHELLS) {
             Shell oldest = activeShells.first();
             oldest.dispose();

@@ -34,22 +34,26 @@ public class Shell {
         soundPlayed = false;
     }
 
-    public void init(Vector2 spawnPos, Vector2 direction, TextureRegion texture, float scale, float groundY) {
+    public void init(Vector2 spawnPos, Vector2 direction, TextureRegion texture, float scale, float groundY,
+            float upwardForce, float angularVelocityMin, float angularVelocityMax) {
         this.position.set(spawnPos);
         this.groundY = groundY;
 
+        // Velocidade inicial: recuo + lateral + impulso vertical
         this.velocity.set(direction).scl(-1.2f);
         this.velocity.x += MathUtils.random(-0.6f, 0.6f);
-        this.velocity.y += MathUtils.random(1.2f, 2.0f);
+        this.velocity.y += MathUtils.random(upwardForce - 0.3f, upwardForce + 0.3f); // intervalo em torno do valor
 
+        // Rotação com valores personalizados
         this.rotation = MathUtils.random(360f);
-        this.angularVelocity = MathUtils.random(-400f, 400f);
+        this.angularVelocity = MathUtils.random(angularVelocityMin, angularVelocityMax);
 
         this.texture = texture;
         this.width = texture.getRegionWidth() * scale;
         this.height = texture.getRegionHeight() * scale;
         this.onGround = false;
-        soundPlayed = false;
+        this.soundPlayed = false;
+        this.alive = true;
     }
 
     public void update(float delta) {

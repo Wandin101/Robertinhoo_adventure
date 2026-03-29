@@ -11,6 +11,7 @@ import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraBruta;
 import io.github.some_example_name.Entities.Itens.CraftinItens.PolvoraReforcada;
 import io.github.some_example_name.Entities.Itens.Weapon.Pistol.Pistol;
 import io.github.some_example_name.Entities.Itens.Weapon.Calibre12.Calibre12;
+import io.github.some_example_name.Entities.Itens.Weapon.DesertEagle.DesertEagle;
 import io.github.some_example_name.Entities.Itens.Weapon.Revolver.Revolver;
 import io.github.some_example_name.MapConfig.Spawner.BarrelSpawner;
 import io.github.some_example_name.MapConfig.Spawner.GrassSpawner;
@@ -161,10 +162,12 @@ public class EntitySpawner {
         Vector2 pistolPos = mapa.tileToWorld(3, 3);
         Vector2 calibre12Pos = mapa.tileToWorld(6, 3);
         Vector2 revolverPos = mapa.tileToWorld(9, 3);
+        Vector2 desertEaglePos = mapa.tileToWorld(12, 3);
 
         mapa.weapons.add(new Pistol(mapa, pistolPos.x, pistolPos.y, mapa.robertinhoo.getInventory()));
         mapa.weapons.add(new Calibre12(mapa, calibre12Pos.x, calibre12Pos.y, mapa.robertinhoo.getInventory()));
         mapa.weapons.add(new Revolver(mapa, revolverPos.x, revolverPos.y, mapa.robertinhoo.getInventory()));
+        mapa.weapons.add(new DesertEagle(mapa, desertEaglePos.x, desertEaglePos.y, mapa.robertinhoo.getInventory()));
         // Munição
         mapa.ammo.add(new Ammo9mm(mapa, mapa.tileToWorld(3, 5).x, mapa.tileToWorld(3, 5).y));
         mapa.ammo.add(new Ammo9mm(mapa, mapa.tileToWorld(6, 5).x, mapa.tileToWorld(6, 5).y));

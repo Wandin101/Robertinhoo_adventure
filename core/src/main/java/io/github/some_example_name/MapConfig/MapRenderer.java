@@ -28,6 +28,8 @@ import io.github.some_example_name.Entities.Particulas.BloodParticleSystem;
 import io.github.some_example_name.Entities.Particulas.MagicParticle.MagicParticleSystem;
 import io.github.some_example_name.Entities.Particulas.RevolverShell.RevolverShellEjector;
 import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
+import io.github.some_example_name.Entities.Particulas.Smoke.SmokeAnimations;
+import io.github.some_example_name.Entities.Particulas.Smoke.SmokeSystem;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.TileRenderer;
 import io.github.some_example_name.Entities.Renderer.AmmoRenderer.AmmoRenderer;
@@ -181,6 +183,8 @@ public class MapRenderer {
             mapa.robertinhoo.setMapRenderer(this);
             System.out.println("✅ MapRenderer: PlayerWeaponSystem vinculado ao novo MapRenderer");
         }
+        SmokeAnimations smokeAnim = new SmokeAnimations();
+        SmokeSystem.getInstance().init(smokeAnim.getAnimation(), 0.2f); // escala
 
         hudShapeRenderer = new ShapeRenderer();
         hudSpriteBatch = new SpriteBatch();
@@ -299,7 +303,30 @@ public class MapRenderer {
         float playerX = offsetX + (player.bounds.x * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
         float playerY = offsetY + (player.bounds.y * TILE_SIZE) - (playerRenderer.getRenderScale(player) - 1) * 8;
         player.getWeaponSystem().renderWeapon(spriteBatch, delta, player, playerX, playerY);
+        // ==================== PARTÍCULAS ====================
+        particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
+        bloodParticleSystem.update(delta, cameraPosWorld);
+        ShellSystem.getInstance().update(delta);
+        RevolverShellEjector.getInstance().update(delta);
+        SmokeSystem.getInstance().update(delta);
+        if (magicParticleSystem != null) {
+            float left = offsetX;
+            float right = offsetX + mapa.mapWidth * TILE_SIZE;
+            float bottom = offsetY;
+            float top = offsetY + mapa.mapHeight * TILE_SIZE;
+            magicParticleSystem.update(delta, left, right, bottom, top);
+        }
 
+        particleBatch.begin();
+        bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
+        bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
+        ShellSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
+        RevolverShellEjector.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
+        SmokeSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
+        if (magicParticleSystem != null) {
+            magicParticleSystem.render(particleBatch);
+        }
+        particleBatch.end();
         // Inimigos
         for (Enemy enemy : mapa.getEnemies()) {
             if (enemy instanceof Ratinho) {
@@ -358,29 +385,6 @@ public class MapRenderer {
         craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
 
         spriteBatch.end(); // Fim das entidades
-
-        // ==================== PARTÍCULAS ====================
-        particleBatch.setProjectionMatrix(cameraController.getCamera().combined);
-        bloodParticleSystem.update(delta, cameraPosWorld);
-        ShellSystem.getInstance().update(delta);
-        RevolverShellEjector.getInstance().update(delta);
-        if (magicParticleSystem != null) {
-            float left = offsetX;
-            float right = offsetX + mapa.mapWidth * TILE_SIZE;
-            float bottom = offsetY;
-            float top = offsetY + mapa.mapHeight * TILE_SIZE;
-            magicParticleSystem.update(delta, left, right, bottom, top);
-        }
-
-        particleBatch.begin();
-        bloodParticleRenderer.render(particleBatch, bloodParticleSystem, offsetX, offsetY);
-        bloodParticleSystem.renderPools(particleBatch, offsetX, offsetY, TILE_SIZE);
-        ShellSystem.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
-        RevolverShellEjector.getInstance().render(particleBatch, offsetX, offsetY, TILE_SIZE);
-        if (magicParticleSystem != null) {
-            magicParticleSystem.render(particleBatch);
-        }
-        particleBatch.end();
 
         // ==================== ILUMINAÇÃO ====================
         if (isRoom0 && room0Door != null) {

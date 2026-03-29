@@ -1,10 +1,5 @@
 package io.github.some_example_name.Entities.Player;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.ai.steer.Steerable;
-import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -112,6 +107,7 @@ public class Robertinhoo implements ShadowEntity {
     private RobertinhoFaceHUD faceHUD;
     private PlayerRenderer renderer;
     private SoulManager soulManager;
+    private RecoilSystem recoilSystem;
 
     public Robertinhoo(Mapa map, float x, float y, MapRenderer mapRenderer, PlayerRenderer playerRenderer) {
         this.map = map;
@@ -136,6 +132,7 @@ public class Robertinhoo implements ShadowEntity {
         createBody(x, y);
         this.footstepSystem = new FootstepSystem(this);
         soulManager = new SoulManager();
+        recoilSystem = new RecoilSystem();
 
     }
 
@@ -196,6 +193,9 @@ public class Robertinhoo implements ShadowEntity {
     }
 
     public void update(float deltaTime) {
+        if (recoilSystem.isActive()) {
+            recoilSystem.update(body, deltaTime);
+        }
 
         inventoryController.update(deltaTime);
         playerController.update(deltaTime);
@@ -589,5 +589,9 @@ public class Robertinhoo implements ShadowEntity {
 
     public SoulManager getSoulManager() {
         return soulManager;
+    }
+
+    public void startRecoil(Vector2 shootDirection, float strength, float duration) {
+        recoilSystem.startRecoil(shootDirection, strength, duration);
     }
 }

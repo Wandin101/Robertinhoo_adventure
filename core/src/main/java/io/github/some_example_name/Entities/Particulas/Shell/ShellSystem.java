@@ -27,11 +27,18 @@ public class ShellSystem {
     }
 
     public void spawn(Vector2 position, Vector2 direction, TextureRegion texture, float groundY) {
-        Shell shell = new Shell();
-        shell.init(position, direction, texture, scale, groundY);
-        activeShells.add(shell);
+        spawn(position, direction, texture, groundY, 1.5f, -400f, 400f); // valores da Calibre12
+    }
 
-        // FIFO: remove as mais antigas se exceder o limite
+    public void spawn(Vector2 position, Vector2 direction, TextureRegion texture, float groundY,
+            float upwardForce, float angularVelMin, float angularVelMax) {
+        if (texture == null) {
+            System.err.println("[ShellSystem] Textura nula!");
+            return;
+        }
+        Shell shell = new Shell();
+        shell.init(position, direction, texture, scale, groundY, upwardForce, angularVelMin, angularVelMax);
+        activeShells.add(shell);
         while (activeShells.size > MAX_SHELLS) {
             Shell oldest = activeShells.first();
             activeShells.removeIndex(0);

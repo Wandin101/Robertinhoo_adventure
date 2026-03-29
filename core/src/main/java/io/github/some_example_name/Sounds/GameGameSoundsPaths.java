@@ -28,6 +28,12 @@ public class GameGameSoundsPaths {
         public static final String REVOLVER_RELOAD_ROTATE = "revolver_reload_rotate";
         public static final String REVOLVER_RELOAD_CLICK = "revolver_reload_click";
 
+        // Sons da Desert Eagle
+        public static final String DESERT_EAGLE_SHOOT = "desert_shoot";
+        public static final String DESERT_EAGLE_RELOAD_OPEN = "desert_open";
+        public static final String DESERT_EAGLE_RELOAD_INSERT = "desert_insert";
+        public static final String DESERT_EAGLE_RELOAD_CLICK = "desert_click";
+
         public static final String BULLET_GROUND_1 = "bullet_ground_1";
         public static final String BULLET_GROUND_2 = "bullet_ground_2";
         public static final String BULLET_GROUND_3 = "bullet_ground_3";
@@ -135,6 +141,11 @@ public class GameGameSoundsPaths {
         audio.loadSound(Sounds.REVOLVER_RELOAD_INSERT, "Sounds/revolver/revolver_reload_insert.ogg");
         audio.loadSound(Sounds.REVOLVER_RELOAD_ROTATE, "Sounds/revolver/revolver_reload_rotate.ogg");
         audio.loadSound(Sounds.REVOLVER_RELOAD_CLICK, "Sounds/revolver/revolver_reload_click.ogg");
+
+        audio.loadSound(Sounds.DESERT_EAGLE_SHOOT, "Sounds/desert/desert_shoot.ogg");
+        audio.loadSound(Sounds.DESERT_EAGLE_RELOAD_OPEN, "Sounds/desert/desert_open.ogg");
+        audio.loadSound(Sounds.DESERT_EAGLE_RELOAD_INSERT, "Sounds/desert/desert_incert.ogg");
+        audio.loadSound(Sounds.DESERT_EAGLE_RELOAD_CLICK, "Sounds/desert/click_desert.ogg");
 
         audio.loadSound(Sounds.BULLET_GROUND_1, "Sounds/bullet_caindo1.ogg");
         audio.loadSound(Sounds.BULLET_GROUND_2, "Sounds/bullet_caindo2.ogg");
