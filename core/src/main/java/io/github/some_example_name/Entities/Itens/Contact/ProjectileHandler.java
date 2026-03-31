@@ -95,6 +95,7 @@ public class ProjectileHandler implements ContactHandler {
         if (weaponName != null) {
             switch (weaponName.toLowerCase()) {
                 case "calibre12":
+                case "deserteagle":
                     return DeathType.HIGH_CALIBER;
                 case "pistol":
                 case "revolver":

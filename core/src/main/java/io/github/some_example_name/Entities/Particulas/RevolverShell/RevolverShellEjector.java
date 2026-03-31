@@ -41,7 +41,7 @@ public class RevolverShellEjector {
             return;
 
         Vector2 baseDir = direction.cpy().nor();
-        float groundY = playerPos.y - 0.25f; // altura dos pés
+        float groundY = playerPos.y - 0.25f;
 
         for (int i = 0; i < count; i++) {
             float angleOffset = MathUtils.random(-22f, 22f);
@@ -51,12 +51,16 @@ public class RevolverShellEjector {
 
             Vector2 spawnPos = playerPos.cpy().add(baseDir.scl(0.45f));
 
+            // Dentro do laço for, após calcular ejectDir:
+            float upwardForce = MathUtils.random(1.2f, 2.0f); // força vertical (igual ao ShellSystem)
+            float angularVelMin = -400f;
+            float angularVelMax = 400f;
+
             Shell shell = new Shell();
-            shell.init(spawnPos, ejectDir, texture, scale, groundY);
+            shell.init(spawnPos, ejectDir, texture, scale, groundY, upwardForce, angularVelMin, angularVelMax);
             activeShells.add(shell);
         }
 
-        // Se ultrapassou o limite, remove as mais antigas
         while (activeShells.size > MAX_SHELLS) {
             Shell oldest = activeShells.first();
             oldest.dispose();

@@ -1,4 +1,4 @@
-package io.github.some_example_name.Entities.Itens.Weapon.Revolver;
+package io.github.some_example_name.Entities.Itens.Weapon.DesertEagle;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -8,6 +8,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.utils.Timer;
 
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Sounds.AudioManager;
@@ -17,76 +18,74 @@ import io.github.some_example_name.Entities.Itens.Contact.Constants;
 import io.github.some_example_name.Entities.Itens.Weapon.IReloadSystem;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
-import io.github.some_example_name.Entities.Particulas.RevolverShell.RevolverShellEjector;
+import io.github.some_example_name.Entities.Itens.Weapon.Weapon.TipoMao;
+import io.github.some_example_name.Entities.Particulas.Shell.ShellSystem;
+import io.github.some_example_name.Entities.Particulas.Smoke.SmokeSystem;
+import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Player.WeaponSight;
 import io.github.some_example_name.Entities.Renderer.WeaponAnimations.WeaponDirection;
 
-public class Revolver extends Weapon {
+public class DesertEagle extends Weapon {
 
+    private Mapa mapa;
     private Texture iconTexture;
-    private int revolverMaxAmmo = 6;
+    private int maxAmmo = 7; // capacidade padrão
     protected Vector2 position;
 
-    private IReloadSystem reloadSystem; // Usamos a interface
+    private IReloadSystem reloadSystem;
 
     private static TextureRegion shellTexture;
     private static boolean shellTextureLoaded = false;
     private int shotsFired = 0;
-    private boolean shellsEjected = false;
-    private Vector2 lastAimDirection = new Vector2(1, 0);
-
-    public void setAimDirection(Vector2 direction) {
-        lastAimDirection.set(direction);
-    }
 
     private float shootingTime = 0f;
     private static final float SHOOTING_STATE_DURATION = 0.5f;
 
-    public Revolver(Mapa mapa, float x, float y, Inventory inventory) {
+    public DesertEagle(Mapa mapa, float x, float y, Inventory inventory) {
         super();
-        this.maxAmmo = revolverMaxAmmo;
-        this.ammo = this.maxAmmo;
+        this.maxAmmo = maxAmmo;
+        this.ammo = maxAmmo; // começa cheia
         this.position = new Vector2(x, y);
         this.mapa = mapa;
         this.inventory = inventory;
-        this.fireRate = 1f;
-        this.damage = 25f;
-        this.iconTexture = new Texture("ITENS/Revolver/revolver_icon.png");
+        this.fireRate = 1.2f; // um pouco mais lento que a pistola
+        this.damage = 45f; // dano alto
+        this.iconTexture = new Texture("ITENS/DesertEagle/desert_eagle_icon.png");
         this.icon = new TextureRegion(iconTexture);
-
+        setMapa(mapa);
         createBody(this.position);
 
         this.gridWidth = 3;
         this.gridHeight = 2;
         rebuildOccupiedCells();
 
-        // Carregar textura da cápsula
+        // Carregar textura da cápsula (usar mesma da pistola ou uma específica)
         if (!shellTextureLoaded) {
             try {
-                Texture tex = new Texture("ITENS/Revolver/capsulaRevolver.png");
+                Texture tex = new Texture("ITENS/DesertEagle/capsula.png");
                 shellTexture = new TextureRegion(tex);
-                RevolverShellEjector.getInstance().init(0.12f); // escala das cápsulas
+                ShellSystem.getInstance().init(0.1f); // escala ajustável
                 shellTextureLoaded = true;
-                System.out.println("✅ [Revolver] Textura de cápsula carregada");
+                System.out.println("✅ [DesertEagle] Textura de cápsula carregada");
             } catch (Exception e) {
-                System.err.println("❌ [Revolver] Erro ao carregar capsulaRevolver.png: " + e.getMessage());
+                System.err.println("❌ [DesertEagle] Erro ao carregar capsula.png: " + e.getMessage());
             }
         }
 
-        // Instancia o sistema de recarga específico
-        reloadSystem = new RevolverReloadSystem();
+        // Instancia o sistema de recarga
+        reloadSystem = new DesertEagleReloadSystem();
 
-        // Offsets do cano (muzzle)
+        // Offsets do cano (valores aproximados – ajustar depois)
         setMuzzleOffset(WeaponDirection.N, new Vector2(4, 8));
         setMuzzleOffset(WeaponDirection.NE, new Vector2(8, 6));
         setMuzzleOffset(WeaponDirection.NW, new Vector2(0, 6));
         setMuzzleOffset(WeaponDirection.E, new Vector2(10, 2));
         setMuzzleOffset(WeaponDirection.W, new Vector2(-2, 2));
-        setMuzzleOffset(WeaponDirection.S, new Vector2(4, -2));
+        setMuzzleOffset(WeaponDirection.S, new Vector2(6, -2));
         setMuzzleOffset(WeaponDirection.SE, new Vector2(8, -2));
         setMuzzleOffset(WeaponDirection.SW, new Vector2(0, -2));
 
-        // Offsets de renderização
+        // Offsets de renderização (baseados na pistola, podem ser ajustados)
         float baseX = -8f;
         float baseY = -12f;
         setRenderOffset(WeaponDirection.S, baseX + 5.0f, baseY + 18f);
@@ -94,10 +93,10 @@ public class Revolver extends Weapon {
         setRenderOffset(WeaponDirection.SE, baseX + 8f, baseY + 10f);
         setRenderOffset(WeaponDirection.E, baseX + 8.0f, baseY + 10f);
         setRenderOffset(WeaponDirection.W, baseX + 8.0f, baseY + 10f);
-        setRenderOffset(WeaponDirection.N, baseX + 8.0f, baseY + 10f);
+        setRenderOffset(WeaponDirection.N, baseX + 8.0f, baseY + 8f);
         setRenderOffset(WeaponDirection.NE, baseX + 8f, baseY + 10f);
         setRenderOffset(WeaponDirection.NW, baseX + 8f, baseY + 10f);
-        setMapa(mapa);
+
     }
 
     @Override
@@ -107,7 +106,7 @@ public class Revolver extends Weapon {
 
     @Override
     public int getMaxAmmo() {
-        return revolverMaxAmmo;
+        return maxAmmo;
     }
 
     @Override
@@ -122,7 +121,6 @@ public class Revolver extends Weapon {
             currentState = WeaponState.RELOADING;
             reloadJustTriggered = true;
         }
-        shellsEjected = false; // reset para nova recarga
     }
 
     @Override
@@ -130,9 +128,8 @@ public class Revolver extends Weapon {
         updateFloatation(delta);
         timeSinceLastShot += delta;
 
-        if (timeSinceLastShot >= 1 / fireRate) {
+        if (timeSinceLastShot >= 1 / fireRate)
             canShoot = true;
-        }
 
         if (currentState == WeaponState.SHOOTING) {
             shootingTime += delta;
@@ -142,52 +139,13 @@ public class Revolver extends Weapon {
             }
         }
 
-        if (currentState == WeaponState.RELOADING && reloadSystem.isReloading()) {
+        if (currentState == WeaponState.RELOADING) {
             reloadSystem.update(delta);
-
-            int stage = reloadSystem.getCurrentStage();
-            float progress = reloadSystem.getStageProgress();
-            if (stage == 0) {
-                System.out.println("[Revolver] stage=0, progress=" + progress + ", shellsEjected=" + shellsEjected
-                        + ", shotsFired=" + shotsFired);
-            }
-            if (stage == 0 && progress > 0.8f && !shellsEjected && shotsFired > 0 && shellTexture != null) {
-                Vector2 playerPos = inventory.getPlayer().getBody().getPosition();
-                RevolverShellEjector.getInstance().ejectMultiple(
-                        playerPos,
-                        lastAimDirection,
-                        shotsFired,
-                        shellTexture);
-                System.out.println("[Revolver] Ejetou " + shotsFired + " cápsulas.");
-                shotsFired = 0;
-                shellsEjected = true;
+            if (!reloadSystem.isReloading()) {
+                currentState = WeaponState.IDLE;
+                reloadJustTriggered = false;
             }
         }
-        if (currentState == WeaponState.RELOADING && !reloadSystem.isReloading()) {
-            currentState = WeaponState.IDLE;
-            reloadJustTriggered = false;
-            shellsEjected = false;
-        }
-    }
-
-    public boolean isReloading() {
-        return reloadSystem.isReloading();
-    }
-
-    public int getReloadStage() {
-        return reloadSystem.getCurrentStage();
-    }
-
-    public int getShellsInserted() {
-        return reloadSystem.getShellsInserted();
-    }
-
-    public int getShellsToInsert() {
-        return reloadSystem.getShellsToInsert();
-    }
-
-    public float getStageProgress() {
-        return reloadSystem.getStageProgress();
     }
 
     public void createBody(Vector2 position) {
@@ -198,7 +156,7 @@ public class Revolver extends Weapon {
         body = getMapa().world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(0.7f, 0.7f);
+        shape.setAsBox(0.6f, 0.6f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -213,7 +171,7 @@ public class Revolver extends Weapon {
 
     @Override
     public TextureRegion getCurrentFrame(float delta) {
-        return new TextureRegion(iconTexture);
+        return icon;
     }
 
     @Override
@@ -222,15 +180,62 @@ public class Revolver extends Weapon {
             reloadSystem.cancel();
             currentState = WeaponState.SHOOTING;
             reloadJustTriggered = false;
-            shellsEjected = false;
         }
 
         if (!canShoot || ammo <= 0)
             return;
 
-        new Projectile(getMapa(), position, direction.nor().scl(40f), damage, getName());
-        shotsFired++;
+        // Normaliza a direção
+        Vector2 normalizedDir = direction.cpy().nor();
 
+        // Disparo
+        new Projectile(getMapa(), position, normalizedDir.scl(45f), damage, getName());
+
+        if (inventory != null && inventory.getPlayer() != null) {
+            Robertinhoo player = inventory.getPlayer();
+            Body playerBody = player.getBody();
+            if (playerBody != null) {
+                float recoilStrength = 1f;
+                float recoilDuration = 0.25f;
+                player.startRecoil(normalizedDir, recoilStrength, recoilDuration);
+                Vector2 playerPos = player.getBody().getPosition();
+                float angle = normalizedDir.angleDeg(); // ou ângulo da direção do tiro
+                SmokeSystem.getInstance().spawn(playerPos, angle);
+            }
+
+        }
+
+        // Ejeção da cápsula
+        if (inventory != null && inventory.getPlayer() != null) {
+            Robertinhoo player = inventory.getPlayer();
+            final Body playerBody = player.getBody();
+            if (playerBody != null) {
+                final Vector2 playerPos = playerBody.getPosition().cpy();
+                final Vector2 shootDir = normalizedDir.cpy();
+
+                Timer.schedule(new Timer.Task() {
+                    @Override
+                    public void run() {
+                        Vector2 safeDir = shootDir.cpy().nor();
+
+                        float perpX = safeDir.y;
+                        float perpY = -safeDir.x;
+                        float backAmount = 0.15f;
+                        float sideAmount = 0.25f;
+
+                        Vector2 ejectionOffset = new Vector2(
+                                safeDir.x * -backAmount + perpX * sideAmount,
+                                safeDir.y * -backAmount + perpY * sideAmount);
+
+                        Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
+                        float groundY = playerPos.y - 0.25f;
+                        ShellSystem.getInstance().spawn(shellSpawnPos, safeDir, shellTexture, groundY);
+                    }
+                }, 0.1f);
+            }
+        }
+
+        // Atualiza estado da arma
         shotTriggered = true;
         ammo--;
         canShoot = false;
@@ -238,7 +243,7 @@ public class Revolver extends Weapon {
         currentState = WeaponState.SHOOTING;
         shootingTime = 0f;
 
-        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.REVOLVER_SHOOT, 0.8f);
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.DESERT_EAGLE_SHOOT, 0.8f);
     }
 
     @Override
@@ -265,13 +270,13 @@ public class Revolver extends Weapon {
     }
 
     @Override
-    public Revolver copy() {
-        return new Revolver(mapa, (int) position.x, (int) position.y, inventory);
+    public DesertEagle copy() {
+        return new DesertEagle(mapa, (int) position.x, (int) position.y, inventory);
     }
 
     @Override
     public String getName() {
-        return "Revolver";
+        return "desertEagle";
     }
 
     @Override
@@ -281,12 +286,34 @@ public class Revolver extends Weapon {
 
     @Override
     public WeaponSight getWeaponSight() {
-
-        WeaponSight.BrawlPistolSight sight = new WeaponSight.BrawlPistolSight();
-        sight.color = new Color(0.9f, 0.9f, 0.9f, 0.25f); // Branco transparente
-        sight.lineWidth = 4f;
-        sight.endMarkerSize = 6;
+        // Mira de ponto (precisa)
+        WeaponSight.ConeSight sight = new WeaponSight.ConeSight();
+        sight.color = new Color(1f, 0.5f, 0f, 0.3f);
+        sight.lineWidth = 1f;
+        sight.spreadAngle = 3f;
+        sight.coneSegments = 8;
         return sight;
+    }
+
+    // Getters para o renderizador (usados na recarga)
+    public int getReloadStage() {
+        return reloadSystem.getCurrentStage();
+    }
+
+    public int getShellsInserted() {
+        return reloadSystem.getShellsInserted();
+    }
+
+    public int getShellsToInsert() {
+        return reloadSystem.getShellsToInsert();
+    }
+
+    public float getStageProgress() {
+        return reloadSystem.getStageProgress();
+    }
+
+    public boolean isReloading() {
+        return reloadSystem.isReloading();
     }
 
     public void dispose() {

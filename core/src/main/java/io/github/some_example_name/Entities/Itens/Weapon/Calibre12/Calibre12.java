@@ -272,20 +272,20 @@ public class Calibre12 extends Weapon {
                 Timer.schedule(new Timer.Task() {
                     @Override
                     public void run() {
-                        playerBody.applyForceToCenter(recoilForce.scl(-1), true);
+                        Vector2 safeDir = shootDir.cpy().nor();
 
-                        float perpX = shootDir.y;
-                        float perpY = -shootDir.x;
+                        float perpX = safeDir.y;
+                        float perpY = -safeDir.x;
                         float backAmount = 0.15f;
                         float sideAmount = 0.25f;
 
                         Vector2 ejectionOffset = new Vector2(
-                                shootDir.x * -backAmount + perpX * sideAmount,
-                                shootDir.y * -backAmount + perpY * sideAmount);
+                                safeDir.x * -backAmount + perpX * sideAmount,
+                                safeDir.y * -backAmount + perpY * sideAmount);
 
                         Vector2 shellSpawnPos = playerPos.cpy().add(ejectionOffset);
                         float groundY = playerPos.y - 0.25f;
-                        ShellSystem.getInstance().spawn(shellSpawnPos, shootDir, shellTexture, groundY);
+                        ShellSystem.getInstance().spawn(shellSpawnPos, safeDir, shellTexture, groundY);
                     }
                 }, 0.5f);
             }

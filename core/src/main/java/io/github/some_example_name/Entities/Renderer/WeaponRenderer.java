@@ -6,8 +6,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Itens.Weapon.Calibre12.Calibre12;
+import io.github.some_example_name.Entities.Itens.Weapon.DesertEagle.DesertEagle;
 import io.github.some_example_name.Entities.Itens.Weapon.Revolver.Revolver;
 import io.github.some_example_name.Entities.Renderer.ReloadRenderer.RevolverReloadRenderer;
+import io.github.some_example_name.Entities.Renderer.ReloadRenderer.DesertEagleReloadRenderer;
 import io.github.some_example_name.Entities.Renderer.ReloadRenderer.IReloadRenderer;
 
 import com.badlogic.gdx.graphics.g2d.Animation;
@@ -26,6 +28,7 @@ public class WeaponRenderer {
 
     // Renderizadores de recarga específicos
     private IReloadRenderer revolverReloadRenderer;
+    private IReloadRenderer desertEagleReloadRenderer;
 
     // Variáveis específicas para recarga da espingarda (ainda será mantida)
     private boolean isShotgunReloading = false;
@@ -43,6 +46,10 @@ public class WeaponRenderer {
         // Inicializa renderizadores específicos, se necessário
         if (weapon instanceof Revolver) {
             revolverReloadRenderer = new RevolverReloadRenderer();
+        }
+
+        if (weapon instanceof DesertEagle) {
+            desertEagleReloadRenderer = new DesertEagleReloadRenderer();
         }
     }
 
@@ -258,18 +265,20 @@ public class WeaponRenderer {
     }
 
     private TextureRegion getReloadFrame() {
-        // Delegar para renderizadores especializados
         if (weapon instanceof Revolver && revolverReloadRenderer != null) {
             TextureRegion frame = revolverReloadRenderer.getReloadFrame(weapon, animations, reloadAnimationTime);
             if (frame != null)
                 return frame;
         }
+        if (weapon instanceof DesertEagle && desertEagleReloadRenderer != null) {
+            TextureRegion frame = desertEagleReloadRenderer.getReloadFrame(weapon, animations, reloadAnimationTime);
+            if (frame != null)
+                return frame;
+        }
 
-        // Fallback para lógica antiga (shotgun)
         if (weapon instanceof Calibre12) {
             return getShotgunReloadFrame((Calibre12) weapon);
         }
-
         return null;
     }
 

@@ -23,9 +23,13 @@ public class WeaponAnimations implements Disposable {
     private Texture shotgunReloadSheet;
     private Texture revolverIdleSheet; // Para o idle separado do revólver
     private Texture revolverReloadSheet;
+    private Texture desertEagleIdleSheet;
+    private Texture desertEagleReloadSheet;
 
     public static final int REVOLVER_RELOAD_FRAMES = 17;
     public static final float REVOLVER_RELOAD_FRAME_DURATION = 0.15f; //
+    public static final float DESERT_EAGLE_RELOAD_FRAME_DURATION = 0.15f;
+    public static final int DESERT_EAGLE_RELOAD_FRAMES = 13;
 
     public WeaponAnimations(String weaponTypeStr) {
         if (weaponTypeStr.equals("Pistol")) {
@@ -34,6 +38,9 @@ public class WeaponAnimations implements Disposable {
             this.weaponType = WeaponType.SHOTGUN;
         } else if (weaponTypeStr.equals("Revolver")) {
             this.weaponType = WeaponType.REVOLVER;
+
+        } else if (weaponTypeStr.equals("DesertEagle")) {
+            this.weaponType = WeaponType.DESERT_EAGLE;
         } else {
             this.weaponType = WeaponType.PISTOL;
         }
@@ -67,6 +74,17 @@ public class WeaponAnimations implements Disposable {
             texturesList.add(revolverReloadSheet);
             System.out.println("✅ [WeaponAnimations] Spritesheet de recarga do revólver carregado");
             setupRevolverReload();
+        } else if (weaponTypeStr.equals("DesertEagle")) {
+            loadMultiRowAnimation(texturesList, "ITENS/DesertEagle/desert_shoot.png",
+                    WeaponType.DESERT_EAGLE, 5, 6);
+            desertEagleIdleSheet = new Texture(Gdx.files.internal("ITENS/DesertEagle/desert_eagle_idle.png"));
+            texturesList.add(desertEagleIdleSheet);
+            System.out.println("✅ [WeaponAnimations] Spritesheet de idle da Desert Eagle carregado");
+            setupDesertEagleIdle();
+            desertEagleReloadSheet = new Texture(Gdx.files.internal("ITENS/DesertEagle/reload.png"));
+            texturesList.add(desertEagleReloadSheet);
+            System.out.println("✅ [WeaponAnimations] Spritesheet de recarga da Desert Eagle carregado");
+            setupDesertEagleReload();
         }
 
         return texturesList.toArray(new Texture[0]);
@@ -123,10 +141,48 @@ public class WeaponAnimations implements Disposable {
         // renderer
     }
 
+    private void setupDesertEagleIdle() {
+        int cols = 2;
+        int rows = 2;
+        int frameWidth = desertEagleIdleSheet.getWidth() / cols;
+        int frameHeight = desertEagleIdleSheet.getHeight() / rows;
+        WeaponDirection[][] idleMap = {
+                { WeaponDirection.N, WeaponDirection.S },
+                { WeaponDirection.W, WeaponDirection.E }
+        };
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                TextureRegion idleFrame = new TextureRegion(desertEagleIdleSheet,
+                        col * frameWidth, row * frameHeight, frameWidth, frameHeight);
+                Animation<TextureRegion> idleAnim = new Animation<>(0.2f, idleFrame);
+                animations[idleMap[row][col].ordinal()][WeaponState.IDLE.ordinal()] = idleAnim;
+            }
+        }
+    }
+
+    private void setupDesertEagleReload() {
+        int totalFrames = 13;
+        int cols = totalFrames;
+        int rows = 1;
+        int frameWidth = desertEagleReloadSheet.getWidth() / cols;
+        int frameHeight = desertEagleReloadSheet.getHeight();
+        TextureRegion[] reloadFrames = new TextureRegion[totalFrames];
+        for (int i = 0; i < totalFrames; i++) {
+            reloadFrames[i] = new TextureRegion(desertEagleReloadSheet,
+                    i * frameWidth, 0, frameWidth, frameHeight);
+        }
+        Animation<TextureRegion> reloadAnim = new Animation<>(DESERT_EAGLE_RELOAD_FRAME_DURATION, reloadFrames);
+        for (WeaponDirection dir : WeaponDirection.values()) {
+            animations[dir.ordinal()][WeaponState.RELOADING.ordinal()] = reloadAnim;
+        }
+    }
+
     private enum WeaponType {
         PISTOL(8, 6, 0.5f / 6.0f, 0.1f, false),
         SHOTGUN(6, 11, 1.0f / 11.0f, 0.15f, true),
-        REVOLVER(5, 6, 0.5f / 6.0f, 0.1f, true); // usa flip para E, SE, NW
+        REVOLVER(5, 6, 0.5f / 6.0f, 0.1f, true),
+        DESERT_EAGLE(5, 6, 0.5f / 6.0f, 0.1f, true);
+        ; // usa flip para E, SE, NW
 
         public final int rows;
         public final int cols;
@@ -224,6 +280,15 @@ public class WeaponAnimations implements Disposable {
                         WeaponDirection.S, // linha 2
                         WeaponDirection.NE, // linha 3
                         WeaponDirection.N // linha 4
+                };
+
+            case DESERT_EAGLE:
+                return new WeaponDirection[] {
+                        WeaponDirection.S, // linha 0
+                        WeaponDirection.N, // linha 1
+                        WeaponDirection.W, // linha 2
+                        WeaponDirection.NE, // linha 3
+                        WeaponDirection.SW // linha 4
                 };
             default:
                 return new WeaponDirection[0];
@@ -333,6 +398,17 @@ public class WeaponAnimations implements Disposable {
                     // Fallback para idle de S se algo mais faltar
                     return animations[WeaponDirection.S.ordinal()][Weapon.WeaponState.IDLE.ordinal()];
             }
+        } else if (weaponType == WeaponType.DESERT_EAGLE) {
+            switch (direction) {
+                case E:
+                    return animations[WeaponDirection.W.ordinal()][state.ordinal()];
+                case SE:
+                    return animations[WeaponDirection.SW.ordinal()][state.ordinal()];
+                case NW:
+                    return animations[WeaponDirection.NE.ordinal()][state.ordinal()];
+                default:
+                    return animations[WeaponDirection.S.ordinal()][Weapon.WeaponState.IDLE.ordinal()];
+            }
         } else {
             return animations[WeaponDirection.S.ordinal()][Weapon.WeaponState.IDLE.ordinal()];
         }
@@ -341,7 +417,7 @@ public class WeaponAnimations implements Disposable {
     public boolean needsFlip(WeaponDirection direction) {
         if (weaponType == WeaponType.SHOTGUN) {
             return (direction == WeaponDirection.NW || direction == WeaponDirection.SW);
-        } else if (weaponType == WeaponType.REVOLVER) {
+        } else if (weaponType == WeaponType.REVOLVER || weaponType == WeaponType.DESERT_EAGLE) {
             // Direções que não existem na sheet e serão obtidas por flip
             return (direction == WeaponDirection.E ||
                     direction == WeaponDirection.SE ||
