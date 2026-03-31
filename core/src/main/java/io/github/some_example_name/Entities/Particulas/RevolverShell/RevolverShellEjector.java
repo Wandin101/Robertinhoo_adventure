@@ -51,14 +51,13 @@ public class RevolverShellEjector {
 
             Vector2 spawnPos = playerPos.cpy().add(baseDir.scl(0.45f));
 
-            // Gera rotação e velocidade angular aleatórias
-            float rotation = MathUtils.random(360f);
-            float angularVelocity = MathUtils.random(-400f, 400f);
+            // Dentro do laço for, após calcular ejectDir:
+            float upwardForce = MathUtils.random(1.2f, 2.0f); // força vertical (igual ao ShellSystem)
+            float angularVelMin = -400f;
+            float angularVelMax = 400f;
 
             Shell shell = new Shell();
-            // Ajuste os parâmetros conforme a assinatura atual do Shell.init
-            // Se forem 8 parâmetros, adicione um último valor (ex: 0f)
-            shell.init(spawnPos, ejectDir, texture, scale, groundY, rotation, angularVelocity, 0f);
+            shell.init(spawnPos, ejectDir, texture, scale, groundY, upwardForce, angularVelMin, angularVelMax);
             activeShells.add(shell);
         }
 
