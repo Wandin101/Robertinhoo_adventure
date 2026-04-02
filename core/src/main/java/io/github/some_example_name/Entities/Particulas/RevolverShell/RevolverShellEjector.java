@@ -51,8 +51,7 @@ public class RevolverShellEjector {
 
             Vector2 spawnPos = playerPos.cpy().add(baseDir.scl(0.45f));
 
-            // Dentro do laço for, após calcular ejectDir:
-            float upwardForce = MathUtils.random(1.2f, 2.0f); // força vertical (igual ao ShellSystem)
+            float upwardForce = MathUtils.random(1.2f, 2.0f);
             float angularVelMin = -400f;
             float angularVelMax = 400f;
 
