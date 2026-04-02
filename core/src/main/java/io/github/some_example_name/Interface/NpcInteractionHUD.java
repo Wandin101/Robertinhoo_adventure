@@ -181,14 +181,7 @@ public class NpcInteractionHUD {
         if (!active)
             return;
 
-        if (currentNpcDialogue instanceof EsmeraldaDialogue) {
-            EsmeraldaDialogue ed = (EsmeraldaDialogue) currentNpcDialogue;
-            if (ed.isShopVisible()) {
-
-                return;
-            }
-        }
-
+        // Atualiza tempo da animação e do fade-in (sempre)
         stateTime += delta;
         animTime += delta;
 
@@ -204,7 +197,7 @@ public class NpcInteractionHUD {
             currentBoxAlpha = Math.min(1f, boxProgress);
         }
 
-        // Efeito de digitação
+        // Efeito de digitação (sempre)
         if (currentNpcDialogue != null && !textFinished) {
             textTimer += delta;
             int targetChars = (int) (textTimer / CHAR_DELAY);
@@ -218,68 +211,69 @@ public class NpcInteractionHUD {
             }
         }
 
-        // Lógica específica para Esmeralda (ou qualquer diálogo com opções)
-        if (currentNpcDialogue instanceof EsmeraldaDialogue) {
-            EsmeraldaDialogue ed = (EsmeraldaDialogue) currentNpcDialogue;
-            if (ed.isWaitingForChoice()) {
-                // Navegação por setas
-                if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-                    ed.navigateUp();
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-                    ed.navigateDown();
-                }
-                // Confirmação com Enter ou Espaço
-                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                    ed.chooseOption(ed.getSelectedOption());
-                    loadCurrentText();
-                    currentNpcDialogue.setTalking(true);
-                    textFinished = false;
-                }
-                // Também aceita números
-                else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-                    ed.chooseOption(0);
-                    loadCurrentText();
-                    currentNpcDialogue.setTalking(true);
-                    textFinished = false;
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-                    ed.chooseOption(1);
-                    loadCurrentText();
-                    currentNpcDialogue.setTalking(true);
-                    textFinished = false;
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-                    ed.chooseOption(2);
-                    loadCurrentText();
-                    currentNpcDialogue.setTalking(true);
-                    textFinished = false;
+        boolean shopVisible = (currentNpcDialogue instanceof EsmeraldaDialogue) &&
+                ((EsmeraldaDialogue) currentNpcDialogue).isShopVisible();
+
+        if (!shopVisible) {
+            // Lógica específica para Esmeralda (menu de opções)
+            if (currentNpcDialogue instanceof EsmeraldaDialogue) {
+                EsmeraldaDialogue ed = (EsmeraldaDialogue) currentNpcDialogue;
+                if (ed.isWaitingForChoice()) {
+                    // Navegação por setas
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+                        ed.navigateUp();
+                    } else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+                        ed.navigateDown();
+                    }
+                    // Confirmação com Enter ou Espaço
+                    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                        ed.chooseOption(ed.getSelectedOption());
+                        loadCurrentText();
+                        currentNpcDialogue.setTalking(true);
+                        textFinished = false;
+                    }
+                    // Também aceita números
+                    else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+                        ed.chooseOption(0);
+                        loadCurrentText();
+                        currentNpcDialogue.setTalking(true);
+                        textFinished = false;
+                    } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+                        ed.chooseOption(1);
+                        loadCurrentText();
+                        currentNpcDialogue.setTalking(true);
+                        textFinished = false;
+                    } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+                        ed.chooseOption(2);
+                        loadCurrentText();
+                        currentNpcDialogue.setTalking(true);
+                        textFinished = false;
+                    }
                 }
             }
-        }
 
-        // Avançar fala com espaço (apenas se não estiver em menu e o texto já terminou)
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            // Se não é Esmeralda ou não está esperando escolha, então avança
-            boolean isInMenu = (currentNpcDialogue instanceof EsmeraldaDialogue) &&
-                    ((EsmeraldaDialogue) currentNpcDialogue).isWaitingForChoice();
-            if (!isInMenu) {
-                if (currentNpcDialogue != null) {
-                    if (!textFinished) {
-                        // Completar instantaneamente
-                        displayedText = fullText;
-                        charIndex = fullText.length();
-                        textFinished = true;
-                        currentNpcDialogue.setTalking(false);
-                    } else {
-                        // Avança para a próxima fala
-                        if (!currentNpcDialogue.next()) {
-                            hide();
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                boolean isInMenu = (currentNpcDialogue instanceof EsmeraldaDialogue) &&
+                        ((EsmeraldaDialogue) currentNpcDialogue).isWaitingForChoice();
+                if (!isInMenu) {
+                    if (currentNpcDialogue != null) {
+                        if (!textFinished) {
+                            displayedText = fullText;
+                            charIndex = fullText.length();
+                            textFinished = true;
+                            currentNpcDialogue.setTalking(false);
                         } else {
-                            loadCurrentText();
-                            currentNpcDialogue.setTalking(true);
-                            currentBoxAlpha = 1f;
+                            if (!currentNpcDialogue.next()) {
+                                hide();
+                            } else {
+                                loadCurrentText();
+                                currentNpcDialogue.setTalking(true);
+                                currentBoxAlpha = 1f;
+                            }
                         }
+                    } else {
+                        hide();
                     }
-                } else {
-                    hide();
                 }
             }
         }
@@ -350,6 +344,16 @@ public class NpcInteractionHUD {
 
     public NpcDialogue getCurrentNpcDialogue() {
         return currentNpcDialogue;
+    }
+
+    public void reloadCurrentText() {
+        if (currentNpcDialogue != null) {
+            fullText = currentNpcDialogue.getCurrentText();
+            displayedText = "";
+            charIndex = 0;
+            textTimer = 0f;
+            textFinished = false;
+        }
     }
 
     public void dispose() {

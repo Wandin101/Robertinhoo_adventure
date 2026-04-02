@@ -13,10 +13,10 @@
         "leave": "Sair"
       },
       "talk_responses": [
-        "EntãO, qual burrada te trouxe pra esse buraco?",
+        "Então, qual burrada te trouxe pra esse buraco?",
         "Relaxa. Todo mundo chega confiante assim na primeira vez.",
         "A boa notícia é que eu vendo armas. A má é que você vai precisar de muitas.",
-        "Hmm… aposto três moedas que você não passa da próxima câmara.",
+        "Hmm aposto três moedas que você não passa da próxima câmara.",
         "Gosto de clientes como você. Ingênuos e cheios de esperança.",
         "Se morrer rápido, pelo menos não vai desperdiçar meu tempo.",
         "Você tem cara de quem ainda acredita que essa caverna tem final feliz.",
@@ -28,6 +28,37 @@
         "Boa sorte… você vai precisar.",
         "Tenta não morrer muito rápido.",
         "Volta inteiro. Cliente morto não compra nada."
+      ],
+      "shop_open_messages": [
+        "Vai lá, escolhe. Mas tenta não pegar algo acima do teu nível… ou da tua capacidade cognitiva.",
+        "Tudo à venda. Inclusive sua dignidade, mas essa você já perdeu na entrada.",
+        "Fica à vontade… adoro ver cliente indeciso fingindo que entende de equipamento.",
+        "Relaxa, gatinho. Eu explico devagar… se você prometer acompanhar.",
+        "Escolhe rápido. Tenho um bolão rolando de quanto tempo você dura vivo."
+      ],
+
+      "shop_purchase_messages": [
+        "Boa. Pelo menos uma decisão não completamente estúpida.",
+        "Olha só… evolução. Pequena, mas eu reconheço esforço.",
+        "Essa arma já salvou gente mais burra que você, então talvez funcione.",
+        "Hmm… interessante. Talvez você não morra na próxima sala. Talvez.",
+        "Mais uma venda. Adoro quando o desespero vira lucro."
+      ],
+
+      "shop_no_purchase_messages": [
+        "Ué… só veio passear? Isso aqui não é museu não, filhotinho.",
+        "Entendi… fase da negação. Clássico antes da morte.",
+        "Tá economizando? Fofo. A caverna adora gente despreparada.",
+        "Sem comprar nada? Corajoso… ou só burro mesmo.",
+        "Volta quando aceitar que vai precisar de ajuda pra não virar estatística."
+      ],
+
+      "shop_insufficient_funds_messages": [
+        "Sem grana? Que surpresa… e você queria sobreviver como, na conversa?",
+        "Amor não correspondido e carteira vazia… combo letal, gatinho.",
+        "Volta quando tiver almas. Ou quando aceitar que tá ferrado.",
+        "Eu até sentiria pena… mas pena não paga minhas mercadorias.",
+        "Quer desconto também? Aproveita e pede pra caverna pegar leve contigo."
       ]
     }
   }

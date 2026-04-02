@@ -14,6 +14,7 @@ import java.util.Random;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
+import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.Interface.ShopUI;
 
 public class EsmeraldaDialogue implements NpcDialogue {
@@ -25,6 +26,9 @@ public class EsmeraldaDialogue implements NpcDialogue {
     private String[] talkResponses;
     private String[] welcomeMessages;
     private String[] goodbyeMessages;
+    private String[] shopOpenMessages;
+    private String[] shopPurchaseMessages;
+    private String[] shopNoPurchaseMessages;
     private Random random = new Random();
     private boolean talking = true;
     private int selectedOption = 0;
@@ -34,13 +38,15 @@ public class EsmeraldaDialogue implements NpcDialogue {
     private List<Integer> availableWelcomeIndices;
     private List<Integer> availableTalkIndices;
     private List<Integer> availableGoodbyeIndices;
+    private String[] shopInsufficientFundsMessages;
+    private State previousState; // para restaurar após a mensagem
 
     // Controle de vozes
     private String[] voiceNames;
     private int lastVoiceIndex = -1;
 
     private enum State {
-        WELCOME, MENU, TALK, SHOP, GOODBYE
+        WELCOME, MENU, TALK, SHOP, SHOP_MESSAGE, GOODBYE
     }
 
     private State state = State.WELCOME;
@@ -119,6 +125,27 @@ public class EsmeraldaDialogue implements NpcDialogue {
                 talkResponses[i] = responses.getString(i);
             }
 
+            JsonValue shopOpenArray = esmeralda.get("shop_open_messages");
+            shopOpenMessages = new String[shopOpenArray.size];
+            for (int i = 0; i < shopOpenArray.size; i++)
+                shopOpenMessages[i] = shopOpenArray.getString(i);
+
+            JsonValue shopPurchaseArray = esmeralda.get("shop_purchase_messages");
+            shopPurchaseMessages = new String[shopPurchaseArray.size];
+            for (int i = 0; i < shopPurchaseArray.size; i++)
+                shopPurchaseMessages[i] = shopPurchaseArray.getString(i);
+
+            JsonValue shopNoPurchaseArray = esmeralda.get("shop_no_purchase_messages");
+            shopNoPurchaseMessages = new String[shopNoPurchaseArray.size];
+            for (int i = 0; i < shopNoPurchaseArray.size; i++)
+                shopNoPurchaseMessages[i] = shopNoPurchaseArray.getString(i);
+
+            JsonValue insufficientArray = esmeralda.get("shop_insufficient_funds_messages");
+            shopInsufficientFundsMessages = new String[insufficientArray.size];
+            for (int i = 0; i < insufficientArray.size; i++) {
+                shopInsufficientFundsMessages[i] = insufficientArray.getString(i);
+            }
+
             // Inicializa listas de índices disponíveis
             resetAvailableIndices();
 
@@ -157,7 +184,6 @@ public class EsmeraldaDialogue implements NpcDialogue {
 
     private String getNextWelcomeMessage() {
         if (availableWelcomeIndices.isEmpty()) {
-            // Reinicia o ciclo
             for (int i = 0; i < welcomeMessages.length; i++) {
                 availableWelcomeIndices.add(i);
             }
@@ -214,6 +240,40 @@ public class EsmeraldaDialogue implements NpcDialogue {
         return currentText;
     }
 
+    public void showShopOpenMessage() {
+        previousState = State.SHOP;
+        state = State.SHOP_MESSAGE;
+        currentText = shopOpenMessages[random.nextInt(shopOpenMessages.length)];
+        waitingForChoice = false;
+        setTalking(true);
+        playRandomVoice();
+        NpcInteractionHUD.getInstance().reloadCurrentText();
+    }
+
+    public void showInsufficientFundsMessage() {
+        previousState = State.SHOP;
+        state = State.SHOP_MESSAGE;
+        currentText = shopInsufficientFundsMessages[random.nextInt(shopInsufficientFundsMessages.length)];
+        waitingForChoice = false;
+        setTalking(true);
+        playRandomVoice();
+        NpcInteractionHUD.getInstance().reloadCurrentText();
+    }
+
+    public void showShopResultMessage(boolean bought) {
+        previousState = State.MENU;
+        state = State.SHOP_MESSAGE;
+        if (bought) {
+            currentText = shopPurchaseMessages[random.nextInt(shopPurchaseMessages.length)];
+        } else {
+            currentText = shopNoPurchaseMessages[random.nextInt(shopNoPurchaseMessages.length)];
+        }
+        waitingForChoice = false;
+        setTalking(true);
+        playRandomVoice();
+        NpcInteractionHUD.getInstance().reloadCurrentText();
+    }
+
     @Override
     public boolean next() {
         if (state == State.WELCOME) {
@@ -222,6 +282,7 @@ public class EsmeraldaDialogue implements NpcDialogue {
             waitingForChoice = true;
             setTalking(true);
             playRandomVoice();
+            NpcInteractionHUD.getInstance().reloadCurrentText();
             return true;
         } else if (state == State.TALK || state == State.SHOP) {
             state = State.MENU;
@@ -229,6 +290,26 @@ public class EsmeraldaDialogue implements NpcDialogue {
             waitingForChoice = true;
             setTalking(true);
             playRandomVoice();
+            NpcInteractionHUD.getInstance().reloadCurrentText();
+            return true;
+        } else if (state == State.SHOP_MESSAGE) {
+            state = previousState;
+
+            if (state == State.SHOP) {
+                currentText = "";
+                waitingForChoice = false;
+                setTalking(false);
+            } else if (state == State.MENU) {
+                currentText = "O que você quer?";
+                waitingForChoice = true;
+                setTalking(true);
+            } else {
+
+                currentText = getCurrentText();
+                setTalking(true);
+            }
+
+            NpcInteractionHUD.getInstance().reloadCurrentText();
             return true;
         } else if (state == State.GOODBYE) {
             return false;

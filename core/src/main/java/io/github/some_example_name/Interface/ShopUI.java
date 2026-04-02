@@ -30,6 +30,7 @@ public class ShopUI {
     private Robertinhoo player;
     private boolean visible = false;
     private TextButton.TextButtonStyle buttonStyle;
+    private boolean purchaseMade = false;
 
     public ShopUI(Robertinhoo player) {
         this.player = player;
@@ -133,28 +134,26 @@ public class ShopUI {
     private void buyItem(int index) {
         ShopItem item = items.get(index);
         if (item.price > 0 && !player.getSoulManager().spendSouls(item.price)) {
-            System.out.println("Almas insuficientes para comprar " + item.name);
+            NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+            if (current instanceof EsmeraldaDialogue) {
+                ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
+            }
             return;
         }
-        if (item.type.equals("weapon")) {
-            if (item.id.equals("pistol")) {
-                Pistol pistol = new Pistol(player.getMap(), 0, 0, player.getInventory());
-                player.getInventory().addWeapon(pistol);
-                System.out.println("🔫 Pistola comprada!");
-            } else if (item.id.equals("shotgun")) {
-                // Lógica futura
-                System.out.println("🔫 Espingarda comprada!");
-            }
-        } else if (item.type.equals("armor")) {
-            System.out.println("🛡️ Armadura comprada!");
-        }
+        purchaseMade = true;
+        hide();
     }
 
     public void show() {
         visible = true;
+        purchaseMade = false;
         Gdx.input.setInputProcessor(stage);
         if (!buttons.isEmpty()) {
             stage.setKeyboardFocus(buttons.get(0));
+        }
+        NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+        if (current instanceof EsmeraldaDialogue) {
+            ((EsmeraldaDialogue) current).showShopOpenMessage();
         }
     }
 
@@ -163,7 +162,13 @@ public class ShopUI {
         Gdx.input.setInputProcessor(null);
         NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
         if (current instanceof EsmeraldaDialogue) {
-            ((EsmeraldaDialogue) current).next(); // volta ao menu
+            EsmeraldaDialogue ed = (EsmeraldaDialogue) current;
+            if (purchaseMade) {
+                ed.showShopResultMessage(true);
+                purchaseMade = false;
+            } else {
+                ed.showShopResultMessage(false);
+            }
         }
     }
 
