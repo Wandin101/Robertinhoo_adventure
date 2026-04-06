@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Align;
 
+import io.github.some_example_name.Fonts.FontsManager; // Import do gerenciador
 import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
 import io.github.some_example_name.Interface.Npcs.NpcDialogue;
 
@@ -20,7 +21,7 @@ public class NpcInteractionHUD {
 
     private Texture moldeTexture;
     private Texture dialogueBoxTexture;
-    private BitmapFont font;
+    private BitmapFont font; // Agora gerenciada pelo FontsManager
     private GlyphLayout layout;
 
     private boolean active = false;
@@ -29,23 +30,21 @@ public class NpcInteractionHUD {
 
     // --- Controle de animações ---
     private float animTime = 0f;
-    private static final float FRAME_SLIDE_IN_DURATION = 0.4f; // duração da entrada da moldura
-    private static final float BOX_FADE_IN_DURATION = 0.3f; // duração do fade da caixa
-    private static final float CHAR_DELAY = 0.03f; // tempo por caractere (digitação)
-
-    private String fullText = ""; // texto completo da fala atual
-    private String displayedText = ""; // texto parcial exibido
+    private static final float FRAME_SLIDE_IN_DURATION = 0.4f;
+    private static final float BOX_FADE_IN_DURATION = 0.3f;
+    private static final float CHAR_DELAY = 0.03f;
+    private String fullText = "";
+    private String displayedText = "";
     private float textTimer = 0f;
     private int charIndex = 0;
-    private boolean textFinished = false; // se a digitação da fala atual terminou
+    private boolean textFinished = false;
 
-    // Constantes de tamanho (mesmas do RobertinhoFaceHUD)
     private static final float FRAME_SIZE = 380f;
     private static final float MARGIN = 10f;
     private static final float REFERENCE_WIDTH = 1280f;
 
-    private static final float DIALOGUE_BOX_WIDTH = 650f; // mantenha ou aumente
-    private static final float DIALOGUE_BOX_HEIGHT = 180f; // mantenha ou aumente
+    private static final float DIALOGUE_BOX_WIDTH = 650f;
+    private static final float DIALOGUE_BOX_HEIGHT = 180f;
     private static final float TEXT_MARGIN = 26f;
     private static final float BOOTOM_OFFSET = 20f;
     // Posições calculadas
@@ -64,10 +63,11 @@ public class NpcInteractionHUD {
         try {
             moldeTexture = new Texture("npcs/Molde.png");
             dialogueBoxTexture = new Texture("npcs/Caixa de dialogo.png");
-            font = new BitmapFont();
-            font.getData().setScale(1.5f);
+            // Usa o FontsManager para obter a fonte customizada
+            // Tamanho base 24 (ajustável conforme necessidade)
+
             layout = new GlyphLayout();
-            System.out.println("✅ NpcInteractionHUD: texturas carregadas");
+            System.out.println("✅ NpcInteractionHUD: texturas e fonte carregadas");
         } catch (Exception e) {
             System.err.println("❌ NpcInteractionHUD: erro ao carregar texturas: " + e.getMessage());
             createPlaceholderTextures();
@@ -94,7 +94,8 @@ public class NpcInteractionHUD {
         dialogueBoxTexture = new Texture(pixmap);
         pixmap.dispose();
 
-        font = new BitmapFont();
+        // Fallback também usa FontsManager
+        font = FontsManager.getInstance().getDefaultDialogueFont(24);
         layout = new GlyphLayout();
         System.out.println("⚠️ NpcInteractionHUD: usando placeholders");
     }
@@ -147,14 +148,18 @@ public class NpcInteractionHUD {
         }
     }
 
+    private int lastFontSize = 0;
+
     public void recalcularPosicoes() {
         float screenWidth = Gdx.graphics.getWidth();
         float screenHeight = Gdx.graphics.getHeight();
         float scale = Math.min(1.0f, screenWidth / REFERENCE_WIDTH);
 
-        // Ajusta fonte
-        float fontScale = 1.5f * scale;
-        font.getData().setScale(fontScale);
+        int desiredSize = Math.max(12, Math.round(24 * scale));
+        if (font == null || desiredSize != lastFontSize) {
+            font = FontsManager.getInstance().getDefaultDialogueFont(desiredSize);
+            lastFontSize = desiredSize;
+        }
 
         frameSize = FRAME_SIZE * scale;
         frameX = MARGIN * scale;
@@ -308,10 +313,12 @@ public class NpcInteractionHUD {
 
                 // Desenha o texto (parcial ou completo)
                 if (displayedText != null && !displayedText.isEmpty()) {
+                    // Dentro de render(), onde desenha o texto
                     float maxWidth = boxWidth - 2 * textMargin;
                     layout.setText(font, displayedText, font.getColor(), maxWidth, Align.left, true);
                     float textX = boxX + textMargin;
-                    float textY = boxY + boxHeight - textMargin - layout.height;
+                    // POSIÇÃO Y: topo da caixa menos a margem superior
+                    float textY = boxY + boxHeight - textMargin; // ← sem subtrair layout.height
                     font.draw(batch, layout, textX, textY);
                 }
             }
@@ -361,8 +368,6 @@ public class NpcInteractionHUD {
             moldeTexture.dispose();
         if (dialogueBoxTexture != null)
             dialogueBoxTexture.dispose();
-        if (font != null)
-            font.dispose();
         if (currentNpcDialogue != null)
             currentNpcDialogue.dispose();
     }

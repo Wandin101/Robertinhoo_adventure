@@ -1,9 +1,16 @@
 [
   {
     "id": "pistol",
-    "name": "Pistola",
+    "name": "Beretinha",
     "price": 100,
     "type": "weapon",
-    "iconPath": "ITENS/Pistol/GUN_01_[square_frame]_01_V1.00.png"
+    "iconPath": "ITENS/Pistol/GUN_01_[square_frame]_01_V1.00.png",
+    "stats": {
+      "damage": 15,
+      "fireRate": 3.5,
+      "capacity": 12
+    },
+    "trait": "15% de chance de disparar 2 tiros pelo preço de 1.",
+    "esmeraldaQuote": "Essa daí já teve mais donos que motel barato. Mas funciona... às vezes."
   }
 ]
