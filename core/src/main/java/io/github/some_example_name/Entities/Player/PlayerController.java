@@ -209,16 +209,12 @@ public class PlayerController {
                 Interactable interactable = handler.getCurrentInteractable();
                 if (interactable != null && interactable.isActive()) {
                     if (interactable instanceof Room0Cabana) {
-                        Room0Cabana cabana = (Room0Cabana) interactable;
-                        if (cabana.getType() == Room0Cabana.CabanaType.PLAYER_HOUSE) {
-                            return; // Não chama onInteract()
-                        }
+                        return;
                     }
                     interactable.onInteract();
                 }
             }
         }
-
     }
 
     public DashSystem getDashSystem() {

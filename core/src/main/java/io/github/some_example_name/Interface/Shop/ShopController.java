@@ -1,0 +1,168 @@
+package io.github.some_example_name.Interface.Shop;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import io.github.some_example_name.Interface.NpcInteractionHUD;
+import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
+import io.github.some_example_name.Interface.Npcs.NpcDialogue;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
+
+public class ShopController {
+    private ShopUI ui;
+    private ShopModel model;
+    private boolean visible = false;
+
+    private enum FocusArea {
+        CATEGORIES, GRID
+    }
+
+    private FocusArea currentArea = FocusArea.CATEGORIES;
+    private int selectedCategoryIndex = 0;
+    private int selectedRow = 0, selectedCol = 0;
+
+    private static final int CATEGORIES_COUNT = 4;
+    private static final int GRID_COLS = 3, GRID_ROWS = 2;
+
+    public ShopController(ShopUI ui, ShopModel model) {
+        this.ui = ui;
+        this.model = model;
+    }
+
+    public void update(float delta) {
+        if (!visible)
+            return;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
+            if (currentArea == FocusArea.CATEGORIES) {
+                selectedCategoryIndex = (selectedCategoryIndex - 1 + CATEGORIES_COUNT) % CATEGORIES_COUNT;
+                ui.highlightCategory(selectedCategoryIndex);
+            } else { // GRID
+                selectedRow = (selectedRow - 1 + GRID_ROWS) % GRID_ROWS;
+                ui.highlightCard(selectedRow, selectedCol);
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
+            if (currentArea == FocusArea.CATEGORIES) {
+                selectedCategoryIndex = (selectedCategoryIndex + 1) % CATEGORIES_COUNT;
+                ui.highlightCategory(selectedCategoryIndex);
+            } else {
+                selectedRow = (selectedRow + 1) % GRID_ROWS;
+                ui.highlightCard(selectedRow, selectedCol);
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
+            if (currentArea == FocusArea.GRID && selectedCol == 0) {
+                // move para categorias
+                currentArea = FocusArea.CATEGORIES;
+                ui.highlightCategory(selectedCategoryIndex);
+                ui.clearCardHighlight();
+            } else if (currentArea == FocusArea.GRID && selectedCol > 0) {
+                selectedCol--;
+                ui.highlightCard(selectedRow, selectedCol);
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
+            if (currentArea == FocusArea.CATEGORIES) {
+                // move para grade, primeiro card
+                currentArea = FocusArea.GRID;
+                selectedRow = 0;
+                selectedCol = 0;
+                ui.highlightCard(selectedRow, selectedCol);
+            } else if (currentArea == FocusArea.GRID && selectedCol < GRID_COLS - 1) {
+                selectedCol++;
+                ui.highlightCard(selectedRow, selectedCol);
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+            if (currentArea == FocusArea.CATEGORIES) {
+                if (selectedCategoryIndex == 3) { // Sair
+                    ui.hide(); // Fecha a loja
+                } else {
+                    String[] categories = { "weapon", "ammo", "other" };
+                    model.setCurrentCategory(categories[selectedCategoryIndex]);
+                    ui.updateCards();
+                    currentArea = FocusArea.GRID;
+                    selectedRow = 0;
+                    selectedCol = 0;
+                    ui.highlightCard(selectedRow, selectedCol);
+                }
+            } else {
+                // compra item
+                int index = selectedRow * GRID_COLS + selectedCol;
+                boolean success = model.buyItemAt(index);
+                if (success) {
+                    visible = false;
+                    ui.hide();
+                    NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+                    if (current instanceof EsmeraldaDialogue) {
+                        ((EsmeraldaDialogue) current).showShopResultMessage(true);
+                        model.resetPurchaseFlag();
+                    }
+                } else {
+                    ui.animateCardError(selectedRow, selectedCol);
+                    AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR, 0.7f);
+                    NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+                    if (current instanceof EsmeraldaDialogue) {
+                        ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
+                    }
+                }
+            }
+
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
+            System.out.println("[ShopController] Tecla V pressionada");
+            if (currentArea == FocusArea.GRID) {
+                System.out.println(
+                        "[ShopController] Área GRID, selectedRow=" + selectedRow + ", selectedCol=" + selectedCol);
+                int index = selectedRow * GRID_COLS + selectedCol;
+                System.out.println("[ShopController] Index do item: " + index);
+                ShopModel.ShopItem item = model.getItemAt(index);
+                if (item != null) {
+                    System.out.println("[ShopController] Item encontrado: " + item.name);
+                    ui.showItemDetails(item, selectedRow, selectedCol);
+                } else {
+                    System.out.println("[ShopController] Item é null");
+                }
+            } else {
+                System.out.println("[ShopController] Área não é GRID, currentArea=" + currentArea);
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            hide();
+        }
+    }
+
+    public void show() {
+        visible = true;
+        currentArea = FocusArea.CATEGORIES;
+        selectedCategoryIndex = 0;
+        selectedRow = 0;
+        selectedCol = 0;
+        ui.highlightCategory(0);
+        ui.clearCardHighlight();
+        model.filterItemsByCategory();
+        ui.updateCards();
+    }
+
+    public void hide() {
+        visible = false;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void notifyCategoryChanged() {
+        // chamado quando usuário clica em categoria com mouse
+        currentArea = FocusArea.GRID;
+        selectedRow = 0;
+        selectedCol = 0;
+        ui.highlightCard(0, 0);
+        ui.clearCardHighlight(); // garante que só o card fique destacado
+        ui.highlightCard(0, 0);
+    }
+}

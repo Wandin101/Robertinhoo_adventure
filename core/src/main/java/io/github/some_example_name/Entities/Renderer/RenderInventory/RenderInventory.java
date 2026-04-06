@@ -74,7 +74,7 @@ public class RenderInventory {
 
         System.out.println("Posição central calculada: " + position);
 
-        this.inventoryFont = FontsManager.createInventoryFont();
+        this.inventoryFont = FontsManager.getInstance().getDefaultDialogueFont(calculateFontSize());
         this.selectedItem = null;
         this.originalGridX = 0;
         this.originalGridY = 0;
@@ -341,12 +341,7 @@ public class RenderInventory {
         this.scaleFactor = calculateScaleFactor(width);
         this.cellSize = (int) (baseCellSize * scaleFactor);
 
-        System.out.println("\n=== [RENDER INVENTORY] UPDATE SCREEN SIZE ===");
-        System.out.println("  width: " + width + ", height: " + height);
-        System.out.println("  scaleFactor: " + scaleFactor);
-        System.out.println("  cellSize: " + cellSize);
-        System.out.println("  position: (" + position.x + ", " + position.y + ")");
-
+        // Recalcula a posição central
         float totalWidth = inventory.getGridCols() * this.cellSize;
         float totalHeight = inventory.getGridRows() * this.cellSize;
         float centerX = width / 2f - totalWidth / 2f;
@@ -359,11 +354,14 @@ public class RenderInventory {
         controller.setInventoryPosition(position.x, position.y);
         controller.setCellSize(cellSize);
 
-        // 🔥 RECRIA OS RENDERERS QUE DEPENDEM DO CELL SIZE E FONTE
-        if (inventoryFont != null)
-            inventoryFont.dispose();
-        inventoryFont = FontsManager.createInventoryFont(scaleFactor);
+        // ATUALIZA A FONTE SEM DESCARREGAR (o FontsManager cuida do cache)
+        int newFontSize = Math.max(12, Math.min(48, (int) (cellSize * 0.5f)));
+
+        FontsManager.getInstance().getDefaultMenuFont(newFontSize);
+
+        // Recria os renderers que dependem do tamanho da célula (se necessário)
         this.itemRenderer = new InventoryItemRenderer(inventory, position, cellSize);
+        // Se craftingRenderer também usa a fonte, recrie-o também
 
     }
 
@@ -384,9 +382,12 @@ public class RenderInventory {
         mouseCursorRenderer.getInventoryController().setInventoryPosition(newPosition.x, newPosition.y);
     }
 
+    private int calculateFontSize() {
+        // Ajuste o fator conforme necessário (ex.: cellSize * 0.4f)
+        return Math.max(12, Math.min(48, (int) (cellSize * 0.5f)));
+    }
+
     public void dispose() {
-        if (inventoryFont != null)
-            inventoryFont.dispose();
         gridRenderer.dispose();
         itemRenderer.dispose();
         cursorRenderer.dispose();

@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
@@ -13,6 +12,7 @@ import com.badlogic.gdx.utils.Timer;
 
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
+import io.github.some_example_name.Fonts.FontsManager; // <-- Import do gerenciador de fontes
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Screens.GameScreen;
@@ -21,7 +21,7 @@ public class DeathSystem {
 
     private enum DeathState {
         ALIVE,
-        PLAYING_DEATH_ANIMATION, // Novo estado
+        PLAYING_DEATH_ANIMATION,
         DYING,
         DEATH_SCREEN,
         RESPAWNING
@@ -43,11 +43,9 @@ public class DeathSystem {
     private GameScreen gameScreen;
     private PlayerRenderer playerRenderer;
 
-    // Configurações
     private static final float DEATH_ANIMATION_DURATION = 3.5f;
     private static final float DYING_DURATION = 0f;
     private static final float DEATH_SCREEN_DURATION = 2.0f;
-    private static final float FADE_DURATION = 1.0f;
 
     public DeathSystem(GameScreen gameScreen, PlayerRenderer playerRenderer, RobertinhoFaceHUD faceHUD) {
         this.gameScreen = gameScreen;
@@ -57,42 +55,19 @@ public class DeathSystem {
     }
 
     private void loadAssets() {
+        // Usa o FontsManager centralizado para obter as fontes
+        deathFont = FontsManager.getInstance().getDefaultMenuFont(48);
+        promptFont = FontsManager.getInstance().getDefaultMenuFont(24);
+
+        // Carrega a textura da caveira (com fallback)
         try {
-            FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
-                    Gdx.files.internal("HUD/04B_30__.ttf"));
-            FreeTypeFontGenerator.FreeTypeFontParameter params = new FreeTypeFontGenerator.FreeTypeFontParameter();
-
-            params.size = 48;
-            params.color = Color.WHITE;
-            params.borderColor = Color.BLACK;
-            params.borderWidth = 2;
-            deathFont = generator.generateFont(params);
-
-            params.size = 24;
-            params.color = new Color(0.8f, 0.8f, 0.8f, 1);
-            promptFont = generator.generateFont(params);
-
-            generator.dispose();
-
-            try {
-                skullTexture = new Texture(Gdx.files.internal("HUD/DEATH ICON.png"));
-            } catch (Exception e) {
-                createFallbackTexture();
-            }
-
+            skullTexture = new Texture(Gdx.files.internal("HUD/DEATH ICON.png"));
         } catch (Exception e) {
-            System.err.println("Erro ao carregar assets da tela de morte: " + e.getMessage());
-            createFallbackFonts();
+            createFallbackTexture();
         }
     }
 
-    private void createFallbackFonts() {
-        deathFont = new BitmapFont();
-        promptFont = new BitmapFont();
-        deathFont.getData().setScale(2);
-        promptFont.getData().setScale(1);
-    }
-
+    // Fallback apenas para a textura (as fontes são gerenciadas pelo FontsManager)
     private void createFallbackTexture() {
         com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(64, 64,
                 com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -114,19 +89,15 @@ public class DeathSystem {
             case ALIVE:
                 checkPlayerDeath();
                 break;
-
             case PLAYING_DEATH_ANIMATION:
                 updateDeathAnimation(delta);
                 break;
-
             case DYING:
                 updateDying(delta);
                 break;
-
             case DEATH_SCREEN:
                 updateDeathScreen(delta);
                 break;
-
             case RESPAWNING:
                 // Nada a fazer aqui, o respawn é tratado em outro lugar
                 break;
@@ -179,7 +150,6 @@ public class DeathSystem {
     private void updateDeathAnimation(float delta) {
         deathTimer += delta;
 
-        // Verifica se ambas as animações terminaram
         boolean playerRendererComplete = false;
         boolean hudComplete = false;
 
@@ -191,7 +161,6 @@ public class DeathSystem {
             hudComplete = faceHUD.isDeathAnimationComplete();
         }
 
-        // Espera ambas terminarem OU timeout
         if ((playerRendererComplete && hudComplete) || deathTimer >= DEATH_ANIMATION_DURATION) {
             transitionToDeathScreen();
         }
@@ -214,7 +183,6 @@ public class DeathSystem {
             deathTimer = 0f;
             screenAlpha = 0.9f;
 
-            // Agenda o respawn para ser permitido após um tempo
             Timer.schedule(new Timer.Task() {
                 @Override
                 public void run() {
@@ -229,10 +197,6 @@ public class DeathSystem {
         deathTimer += delta;
         textPulse += delta * 2;
 
-        // Pulsação do texto
-        float pulse = (float) (Math.sin(textPulse) * 0.2f + 0.8f);
-
-        // Verifica input para respawn
         if (canRespawn && Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
             triggerRespawn();
         }
@@ -242,15 +206,12 @@ public class DeathSystem {
         System.out.println("🔄 Iniciando respawn...");
         currentState = DeathState.RESPAWNING;
 
-        // Reseta a animação de morte no renderer
         if (playerRenderer != null) {
             playerRenderer.resetDeathAnimation();
         }
 
-        // Aplica penalidades
         applyDeathPenalties();
 
-        // Chama o respawn no GameScreen
         if (gameScreen != null) {
             gameScreen.onPlayerRespawn();
         }
@@ -284,7 +245,7 @@ public class DeathSystem {
     }
 
     private void renderDeathAnimationOverlay(SpriteBatch batch, float screenWidth, float screenHeight) {
-
+        // Pode ser deixado vazio ou usado para efeitos adicionais
     }
 
     private void renderDeathScreenContent(SpriteBatch batch, float screenWidth, float screenHeight) {
@@ -400,10 +361,7 @@ public class DeathSystem {
     }
 
     public void dispose() {
-        if (deathFont != null)
-            deathFont.dispose();
-        if (promptFont != null)
-            promptFont.dispose();
+        // As fontes NÃO são descartadas aqui – o FontsManager cuida disso globalmente
         if (skullTexture != null)
             skullTexture.dispose();
         if (blackPixel != null)

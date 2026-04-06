@@ -15,7 +15,7 @@ import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.Sounds.GameGameSoundsPaths;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Interface.NpcInteractionHUD;
-import io.github.some_example_name.Interface.ShopUI;
+import io.github.some_example_name.Interface.Shop.ShopUI;
 
 public class EsmeraldaDialogue implements NpcDialogue {
     private Texture talkSheet;

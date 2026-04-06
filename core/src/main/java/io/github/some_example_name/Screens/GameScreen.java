@@ -15,10 +15,10 @@ import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Interface.DebugHUD;
 import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.Interface.RobertinhoFaceHUD;
-import io.github.some_example_name.Interface.ShopUI;
 import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
 import io.github.some_example_name.Interface.Npcs.NpcDialogue;
+import io.github.some_example_name.Interface.Shop.ShopUI;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Screens.ScreenEffects.DeathSystem;
@@ -386,6 +386,8 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
 
     @Override
     public void resize(int width, int height) {
+        if (width <= 0 || height <= 0)
+            return;
         renderer.resize(width, height);
 
         hudCamera.setToOrtho(false, width, height);
