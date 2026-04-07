@@ -33,6 +33,18 @@ public class ShopController {
         if (!visible)
             return;
 
+        if (ui.isActionModalVisible()) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+                AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
+                ui.getActionModal().navigateUp(); // ou navigateDown, tanto faz
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                ui.getActionModal().select();
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+                ui.getActionModal().close();
+            }
+            return; // não processa navegação normal
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
             AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_DRAG_START, 0.5f);
             if (currentArea == FocusArea.CATEGORIES) {
@@ -75,10 +87,9 @@ public class ShopController {
                 ui.highlightCard(selectedRow, selectedCol);
             }
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-
             if (currentArea == FocusArea.CATEGORIES) {
                 if (selectedCategoryIndex == 3) { // Sair
-                    ui.hide(); // Fecha a loja
+                    ui.hide();
                 } else {
                     String[] categories = { "weapon", "ammo", "other" };
                     model.setCurrentCategory(categories[selectedCategoryIndex]);
@@ -88,46 +99,23 @@ public class ShopController {
                     selectedCol = 0;
                     ui.highlightCard(selectedRow, selectedCol);
                 }
-            } else {
-                // compra item
+            } else { // GRID
                 int index = selectedRow * GRID_COLS + selectedCol;
-                boolean success = model.buyItemAt(index);
-                if (success) {
-                    visible = false;
-                    ui.hide();
-                    NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
-                    if (current instanceof EsmeraldaDialogue) {
-                        ((EsmeraldaDialogue) current).showShopResultMessage(true);
-                        model.resetPurchaseFlag();
-                    }
-                } else {
-                    ui.animateCardError(selectedRow, selectedCol);
-                    AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR, 0.7f);
-                    NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
-                    if (current instanceof EsmeraldaDialogue) {
-                        ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
-                    }
+                ShopModel.ShopItem item = model.getItemAt(index);
+                if (item != null) {
+                    // Exibe o modal de ações (Ver mais / Comprar)
+                    ui.showCardActions(item, selectedRow, selectedCol);
                 }
             }
-
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
-            System.out.println("[ShopController] Tecla V pressionada");
             if (currentArea == FocusArea.GRID) {
-                System.out.println(
-                        "[ShopController] Área GRID, selectedRow=" + selectedRow + ", selectedCol=" + selectedCol);
                 int index = selectedRow * GRID_COLS + selectedCol;
-                System.out.println("[ShopController] Index do item: " + index);
                 ShopModel.ShopItem item = model.getItemAt(index);
                 if (item != null) {
-                    System.out.println("[ShopController] Item encontrado: " + item.name);
                     ui.showItemDetails(item, selectedRow, selectedCol);
-                } else {
-                    System.out.println("[ShopController] Item é null");
                 }
-            } else {
-                System.out.println("[ShopController] Área não é GRID, currentArea=" + currentArea);
             }
         }
 

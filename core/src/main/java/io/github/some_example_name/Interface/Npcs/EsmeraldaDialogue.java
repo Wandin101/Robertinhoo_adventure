@@ -343,6 +343,16 @@ public class EsmeraldaDialogue implements NpcDialogue {
         }
     }
 
+    public void showOpinionMessage(String opinion) {
+        previousState = state;
+        state = State.SHOP_MESSAGE;
+        currentText = opinion;
+        waitingForChoice = false;
+        setTalking(true);
+        playRandomVoice();
+        NpcInteractionHUD.getInstance().reloadCurrentText();
+    }
+
     public boolean isWaitingForChoice() {
         return waitingForChoice;
     }

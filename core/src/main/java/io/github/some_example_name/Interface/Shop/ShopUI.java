@@ -37,6 +37,7 @@ public class ShopUI {
     // Texturas
     private Texture moldeTexture, cardTexture, botaoTexture;
     private Texture modalTexture;
+    private CardActionModal actionModal;
 
     // Dimensões
     private static final float SCALE = 5.8f;
@@ -69,6 +70,7 @@ public class ShopUI {
         createSkin();
         this.stage = new Stage(new ScreenViewport());
         this.detailModal = new ItemDetailModal(skin, model, this);
+        this.actionModal = new CardActionModal(skin, model, this);
         createUI();
     }
 
@@ -82,7 +84,7 @@ public class ShopUI {
     private void createSkin() {
         skin = new Skin();
         int normalSize = (int) (2 * SCALE);
-        int smallSize = (int) (2 * SCALE);
+        int smallSize = (int) (2.5 * SCALE);
         int buttonSize = (int) (4 * SCALE);
 
         BitmapFont normalFont = FontsManager.getInstance().getMenuFont(normalSize, Color.WHITE);
@@ -126,6 +128,14 @@ public class ShopUI {
         buyButtonStyle.down = botaoDrawable;
         buyButtonStyle.over = botaoDrawable;
         skin.add("buy", buyButtonStyle);
+
+        TextButton.TextButtonStyle smallButtonStyle = new TextButton.TextButtonStyle();
+        smallButtonStyle.font = smallFont; // usa a fonte pequena
+        smallButtonStyle.fontColor = Color.WHITE;
+        smallButtonStyle.up = botaoDrawable;
+        smallButtonStyle.down = botaoDrawable;
+        smallButtonStyle.over = botaoDrawable;
+        skin.add("small", smallButtonStyle);
 
         TextureRegionDrawable modalBackground = new TextureRegionDrawable(new TextureRegion(modalTexture));
         Window.WindowStyle windowStyle = new Window.WindowStyle();
@@ -235,42 +245,27 @@ public class ShopUI {
         private ShopModel.ShopItem item;
         private Image iconImage;
         private Label nameLabel, priceLabel;
-        private TextButton buyButton;
         private boolean selected = false;
 
         public CardButton() {
             setBackground(new TextureRegionDrawable(new TextureRegion(cardTexture)));
-            float iconSize = CARD_WIDTH * 0.4f;
+            float iconSize = CARD_WIDTH * 0.55f; // ícone maior (cerca de 55% da largura)
             iconImage = new Image();
             iconImage.setSize(iconSize, iconSize);
 
             nameLabel = new Label("", skin, "small");
             nameLabel.setAlignment(Align.center);
+            nameLabel.setFontScale(0.9f); // ajuste fino para caber no card
+
             priceLabel = new Label("", skin, "small");
             priceLabel.setAlignment(Align.center);
+            priceLabel.setFontScale(0.9f);
+            priceLabel.setColor(Color.GOLD); // preço em dourado para destaque
 
-            buyButton = new TextButton("Comprar", skin, "buy");
-            buyButton.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    if (item != null) {
-                        boolean success = model.buyItem(item);
-                        if (success) {
-                            hide();
-                        } else {
-                            NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
-                            if (current instanceof EsmeraldaDialogue) {
-                                ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
-                            }
-                        }
-                    }
-                }
-            });
-
+            // Layout: ícone, nome, preço (sem botão)
             add(iconImage).size(iconSize, iconSize).padTop(2 * SCALE).row();
             add(nameLabel).padTop(1 * SCALE).width(CARD_WIDTH - 6 * SCALE).row();
-            add(priceLabel).padTop(0).row();
-            add(buyButton).size(CARD_WIDTH * 0.6f, BUTTON_HEIGHT * 0.5f).padBottom(2 * SCALE);
+            add(priceLabel).padBottom(2 * SCALE).row();
         }
 
         public void setItem(ShopModel.ShopItem item) {
@@ -279,15 +274,14 @@ public class ShopUI {
                 Texture iconTex = new Texture(item.iconPath);
                 iconTextures.add(iconTex);
                 iconImage.setDrawable(new TextureRegionDrawable(new TextureRegion(iconTex)));
+                // Abrevia nome se muito longo
                 String shortName = item.name.length() > 12 ? item.name.substring(0, 10) + ".." : item.name;
                 nameLabel.setText(shortName);
                 priceLabel.setText(item.price + "al");
-                buyButton.setVisible(true);
             } else {
                 iconImage.setDrawable(null);
                 nameLabel.setText("");
                 priceLabel.setText("");
-                buyButton.setVisible(false);
             }
         }
 
@@ -301,14 +295,29 @@ public class ShopUI {
         }
     }
 
+    public void showEsmeraldaOpinion(ShopModel.ShopItem item) {
+        if (item == null || item.esmeraldaQuote == null || item.esmeraldaQuote.isEmpty())
+            return;
+        NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+        if (current instanceof EsmeraldaDialogue) {
+            ((EsmeraldaDialogue) current).showOpinionMessage(item.esmeraldaQuote);
+        }
+    }
+
     public void update(float delta) {
         if (!visible)
             return;
         stage.act(delta);
+
+        if (detailModal != null && detailModal.isVisible()) {
+            return;
+        }
+
         controller.update(delta);
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            if (detailModal.isVisible()) {
-                detailModal.close();
+            if (actionModal != null && actionModal.isVisible()) {
+                actionModal.close();
             } else {
                 hide();
             }
@@ -366,8 +375,47 @@ public class ShopUI {
 
     public void showItemDetails(ShopModel.ShopItem item, int row, int col) {
         if (item != null) {
+
+            showEsmeraldaOpinion(item);
             detailModal.show(item, row, col);
         }
+    }
+
+    public boolean isActionModalVisible() {
+        return actionModal != null && actionModal.isVisible();
+    }
+
+    public void showCardActions(ShopModel.ShopItem item, int row, int col) {
+        float[] cardPos = new float[4];
+        getCardPosition(row, col, cardPos);
+        actionModal.show(item, row, col, cardPos[0], cardPos[1], cardPos[2], cardPos[3]);
+    }
+
+    public void getCardPosition(int row, int col, float[] outXY) {
+        int index = row * COLS + col;
+        if (index >= 0 && index < cardButtons.size()) {
+            CardButton card = cardButtons.get(index);
+            // Converte a posição local do card para coordenadas do Stage
+            com.badlogic.gdx.math.Vector2 pos = card.localToStageCoordinates(new com.badlogic.gdx.math.Vector2(0, 0));
+            outXY[0] = pos.x;
+            outXY[1] = pos.y;
+            outXY[2] = card.getWidth();
+            outXY[3] = card.getHeight();
+        }
+    }
+
+    public void onPurchaseFailed(int row, int col) {
+        animateCardError(row, col);
+        io.github.some_example_name.Sounds.AudioManager.getInstance()
+                .playSound(io.github.some_example_name.Sounds.GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR, 0.7f);
+        NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+        if (current instanceof EsmeraldaDialogue) {
+            ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
+        }
+    }
+
+    public CardActionModal getActionModal() {
+        return actionModal;
     }
 
     public void dispose() {
