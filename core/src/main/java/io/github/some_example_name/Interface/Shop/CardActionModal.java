@@ -134,10 +134,9 @@ public class CardActionModal {
     private void selectComprar() {
         close();
         if (model.buyItem(item)) {
-            shopUI.hide();
+            shopUI.onPurchaseSuccess(row, col);
         } else {
             shopUI.onPurchaseFailed(row, col);
-            shopUI.animateCardError(row, col);
         }
     }
 

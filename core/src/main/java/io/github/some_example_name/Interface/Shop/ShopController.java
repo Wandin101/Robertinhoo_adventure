@@ -103,7 +103,6 @@ public class ShopController {
                 int index = selectedRow * GRID_COLS + selectedCol;
                 ShopModel.ShopItem item = model.getItemAt(index);
                 if (item != null) {
-                    // Exibe o modal de ações (Ver mais / Comprar)
                     ui.showCardActions(item, selectedRow, selectedCol);
                 }
             }

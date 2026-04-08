@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.github.some_example_name.Fonts.FontsManager;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
@@ -38,6 +39,8 @@ public class ShopUI {
     private Texture moldeTexture, cardTexture, botaoTexture;
     private Texture modalTexture;
     private CardActionModal actionModal;
+    private Texture soulSheetTexture;
+    private TextureRegion soulIcon;
 
     // Dimensões
     private static final float SCALE = 5.8f;
@@ -79,6 +82,10 @@ public class ShopUI {
         cardTexture = new Texture("HUD/card_shop.png");
         botaoTexture = new Texture("HUD/botao_loja.png");
         modalTexture = new Texture("HUD/detailModal.png");
+        soulSheetTexture = new Texture("Almas/Alma.png");
+        int frameWidth = soulSheetTexture.getWidth() / 10;
+        int frameHeight = soulSheetTexture.getHeight();
+        soulIcon = new TextureRegion(soulSheetTexture, 0, 0, frameWidth, frameHeight);
     }
 
     private void createSkin() {
@@ -130,7 +137,7 @@ public class ShopUI {
         skin.add("buy", buyButtonStyle);
 
         TextButton.TextButtonStyle smallButtonStyle = new TextButton.TextButtonStyle();
-        smallButtonStyle.font = smallFont; // usa a fonte pequena
+        smallButtonStyle.font = smallFont;
         smallButtonStyle.fontColor = Color.WHITE;
         smallButtonStyle.up = botaoDrawable;
         smallButtonStyle.down = botaoDrawable;
@@ -184,7 +191,7 @@ public class ShopUI {
         rightGrid.setSize(CARDS_AREA_WIDTH, CARDS_AREA_HEIGHT);
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
-                CardButton card = new CardButton();
+                CardButton card = new CardButton(soulIcon);
                 cardButtons.add(card);
                 rightGrid.add(card).size(CARD_WIDTH, CARD_HEIGHT).pad(PADDING * SCALE);
                 if (col == COLS - 1)
@@ -240,32 +247,51 @@ public class ShopUI {
         }
     }
 
-    // Classe interna do card
     private class CardButton extends Table {
         private ShopModel.ShopItem item;
         private Image iconImage;
-        private Label nameLabel, priceLabel;
+        private Label nameLabel;
+        private Label priceNumberLabel;
+        private Image soulIconImage;
+        private Table priceContainer;
         private boolean selected = false;
 
-        public CardButton() {
+        public CardButton(TextureRegion soulIcon) {
             setBackground(new TextureRegionDrawable(new TextureRegion(cardTexture)));
-            float iconSize = CARD_WIDTH * 0.55f; // ícone maior (cerca de 55% da largura)
+            float iconSize = CARD_WIDTH * 0.66f;
             iconImage = new Image();
             iconImage.setSize(iconSize, iconSize);
 
             nameLabel = new Label("", skin, "small");
             nameLabel.setAlignment(Align.center);
-            nameLabel.setFontScale(0.9f); // ajuste fino para caber no card
+            nameLabel.setFontScale(1.1f);
 
-            priceLabel = new Label("", skin, "small");
-            priceLabel.setAlignment(Align.center);
-            priceLabel.setFontScale(0.9f);
-            priceLabel.setColor(Color.GOLD); // preço em dourado para destaque
+            priceNumberLabel = new Label("", skin, "small");
+            priceNumberLabel.setFontScale(1.1f);
 
-            // Layout: ícone, nome, preço (sem botão)
-            add(iconImage).size(iconSize, iconSize).padTop(2 * SCALE).row();
-            add(nameLabel).padTop(1 * SCALE).width(CARD_WIDTH - 6 * SCALE).row();
-            add(priceLabel).padBottom(2 * SCALE).row();
+            priceNumberLabel.setColor(Color.valueOf("befff6"));
+            float soulSize = CARD_WIDTH * 0.3f;
+            soulIconImage = new Image(soulIcon);
+            soulIconImage.setSize(soulSize, soulSize);
+            soulIconImage.setScaling(Scaling.fit); // Garante que a imagem se ajuste ao tamanho
+
+            priceContainer = new Table();
+            priceContainer.add(priceNumberLabel).padRight(2);
+            priceContainer.add(soulIconImage).size(soulSize, soulSize); // força o tamanho na célula
+
+            // Adiciona os elementos ao card (inicialmente invisíveis)
+            add(iconImage).size(iconSize, iconSize).padTop(1.2f * SCALE).row();
+            add(nameLabel).padTop(1.2f * SCALE).width(CARD_WIDTH - 6 * SCALE).row();
+            add(priceContainer).padBottom(1.2f * SCALE).row();
+
+            // Começa invisível (sem item)
+            setItemVisible(false);
+        }
+
+        private void setItemVisible(boolean visible) {
+            iconImage.setVisible(visible);
+            nameLabel.setVisible(visible);
+            priceContainer.setVisible(visible);
         }
 
         public void setItem(ShopModel.ShopItem item) {
@@ -274,14 +300,16 @@ public class ShopUI {
                 Texture iconTex = new Texture(item.iconPath);
                 iconTextures.add(iconTex);
                 iconImage.setDrawable(new TextureRegionDrawable(new TextureRegion(iconTex)));
-                // Abrevia nome se muito longo
                 String shortName = item.name.length() > 12 ? item.name.substring(0, 10) + ".." : item.name;
                 nameLabel.setText(shortName);
-                priceLabel.setText(item.price + "al");
+                priceNumberLabel.setText(String.valueOf(item.price));
+                setItemVisible(true);
             } else {
+                // Remove qualquer drawable restante e esconde tudo
                 iconImage.setDrawable(null);
                 nameLabel.setText("");
-                priceLabel.setText("");
+                priceNumberLabel.setText("");
+                setItemVisible(false);
             }
         }
 
@@ -375,9 +403,8 @@ public class ShopUI {
 
     public void showItemDetails(ShopModel.ShopItem item, int row, int col) {
         if (item != null) {
-
             showEsmeraldaOpinion(item);
-            detailModal.show(item, row, col);
+            detailModal.show(item, row, col, soulIcon);
         }
     }
 
@@ -395,7 +422,6 @@ public class ShopUI {
         int index = row * COLS + col;
         if (index >= 0 && index < cardButtons.size()) {
             CardButton card = cardButtons.get(index);
-            // Converte a posição local do card para coordenadas do Stage
             com.badlogic.gdx.math.Vector2 pos = card.localToStageCoordinates(new com.badlogic.gdx.math.Vector2(0, 0));
             outXY[0] = pos.x;
             outXY[1] = pos.y;
@@ -414,6 +440,16 @@ public class ShopUI {
         }
     }
 
+    // Em ShopUI.java
+    public void onPurchaseSuccess(int row, int col) {
+        updateCards();
+
+        NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+        if (current instanceof EsmeraldaDialogue) {
+            ((EsmeraldaDialogue) current).showShopResultMessage(true);
+        }
+    }
+
     public CardActionModal getActionModal() {
         return actionModal;
     }
@@ -425,6 +461,8 @@ public class ShopUI {
         cardTexture.dispose();
         botaoTexture.dispose();
         modalTexture.dispose();
+        if (soulSheetTexture != null)
+            soulSheetTexture.dispose();
         for (Texture tex : iconTextures)
             tex.dispose();
     }

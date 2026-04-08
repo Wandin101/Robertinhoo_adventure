@@ -44,7 +44,7 @@ public class ItemDetailModal {
         ensureUiTextures();
     }
 
-    public void show(ShopModel.ShopItem item, int row, int col) {
+    public void show(ShopModel.ShopItem item, int row, int col, TextureRegion soulIcon) {
         close();
 
         window = new Window("", skin);
@@ -54,7 +54,7 @@ public class ItemDetailModal {
         window.setBackground(drawable(panelTexture));
 
         float width = 560;
-        float height = 560; // altura reduzida (remoção das seções extras)
+        float height = 560; // altura reduzida
         window.setSize(width, height);
         window.setPosition(
                 (Gdx.graphics.getWidth() - width) / 2f,
@@ -119,7 +119,7 @@ public class ItemDetailModal {
         Image line = new Image(drawable(lineTexture));
         body.add(line).growX().height(2).padTop(4).padBottom(6).row();
 
-        root.add(body).grow().fill().row();
+        // Trait (se existir)
         if (item.trait != null && !item.trait.isEmpty()) {
             Label trait = new Label(item.trait, skin);
             trait.setWrap(true);
@@ -128,6 +128,8 @@ public class ItemDetailModal {
             body.add(trait).width(width - 70).padTop(10).row();
         }
 
+        root.add(body).grow().fill().row();
+
         // ================= FOOTER =================
         Table footer = new Table();
         footer.padTop(10);
@@ -135,13 +137,13 @@ public class ItemDetailModal {
         Table priceBox = new Table();
         priceBox.setBackground(drawable(panelInnerTexture));
         priceBox.pad(8, 14, 8, 14);
-        Label priceLabel = new Label("₿", skin);
-        priceLabel.setColor(Color.WHITE);
         Label priceValue = new Label(String.valueOf(item.price), skin);
         priceValue.setColor(Color.WHITE);
         priceValue.setFontScale(1.55f);
-        priceBox.add(priceLabel).padRight(6);
-        priceBox.add(priceValue);
+        Image soulImg = new Image(soulIcon);
+        soulImg.setSize(24, 24);
+        priceBox.add(priceValue).padRight(6);
+        priceBox.add(soulImg);
 
         TextButton buyBtn = new TextButton("COMPRAR", skin);
         buyBtn.addListener(new ChangeListener() {
