@@ -19,6 +19,7 @@ import io.github.some_example_name.Interface.WeaponHUD;
 import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
 import io.github.some_example_name.Interface.Npcs.NpcDialogue;
 import io.github.some_example_name.Interface.Shop.ShopUI;
+import io.github.some_example_name.Interface.Soul.SoulsHud;
 import io.github.some_example_name.MapConfig.MapRenderer;
 import io.github.some_example_name.MapConfig.Mapa;
 import io.github.some_example_name.Screens.ScreenEffects.DeathSystem;
@@ -55,6 +56,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
     private static final float RESPAWN_TRANSITION_DURATION = 1.5f;
     private int currentRoom = 0;
     private NpcInteractionHUD npcInteractionHUD;
+    private SoulsHud soulsHUD;
 
     public GameScreen(Game game) {
         super(game);
@@ -64,8 +66,6 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
     public void show() {
         audioManager = AudioManager.getInstance();
         GameGameSoundsPaths.loadAllAssets();
-
-        // CARREGA A SALA 0 (SALA INICIAL)
         loadRoom0();
         deathSystem = new DeathSystem(this, renderer.getPlayerRenderer(), robertinhoFaceHUD);
         hudBatch = new SpriteBatch();
@@ -80,6 +80,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
 
         debugHUD = new DebugHUD();
         npcInteractionHUD = NpcInteractionHUD.getInstance();
+        soulsHUD = new SoulsHud(robertinhoo);
 
         System.out.println("Sala 0 carregada - Player posicionado no centro");
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -162,6 +163,10 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         if (npcInteractionHUD != null) {
             npcInteractionHUD.update(animationDelta);
             npcInteractionHUD.render(hudBatch);
+        }
+
+        if (soulsHUD != null) {
+            soulsHUD.draw(hudBatch);
         }
 
         hudBatch.end();
@@ -402,6 +407,9 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         if (npcInteractionHUD != null)
             npcInteractionHUD.recalcularPosicoes();
 
+        if (soulsHUD != null)
+            soulsHUD.update();
+
         System.out.println("[RESIZE] Tela: " + width + "x" + height);
     }
 
@@ -441,7 +449,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
 
     public void forceDeath() {
         if (robertinhoo != null && !deathSystem.isPlayerDead()) {
-            robertinhoo.takeDamage(robertinhoo.getLife()); // Dano fatal
+            robertinhoo.takeDamage(robertinhoo.getLife());
         }
     }
 
@@ -472,5 +480,7 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
         if (mapa != null) {
             mapa.setRoomTransitionListener(null);
         }
+        if (soulsHUD != null)
+            soulsHUD.dispose();
     }
 }

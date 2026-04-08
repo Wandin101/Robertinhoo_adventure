@@ -92,6 +92,7 @@ public class ShopModel {
         filterItemsByCategory();
     }
 
+    // Em ShopModel.java
     public boolean buyItem(ShopItem item) {
         if (item == null)
             return false;
@@ -100,10 +101,16 @@ public class ShopModel {
             return false;
         }
         purchaseMade = true;
+
+        // Lógica de adicionar ao inventário
         if (item.type.equals("weapon") && item.id.equals("pistol")) {
             Pistol pistol = new Pistol(player.getMap(), 0, 0, player.getInventory());
             player.getInventory().addWeapon(pistol);
         }
+
+        allItems.remove(item);
+
+        filterItemsByCategory();
         return true;
     }
 

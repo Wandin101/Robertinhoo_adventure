@@ -122,16 +122,16 @@ public class Robertinhoo implements ShadowEntity {
         this.meleeSystem = new MeleeAttackSystem(this);
         this.staminaSystem = new StaminaSystem(100f, 10f, 23f, 0.95f);
         this.shadowComponent = new ShadowComponent(
-                25, // Largura
-                20, // Altura
+                25,
+                20,
                 -0.24f,
                 0.7f,
-                new Color(0.05f, 0.05f, 0.05f, 1) // Cinza
-        );
+                new Color(0.05f, 0.05f, 0.05f, 1));
 
         createBody(x, y);
         this.footstepSystem = new FootstepSystem(this);
         soulManager = new SoulManager();
+        soulManager.addSouls(200);
         recoilSystem = new RecoilSystem();
 
     }
