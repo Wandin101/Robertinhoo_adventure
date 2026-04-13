@@ -38,11 +38,16 @@
       ],
 
       "shop_purchase_messages": [
-        "Boa. Pelo menos uma decisão não completamente estúpida.",
-        "Olha só… evolução. Pequena, mas eu reconheço esforço.",
-        "Essa arma já salvou gente mais burra que você, então talvez funcione.",
-        "Hmm… interessante. Talvez você não morra na próxima sala. Talvez.",
-        "Mais uma venda. Adoro quando o desespero vira lucro."
+        "Olha só… tomou uma decisão decente. Milagre acontece mesmo.",
+        "Boa. Não foi completamente estúpido dessa vez… tô até surpresa.",
+        "Interessante… talvez você sobreviva mais 5 minutos agora.",
+        "Essa arma já salvou gente pior que você… então existe esperança.",
+        "Hmm… gostei. Seu desespero tá começando a dar lucro.",
+        "Finalmente algo útil nas suas mãos… vamos ver quanto tempo dura.",
+        "Comprou certo… agora só falta saber usar.",
+        "Não é a melhor escolha… mas vindo de você, já é progresso.",
+        "Mais uma venda. Eu adoro quando você tenta compensar suas falhas com dinheiro.",
+        "Ok… isso aí pode até te ajudar. Não muito, mas já é alguma coisa."
       ],
 
       "shop_no_purchase_messages": [
@@ -56,9 +61,17 @@
       "shop_insufficient_funds_messages": [
         "Sem grana? Que surpresa… e você queria sobreviver como, na conversa?",
         "Amor não correspondido e carteira vazia… combo letal, gatinho.",
-        "Volta quando tiver almas. Ou quando aceitar que tá ferrado.",
+        "Relaxa… você não é o primeiro pobre que entra aqui achando que vai sair armado.",
         "Eu até sentiria pena… mas pena não paga minhas mercadorias.",
-        "Quer desconto também? Aproveita e pede pra caverna pegar leve contigo."
+        "Tá tentando comprar ou só passando vergonha mesmo?"
+      ],
+      "shop_full_inventory_messages": [
+        "Inventário cheio? Impressionante… você acumula coisa inútil com eficiência.",
+        "Não cabe mais nada? Engraçado… achei que você gostava de forçar espaço.",
+        "Quer levar mais… mas não tem onde enfiar? Complicado, né.",
+        "Sem espaço. Igual suas decisões: tudo apertado e mal pensado.",
+        "Você junta tudo… menos bom senso pra limpar esse inventário.",
+        "Quer mais item? Primeiro aprende a lidar com o que já tem."
       ]
     }
   }

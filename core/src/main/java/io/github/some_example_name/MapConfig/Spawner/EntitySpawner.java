@@ -130,22 +130,32 @@ public class EntitySpawner {
     private boolean roomAllowsEnemies(Rectangle room) {
         if (mapa.mapGenerator == null)
             return true;
-        if (mapa.mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
-            FixedRoom spawnRoom = mapa.mapGenerator.getSpawnRoom();
-            return spawnRoom != null && spawnRoom.getConfiguration().hasEnemies();
+
+        int centerX = (int) (room.x + room.width / 2);
+        int centerY = (int) (room.y + room.height / 2);
+        FixedRoom fixed = mapa.mapGenerator.getFixedRoomAt(centerX, centerY);
+
+        if (fixed != null) {
+            return fixed.getConfiguration().hasEnemies();
         }
-        return true;
+        return true; // salas procedurais normais permitem inimigos
     }
 
     private boolean roomAllowsItems(Rectangle room) {
         if (mapa.mapGenerator == null)
             return true;
-        if (mapa.mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
-            return false; // sala do spawn não tem itens
+
+        int centerX = (int) (room.x + room.width / 2);
+        int centerY = (int) (room.y + room.height / 2);
+        FixedRoom fixed = mapa.mapGenerator.getFixedRoomAt(centerX, centerY);
+
+        if (fixed != null) {
+            // Por enquanto, itens só são permitidos se a sala tiver baús (ou futuramente
+            // uma flag hasItems)
+            return fixed.getConfiguration().hasChests();
         }
         return true;
     }
-
     // ----------------------------------------------------------------------
     // SPAWN PARA SALA 0 (TESTES / FIXO)
     // ----------------------------------------------------------------------

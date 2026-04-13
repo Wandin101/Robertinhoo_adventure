@@ -10,6 +10,8 @@
       "fireRate": 3.5,
       "capacity": 12
     },
+    "gridWidth": 3,
+    "gridHeight": 2,
     "trait": "15% de chance de disparar 2 tiros pelo preço de 1.",
     "esmeraldaQuote": "Essa daí já teve mais donos que motel barato. Mas funciona... às vezes."
   }

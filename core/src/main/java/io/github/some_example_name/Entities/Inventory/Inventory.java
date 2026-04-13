@@ -194,7 +194,7 @@ public class Inventory {
         }
     }
 
-    private int[] findAvailablePosition(Item item) {
+    public int[] findAvailablePosition(Item item) {
         for (int y = 0; y < gridRows; y++) {
             for (int x = 0; x < gridCols; x++) {
                 if (canPlaceAt(x, y, item)) {
@@ -362,6 +362,27 @@ public class Inventory {
         // Atualiza o estoque total
         int currentStock = ammoStock.getOrDefault(type, 0);
         ammoStock.put(type, Math.max(0, currentStock - amount));
+    }
+
+    public boolean canFit(int width, int height) {
+        for (int y = 0; y <= gridRows - height; y++) {
+            for (int x = 0; x <= gridCols - width; x++) {
+                boolean free = true;
+                for (int dy = 0; dy < height; dy++) {
+                    for (int dx = 0; dx < width; dx++) {
+                        if (grid[gridRows - 1 - (y + dy)][x + dx]) {
+                            free = false;
+                            break;
+                        }
+                    }
+                    if (!free)
+                        break;
+                }
+                if (free)
+                    return true;
+            }
+        }
+        return false;
     }
 
     public void cleanupAmmoSlots(String type) {

@@ -145,4 +145,9 @@ public class Engraving implements Interactable {
         if (texture != null)
             texture.dispose();
     }
+
+    @Override
+    public Vector2 getTilePosition() {
+        return body.getPosition(); // já é a posição em tiles
+    }
 }

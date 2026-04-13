@@ -21,6 +21,9 @@ import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Interface.NpcInteractionHUD;
 import io.github.some_example_name.Interface.Npcs.EsmeraldaDialogue;
 import io.github.some_example_name.Interface.Npcs.NpcDialogue;
+import io.github.some_example_name.Sounds.AudioManager;
+import io.github.some_example_name.Sounds.GameGameSoundsPaths;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -437,6 +440,14 @@ public class ShopUI {
         NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
         if (current instanceof EsmeraldaDialogue) {
             ((EsmeraldaDialogue) current).showInsufficientFundsMessage();
+        }
+    }
+
+    public void onInventoryFull() {
+        AudioManager.getInstance().playSound(GameGameSoundsPaths.Sounds.ITEM_PLACE_ERROR, 0.7f);
+        NpcDialogue current = NpcInteractionHUD.getInstance().getCurrentNpcDialogue();
+        if (current instanceof EsmeraldaDialogue) {
+            ((EsmeraldaDialogue) current).showInventoryFullMessage();
         }
     }
 

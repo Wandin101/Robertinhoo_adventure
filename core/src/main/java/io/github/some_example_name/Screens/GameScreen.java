@@ -359,9 +359,15 @@ public class GameScreen extends CatScreen implements Mapa.RoomTransitionListener
 
             existingPlayer.switchToNewMap(room1, spawnPos);
             existingPlayer.getBody().setLinearVelocity(0, 0);
-            existingPlayer.setState(Robertinhoo.EXITING_DOOR);
-            existingPlayer.setSensor(true);
 
+            // ✅ Define o estado apenas se houver porta
+            if (door != null) {
+                existingPlayer.setState(Robertinhoo.EXITING_DOOR);
+                existingPlayer.setSensor(true);
+            } else {
+                existingPlayer.setState(Robertinhoo.IDLE);
+                existingPlayer.setSensor(false);
+            }
             room1.robertinhoo = existingPlayer;
             room1.setupContactListener(existingPlayer);
             System.out.println("✅ Jogador reutilizado e configurado para saída da porta");

@@ -36,6 +36,9 @@ import io.github.some_example_name.Entities.Renderer.AmmoRenderer.AmmoRenderer;
 import io.github.some_example_name.Entities.Renderer.CorpsesManager.CorpseManager;
 import io.github.some_example_name.Entities.Renderer.CraftItensRenderer.CraftItensRenderer;
 import io.github.some_example_name.Entities.Renderer.EnemiRenderer.Rat.RatRenderer;
+import io.github.some_example_name.Entities.Renderer.FixRoonsRenderers.SpawnRoomRenderer;
+import io.github.some_example_name.Entities.Renderer.FixRoonsRenderers.TreasureRoomRenderer;
+import io.github.some_example_name.Entities.Renderer.InteractionHudRenderer.InteractionHighlightRenderer;
 import io.github.some_example_name.Entities.Renderer.EnemiRenderer.Castor.CastorRenderer;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.DestructibleRenderer;
@@ -46,6 +49,7 @@ import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.SistemaLuz;
+import io.github.some_example_name.MapConfig.Generator.TreasureRoom;
 import io.github.some_example_name.MapConfig.Rooms.Boulder;
 import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 import io.github.some_example_name.MapConfig.Rooms.Room0Cabana;
@@ -57,12 +61,14 @@ import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Engraving;
 import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Pillar;
 import io.github.some_example_name.Screens.ScreenEffects.ScreenFreezeSystem;
 import io.github.some_example_name.Entities.Renderer.PlayerRenderer;
-import io.github.some_example_name.Entities.Renderer.SpawnRoomRenderer;
 import io.github.some_example_name.Camera.Camera;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import io.github.some_example_name.Entities.Enemies.StateEnemy.StateEnemy;
+import io.github.some_example_name.Entities.Interatibles.Chest;
+import io.github.some_example_name.Entities.Interatibles.Interactable;
+import io.github.some_example_name.Entities.Interatibles.InteractionManager;
 import io.github.some_example_name.Entities.Inventory.InventoryController;
 
 public class MapRenderer {
@@ -96,6 +102,8 @@ public class MapRenderer {
     private SpriteBatch hudSpriteBatch;
     private boolean useHudForInventory = true; // Co
     private MagicParticleSystem magicParticleSystem;
+    private TreasureRoomRenderer treasureRoomRenderer;
+    private InteractionHighlightRenderer highlightRenderer;
 
     // ADICIONADO: DebugRenderer
     private DebugRenderers debugRenderers;
@@ -172,7 +180,16 @@ public class MapRenderer {
                     spawnRoomRenderer = new SpawnRoomRenderer(spawnRoom, mapa, TILE_SIZE);
 
                 }
+                FixedRoom treasureFixedRoom = mapa.getMapGenerator().getTreasureFixedRoom();
+                TreasureRoom treasureRoomInstance = mapa.getMapGenerator().getTreasureRoomInstance();
+                if (treasureFixedRoom != null && treasureFixedRoom.getBounds() != null
+                        && treasureRoomInstance != null) {
+                    System.out.println("🎨 Criando TreasureRoomRenderer para sala TREASURE");
+                    treasureRoomRenderer = new TreasureRoomRenderer(treasureFixedRoom, treasureRoomInstance, mapa,
+                            TILE_SIZE);
+                }
             }
+
         }
         this.room0Door = mapa.getDoor0();
         this.sistemaLuz = new SistemaLuz();
@@ -185,7 +202,7 @@ public class MapRenderer {
         }
         SmokeAnimations smokeAnim = new SmokeAnimations();
         SmokeSystem.getInstance().init(smokeAnim.getAnimation(), 0.2f); // escala
-
+        highlightRenderer = new InteractionHighlightRenderer(mapa, TILE_SIZE);
         hudShapeRenderer = new ShapeRenderer();
         hudSpriteBatch = new SpriteBatch();
 
@@ -239,6 +256,8 @@ public class MapRenderer {
             tileRenderer.render(spriteBatch, offsetX, offsetY, delta);
             tileRenderer.setSpawnRoomBounds(mapa.getSpawnRoom().getBounds());
             spawnRoomRenderer.render(spriteBatch, offsetX, offsetY);
+            treasureRoomRenderer.render(spriteBatch, offsetX, offsetY);
+
         }
 
         // Fogueira
@@ -369,6 +388,7 @@ public class MapRenderer {
         // Armas no chão
         for (Weapon weapon : mapa.getWeapons()) {
             weapon.update(delta);
+            weapon.updateDrop(delta);
             TextureRegion frame = weapon.getCurrentFrame(delta);
             float floatY = weapon.getPosition().y * TILE_SIZE + weapon.getFloatOffset();
             spriteBatch.draw(
@@ -425,6 +445,19 @@ public class MapRenderer {
             mapa.engraving.renderLight(sistemaLuz, offsetX, offsetY, TILE_SIZE);
         }
 
+        for (Chest chest : mapa.getChests()) {
+            if (chest.isActive()) {
+                Vector2 tilePos = chest.getTilePosition();
+                float centerX = offsetX + tilePos.x * TILE_SIZE + TILE_SIZE / 2f;
+                float centerY = offsetY + (mapa.mapHeight - 1 - tilePos.y) * TILE_SIZE + TILE_SIZE / 2f;
+
+                float pulse = 0.9f + (float) Math.sin(delta * 3f) * 0.1f;
+                Color chestLightColor = new Color(1f, 0.9f, 0.5f, 0.25f * pulse);
+                float lightRadius = TILE_SIZE * 2.5f;
+
+                sistemaLuz.renderLight(centerX, centerY, lightRadius, chestLightColor);
+            }
+        }
         sistemaLuz.end();
 
         if (isRoom0 && room0Door != null && room0Door.getLightSphere() != null) {
@@ -473,6 +506,13 @@ public class MapRenderer {
                 spriteBatch.end();
             }
         }
+        Interactable current = null;
+        if (mapa.getContactListener() != null && mapa.getContactListener().getInteractableHandler() != null) {
+            current = mapa.getContactListener().getInteractableHandler().getCurrentInteractable();
+        }
+        spriteBatch.setProjectionMatrix(cameraController.getCamera().combined);
+        shapeRenderer.setProjectionMatrix(cameraController.getCamera().combined);
+        highlightRenderer.render(spriteBatch, shapeRenderer, current, offsetX, offsetY);
     }
 
     private boolean detectIfRoom0(Mapa mapa) {
@@ -589,8 +629,12 @@ public class MapRenderer {
         ShellSystem.getInstance().dispose();
 
         if (magicParticleSystem != null) {
-            magicParticleSystem.dispose();// Isso deve liberar a textura interna
+            magicParticleSystem.dispose();
             magicParticleSystem = null;
+        }
+
+        if (treasureRoomRenderer != null) {
+            treasureRoomRenderer.dispose();
         }
     }
 }

@@ -30,27 +30,27 @@ public class BarrelSpawner {
         if (mapa.getRooms().isEmpty() || mapa.mapGenerator == null) {
             return;
         }
-        
+
         Random rand = new Random();
         List<WallPosition> validWallPositions = new ArrayList<>();
-        
+
         // Coletar posições válidas apenas em salas que permitem barris
         for (Rectangle room : mapa.getRooms()) {
             // Verifica se a sala permite barris
             if (!roomAllowsBarrels(mapa, room)) {
                 continue; // Pula sala de spawn ou outras que não permitem barris
             }
-            
+
             List<WallPosition> roomWallPositions = getWallPositionsForRoom(mapa, room);
             validWallPositions.addAll(roomWallPositions);
         }
-        
+
         // Remover posições que podem bloquear corredores
         validWallPositions = filterPositionsNearCorridors(mapa, validWallPositions);
-        
+
         // Embaralhar as posições
         Collections.shuffle(validWallPositions, rand);
-        
+
         // Adicionar barris
         int barrelsToAdd = Math.min(numberOfBarrels, validWallPositions.size());
         for (int i = 0; i < barrelsToAdd; i++) {
@@ -58,7 +58,7 @@ public class BarrelSpawner {
             Vector2 worldPos = getAdjustedWorldPosition(mapa, wallPos.tilePos, wallPos.wallDirection);
             mapa.getDestructibles().add(new Barrel(mapa, worldPos.x, worldPos.y, null, null));
         }
-        
+
         Gdx.app.log("BarrelSpawner", "✅ " + barrelsToAdd + " barris spawnados");
     }
 
@@ -236,23 +236,17 @@ public class BarrelSpawner {
     }
 
     private static boolean roomAllowsBarrels(Mapa mapa, Rectangle room) {
-        // Se não tem MapGenerator, permite por padrão
         if (mapa.mapGenerator == null) {
             return true;
         }
 
-        // Verifica se é a sala de spawn
-        if (mapa.mapGenerator.isSpawnRoomTile((int) room.x, (int) room.y)) {
-            FixedRoom spawnRoom = mapa.mapGenerator.getSpawnRoom();
-            if (spawnRoom != null) {
-                // Retorna a configuração da sala de spawn para barris
-                return spawnRoom.getConfiguration().hasBarrels();
-            }
-            return false; // Sala de spawn não permite barris por padrão
-        }
+        int centerX = (int) (room.x + room.width / 2);
+        int centerY = (int) (room.y + room.height / 2);
+        FixedRoom fixed = mapa.mapGenerator.getFixedRoomAt(centerX, centerY);
 
-        // Para outras salas, verifica a configuração se houver
-        // (Você pode expandir isso quando tiver configurações por sala)
-        return true; // Salas aleatórias permitem barris
+        if (fixed != null) {
+            return fixed.getConfiguration().hasBarrels();
+        }
+        return true;
     }
 }

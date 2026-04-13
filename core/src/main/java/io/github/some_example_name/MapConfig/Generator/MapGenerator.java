@@ -30,10 +30,13 @@ public class MapGenerator {
     private static final int MAX_TUNNEL_LEN = 12;
     private List<FixedRoom> fixedRooms = new ArrayList<>();
     private boolean hasStartRoom = false;
+    private boolean hasTresaureRomm = false;
     private FixedRoom spawnRoom;
     private StartRoom startRoomInstance;
+    private FixedRoom treasureRoom;
+    private TreasureRoom treasureRoomInstance;
 
-    public MapGenerator(int width, int height, boolean includeStartRoom) {
+    public MapGenerator(int width, int height, boolean includeStartRoom, boolean includeTreasureRoom) {
         Gdx.app.log("MapGenerator", "Iniciando MapGenerator...");
         this.mapWidth = width;
         this.mapHeight = height;
@@ -50,6 +53,18 @@ public class MapGenerator {
             spawnRoom = new FixedRoom(spawnConfig);
             fixedRooms.add(spawnRoom);
             this.hasStartRoom = true;
+
+        }
+
+        if (includeTreasureRoom) {
+            RoomConfiguration treasureConfig = new RoomConfiguration.Builder(RoomType.TREASURE)
+                    .hasEnemies(false) // por enquanto sem inimigos
+                    .hasBarrels(false)
+                    .hasChests(true) // indica que tem baú
+                    .build();
+            treasureRoom = new FixedRoom(treasureConfig);
+            fixedRooms.add(treasureRoom);
+            this.hasTresaureRomm = true;
         }
         generateRandomMap();
         Gdx.app.log("MapGenerator", "Mapa gerado com sucesso.");
@@ -94,6 +109,21 @@ public class MapGenerator {
 
             // ✅ DEBUG: Verifique se as paredes foram colocadas
             debugSpawnRoomTiles(spawnRect);
+        }
+
+        if (hasTresaureRomm && treasureRoom != null) {
+            TreasureRoom tRoom = new TreasureRoom();
+            this.treasureRoomInstance = tRoom;
+            Rectangle treasureRect = placeTreasureRoomInMap();
+            drawRoom(treasureRect, tRoom.getTiles());
+            rooms.add(treasureRect);
+            treasureRoom.setBounds(treasureRect);
+            startPosition = new Vector2(
+                    treasureRect.x + treasureRect.width / 2f,
+                    treasureRect.y + treasureRect.height / 2f);
+
+            Gdx.app.log("MapGenerator", "✅ Sala TREASURE posicionada em: " + treasureRect);
+            Gdx.app.log("MapGenerator", "🎯 Nova posição inicial (debug): " + startPosition);
         }
 
         // 2. DEPOIS: Cria salas aleatórias normais
@@ -436,6 +466,22 @@ public class MapGenerator {
         return rooms;
     }
 
+    private Rectangle placeTreasureRoomInMap() {
+        // Posiciona no canto superior direito como exemplo
+        int x = mapWidth - treasureRoom.getWidth() - 5;
+        int y = mapHeight - treasureRoom.getHeight() - 5;
+        return new Rectangle(x, y, treasureRoom.getWidth(), treasureRoom.getHeight());
+    }
+
+    // Getters para uso externo
+    public TreasureRoom getTreasureRoomInstance() {
+        return treasureRoomInstance;
+    }
+
+    public FixedRoom getTreasureFixedRoom() {
+        return treasureRoom;
+    }
+
     private void debugSpawnRoomTiles(Rectangle spawnRect) {
         System.out.println("=== DEBUG SPAWN ROOM TILES ===");
         for (int y = (int) spawnRect.y + (int) spawnRect.height - 1; y >= spawnRect.y; y--) {
@@ -457,6 +503,20 @@ public class MapGenerator {
         int height = spawnRoom.getHeight(); // 16
 
         return new Rectangle(x, y, width, height);
+    }
+
+    public FixedRoom getFixedRoomAt(int tileX, int tileY) {
+        for (FixedRoom fr : fixedRooms) {
+            Rectangle bounds = fr.getBounds();
+            if (bounds != null && bounds.contains(tileX, tileY)) {
+                return fr;
+            }
+        }
+        return null;
+    }
+
+    public List<FixedRoom> getFixedRooms() {
+        return fixedRooms;
     }
 
     public StartRoom getStartRoomInstance() {

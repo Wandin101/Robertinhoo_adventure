@@ -1,4 +1,4 @@
-package io.github.some_example_name.Entities.Renderer;
+package io.github.some_example_name.Entities.Renderer.FixRoonsRenderers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -30,11 +30,10 @@ public class SpawnRoomRenderer {
 
     private void loadSpawnRoomTextures() {
         try {
-             floorTexture = new Texture(Gdx.files.internal("rooms/textura_chão_start_room.png"));
-        
-   
-        floorTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
-        floorTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            floorTexture = new Texture(Gdx.files.internal("rooms/textura_chão_start_room.png"));
+
+            floorTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+            floorTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             wallTopTexture = new Texture(Gdx.files.internal("rooms/parede.png"));
             wallFillTexture = new Texture(Gdx.files.internal("rooms/parede_full.png"));
             System.out.println("✅ Texturas da sala SPAWN carregadas");
@@ -87,45 +86,48 @@ public class SpawnRoomRenderer {
         // 2. Renderiza as paredes da sala de spawn
         renderWalls(batch, offsetX, offsetY);
     }
-private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
-    int startX = (int) bounds.x;
-    int startY = (int) bounds.y;
-    int width = (int) bounds.width;
-    int height = (int) bounds.height;
-    
-    // Posição na tela
-    float screenX = offsetX + startX * tileSize;
-    float screenY = offsetY + (mapa.mapHeight - 1 - (startY + height - 1)) * tileSize;
-    
-    // Tamanho em pixels (considerando que cada tile tem tileSize)
-    float roomWidthPixels = width * tileSize;
-    float roomHeightPixels = height * tileSize;
-    
-    // ✅ AJUSTE: Se a textura é 128px e tileSize é 64px, precisamos de uma escala diferente
-    // A textura 128px deve se repetir MENOS vezes
-    
-    // Tamanho da textura original
-    int texWidth = 100;  // 128
-    int texHeight = 100; // 128
- 
-    float scaleFactor = texWidth / (float)tileSize; // 128 / 64 = 2.0
-    
-    // A sala tem 'width' tiles horizontalmente. 
-    // Se cada textura cobre 2 tiles, então precisamos de width/2 repetições
-    float repeatX = width / scaleFactor;  // ex: 16 / 2 = 8 repetições
-    float repeatY = height / scaleFactor; // ex: 16 / 2 = 8 repetições
-    // Cria uma região da textura com as dimensões calculadas
-    TextureRegion floorRegion = new TextureRegion(floorTexture);
-    
-    // Define a região da textura para repetição
-    // Nota: floorTexture.setWrap já foi configurado para Repeat no loadSpawnRoomTextures
-    floorRegion.setRegion(0, 0, 
-        (int)(texWidth * repeatX), 
-        (int)(texHeight * repeatY));
-    
-    // Desenha
-    batch.draw(floorRegion, screenX, screenY, roomWidthPixels, roomHeightPixels);
-}
+
+    private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
+        int startX = (int) bounds.x;
+        int startY = (int) bounds.y;
+        int width = (int) bounds.width;
+        int height = (int) bounds.height;
+
+        // Posição na tela
+        float screenX = offsetX + startX * tileSize;
+        float screenY = offsetY + (mapa.mapHeight - 1 - (startY + height - 1)) * tileSize;
+
+        // Tamanho em pixels (considerando que cada tile tem tileSize)
+        float roomWidthPixels = width * tileSize;
+        float roomHeightPixels = height * tileSize;
+
+        // ✅ AJUSTE: Se a textura é 128px e tileSize é 64px, precisamos de uma escala
+        // diferente
+        // A textura 128px deve se repetir MENOS vezes
+
+        // Tamanho da textura original
+        int texWidth = 100; // 128
+        int texHeight = 100; // 128
+
+        float scaleFactor = texWidth / (float) tileSize; // 128 / 64 = 2.0
+
+        // A sala tem 'width' tiles horizontalmente.
+        // Se cada textura cobre 2 tiles, então precisamos de width/2 repetições
+        float repeatX = width / scaleFactor; // ex: 16 / 2 = 8 repetições
+        float repeatY = height / scaleFactor; // ex: 16 / 2 = 8 repetições
+        // Cria uma região da textura com as dimensões calculadas
+        TextureRegion floorRegion = new TextureRegion(floorTexture);
+
+        // Define a região da textura para repetição
+        // Nota: floorTexture.setWrap já foi configurado para Repeat no
+        // loadSpawnRoomTextures
+        floorRegion.setRegion(0, 0,
+                (int) (texWidth * repeatX),
+                (int) (texHeight * repeatY));
+
+        // Desenha
+        batch.draw(floorRegion, screenX, screenY, roomWidthPixels, roomHeightPixels);
+    }
 
     private void renderWalls(SpriteBatch batch, float offsetX, float offsetY) {
         int startX = (int) bounds.x;
@@ -138,7 +140,7 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
             if (x >= 0 && x < mapa.mapWidth && yTop >= 0 && yTop < mapa.mapHeight) {
                 if (mapa.tiles[x][yTop] == Mapa.PAREDE) {
                     boolean isCorner = (x == startX || x == startX + width - 1);
-                    
+
                     if (isCorner) {
                         float screenX = offsetX + x * tileSize;
                         float screenY = offsetY + (mapa.mapHeight - 1 - yTop) * tileSize;
@@ -149,13 +151,13 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
                 }
             }
 
-            // Parede INFERIOR (y menor) → usa textura de TOPO  
+            // Parede INFERIOR (y menor) → usa textura de TOPO
             int yBottom = startY;
             if (x >= 0 && x < mapa.mapWidth && yBottom >= 0 && yBottom < mapa.mapHeight) {
                 if (mapa.tiles[x][yBottom] == Mapa.PAREDE) {
                     // ✅ VERIFICA SE É CANTO (extremidade)
                     boolean isCorner = (x == startX || x == startX + width - 1);
-                    
+
                     if (isCorner) {
                         // ✅ CANTO DO FUNDO: usa wallFillTexture em vez de wallTopTexture
                         float screenX = offsetX + x * tileSize;
@@ -177,7 +179,7 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
                 if (mapa.tiles[xLeft][y] == Mapa.PAREDE) {
                     // ✅ Para paredes laterais, verifica se está conectando com o topo
                     boolean isTopConnection = (y == startY + height - 2); // Logo abaixo do topo
-                    
+
                     if (isTopConnection) {
                         // Paredes laterais próximas ao topo: usa wallFillTexture normal
                         float screenX = offsetX + xLeft * tileSize;
@@ -185,7 +187,7 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
                         batch.draw(wallFillTexture, screenX, screenY, tileSize, tileSize);
                     } else {
                         // Outras paredes laterais: mantém a rotação original
-                        renderWallTile(batch, xLeft, y, offsetX, offsetY, false); 
+                        renderWallTile(batch, xLeft, y, offsetX, offsetY, false);
                     }
                 }
             }
@@ -196,7 +198,7 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
                 if (mapa.tiles[xRight][y] == Mapa.PAREDE) {
                     // ✅ Para paredes laterais, verifica se está conectando com o topo
                     boolean isTopConnection = (y == startY + height - 2); // Logo abaixo do topo
-                    
+
                     if (isTopConnection) {
                         // Paredes laterais próximas ao topo: usa wallFillTexture normal
                         float screenX = offsetX + xRight * tileSize;
@@ -263,8 +265,8 @@ private void renderFloor(SpriteBatch batch, float offsetX, float offsetY) {
                 if (x >= 0 && x < mapa.mapWidth && y >= 0 && y < mapa.mapHeight) {
                     if (mapa.tiles[x][y] == Mapa.START) {
                         System.out.println("✅ Tile START encontrado em: (" + x + ", " + y + ")");
-                        System.out.println("   Relativo à sala: x=" + (x - startX) + 
-                                         ", y=" + (y - startY) + "/" + (height-1));
+                        System.out.println("   Relativo à sala: x=" + (x - startX) +
+                                ", y=" + (y - startY) + "/" + (height - 1));
                     }
                 }
             }
