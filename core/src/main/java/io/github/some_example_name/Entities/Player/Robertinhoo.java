@@ -131,7 +131,7 @@ public class Robertinhoo implements ShadowEntity {
         createBody(x, y);
         this.footstepSystem = new FootstepSystem(this);
         soulManager = new SoulManager();
-        soulManager.addSouls(200);
+        soulManager.addSouls(100);
         recoilSystem = new RecoilSystem();
 
     }

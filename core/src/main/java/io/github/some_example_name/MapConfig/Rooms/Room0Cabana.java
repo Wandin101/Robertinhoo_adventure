@@ -232,6 +232,11 @@ public class Room0Cabana implements Interactable {
         return true; // sempre ativo enquanto a cabana existir
     }
 
+    @Override
+    public Vector2 getTilePosition() {
+        return body.getPosition(); // já é a posição em tiles
+    }
+
     public void dispose() {
         if (cabanaWithoutArmorTexture != null)
             cabanaWithoutArmorTexture.dispose();

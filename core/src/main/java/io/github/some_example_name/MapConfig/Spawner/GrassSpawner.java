@@ -8,6 +8,7 @@ import com.badlogic.gdx.Gdx;
 
 import io.github.some_example_name.Entities.Itens.CenarioItens.Grass;
 import io.github.some_example_name.MapConfig.Mapa;
+import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
 
 public class GrassSpawner {
 
@@ -19,7 +20,7 @@ public class GrassSpawner {
             if (!roomAllowsVegetation(mapa, room)) {
                 continue;
             }
-            
+
             for (int x = (int) room.x + 1; x < room.x + room.width - 1 && grassSpawned < grassCount; x++) {
                 for (int y = (int) room.y + 1; y < room.y + room.height - 1 && grassSpawned < grassCount; y++) {
 
@@ -40,19 +41,32 @@ public class GrassSpawner {
                 }
             }
         }
-        
+
         Gdx.app.log("GrassSpawner", "✅ " + grassSpawned + " gramas spawnadas");
     }
 
-    
-   private static boolean roomAllowsVegetation(Mapa mapa, Rectangle room) {
-        // Grama não é configurada no RoomConfiguration, mas podemos usar a mesma lógica
-        // para sala de spawn não ter grama
-        if (mapa.mapGenerator != null && mapa.mapGenerator.isSpawnRoomTile((int)room.x, (int)room.y)) {
-            return false; // Sala de spawn não tem grama
+    private static boolean roomAllowsVegetation(Mapa mapa, Rectangle room) {
+        if (mapa.mapGenerator == null) {
+            return true;
         }
-        return true; // Outras salas têm grama
+
+        int centerX = (int) (room.x + room.width / 2);
+        int centerY = (int) (room.y + room.height / 2);
+        FixedRoom fixed = mapa.mapGenerator.getFixedRoomAt(centerX, centerY);
+
+        if (fixed != null) {
+            // Grama normalmente não aparece em salas fixas, a menos que tenha uma flag
+            // específica.
+            // Por enquanto, retornamos false para qualquer sala fixa.
+            // (Se quiser permitir em alguma sala específica, adicione uma flag
+            // hasVegetation no futuro)
+            return false;
+        }
+
+        // Salas procedurais permitem vegetação
+        return true;
     }
+
     // Método alternativo para spawn mais controlado
     public static void spawnGrassInArea(Mapa mapa, Rectangle area, int density) {
         Random rand = new Random();

@@ -48,7 +48,14 @@ public abstract class Weapon implements Item {
 
     private float floatTime = 0f;
     private static final float FLOAT_SPEED = 2f;
-    private static final float FLOAT_AMPLITUDE = 1f;
+    private static final float FLOAT_AMPLITUDE = 5f;
+
+    private boolean isDropping = false;
+    private float dropTimer = 0f;
+    private static final float DROP_DURATION = 0.4f;
+    private static final float DROP_HEIGHT = 2.0f;
+    private Vector2 dropStartPos = new Vector2();
+    private Vector2 dropTargetPos = new Vector2();
 
     protected TextureRegion icon;
     protected boolean reloading = false;
@@ -133,6 +140,7 @@ public abstract class Weapon implements Item {
 
         resetShotTrigger();
         reloadJustTriggered = false;
+
     }
 
     public void render(SpriteBatch batch, Vector2 position, float offsetX, float offsetY) {
@@ -278,6 +286,52 @@ public abstract class Weapon implements Item {
 
     public Mapa getMapa() {
         return mapa;
+    }
+
+    /**
+     * Inicia a animação de "pular do baú".
+     * 
+     * @param startWorldPos posição inicial (normalmente sobre o baú)
+     * @param endWorldPos   posição final onde o item vai repousar
+     */
+    public void startDropAnimation(Vector2 startWorldPos, Vector2 endWorldPos) {
+        this.isDropping = true;
+        this.dropTimer = 0f;
+        this.dropStartPos.set(startWorldPos);
+        this.dropTargetPos.set(endWorldPos);
+        // Posiciona o corpo (sensor) no início
+        setPosition(startWorldPos);
+        if (body != null) {
+            body.setTransform(startWorldPos, 0);
+        }
+    }
+
+    public void updateDrop(float delta) {
+        if (!isDropping)
+            return;
+
+        dropTimer += delta;
+        float progress = dropTimer / DROP_DURATION;
+        if (progress >= 1.0f) {
+            progress = 1.0f;
+            isDropping = false;
+        }
+
+        float currentX = dropStartPos.x + (dropTargetPos.x - dropStartPos.x) * progress;
+        float currentY = dropStartPos.y + (dropTargetPos.y - dropStartPos.y) * progress;
+
+        float arc = (float) Math.sin(progress * Math.PI) * DROP_HEIGHT;
+        currentY += arc;
+
+        Vector2 newPos = new Vector2(currentX, currentY);
+        setPosition(newPos);
+        if (body != null) {
+            body.setTransform(newPos, 0);
+        }
+    }
+
+    public boolean isDropping() {
+        return isDropping;
     }
 
 }

@@ -26,6 +26,7 @@ import box2dLight.RayHandler;
 import io.github.some_example_name.Entities.Enemies.Enemy;
 import io.github.some_example_name.Entities.Enemies.IA.PathfindingSystem;
 import io.github.some_example_name.Entities.Enemies.Rat.Ratinho;
+import io.github.some_example_name.Entities.Interatibles.Chest;
 import io.github.some_example_name.Entities.Inventory.Item;
 import io.github.some_example_name.Entities.Itens.Ammo.Ammo;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Barrel;
@@ -47,6 +48,7 @@ import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
 import io.github.some_example_name.MapConfig.Generator.MapGenerator;
 import io.github.some_example_name.MapConfig.Generator.StartRoom;
+import io.github.some_example_name.MapConfig.Generator.TreasureRoom;
 import io.github.some_example_name.MapConfig.MapDisposer.MapDisposer;
 import io.github.some_example_name.MapConfig.Rooms.Boulder;
 import io.github.some_example_name.MapConfig.Rooms.FixedRoom;
@@ -117,6 +119,15 @@ public class Mapa implements RoomTransitionManager {
     public boolean obstaclesChanged = false;
     public int previousDestructiblesCount = 0;
     public Set<Vector2> previousBarrelPositions = new HashSet<>();
+    private List<Chest> chests = new ArrayList<>();
+
+    public void addChest(Chest chest) {
+        chests.add(chest);
+    }
+
+    public List<Chest> getChests() {
+        return chests;
+    }
 
     public GameContactListener contactListener;
     public BloodParticleSystem bloodParticleSystem;
@@ -174,7 +185,7 @@ public class Mapa implements RoomTransitionManager {
             EntitySpawner spawner = new EntitySpawner(this);
             spawner.spawnAll();
         } else {
-            this.mapGenerator = new MapGenerator(50, 50, true);
+            this.mapGenerator = new MapGenerator(50, 50, true, true);
             this.mapWidth = mapGenerator.getMapWidth();
             this.mapHeight = mapGenerator.getMapHeight();
             this.tiles = mapGenerator.getTiles();
@@ -193,14 +204,15 @@ public class Mapa implements RoomTransitionManager {
                 if (spawnRoom != null && spawnRoom.getBounds() != null) {
                     Rectangle bounds = spawnRoom.getBounds();
 
-                    // Cria a porta (já existente)
+                    // Porta
                     int doorX = (int) bounds.x + StartRoom.DOOR_TILE_X;
                     int doorY = (int) bounds.y + StartRoom.DOOR_TILE_Y;
                     Room0Door door = new Room0Door(this, doorX, doorY, false);
                     setDoor(door);
-                    System.out.println("🚪 Porta criada em tile mundial: (" + doorX + "," + doorY + ")");
+                    System.out.println("🚪 Porta criada em tile mundial: (" + doorX + "," + doorY
+                            + ")");
 
-                    // Cria os pilares
+                    // Pilares e gravura
                     StartRoom startRoom = mapGenerator.getStartRoomInstance();
                     if (startRoom != null) {
                         for (Vector2 pos : startRoom.getPillarPositions()) {
@@ -210,7 +222,6 @@ public class Mapa implements RoomTransitionManager {
                             Pillar pillar = new Pillar(this, worldX, worldY, "rooms/pilar.png");
                             addPillar(pillar);
                         }
-                        // Cria a gravura
                         if (startRoom.getEngravingPosition() != null) {
                             Vector2 pos = startRoom.getEngravingPosition();
                             int worldX = (int) bounds.x + (int) pos.x;
@@ -219,8 +230,23 @@ public class Mapa implements RoomTransitionManager {
                             Engraving engraving = new Engraving(this, worldX, worldY, "rooms/gravura.png");
                             setEngraving(engraving);
                         }
-
                     }
+                }
+
+                // --- NOVO: Configura elementos da TreasureRoom ---
+                FixedRoom treasureFixedRoom = mapGenerator.getTreasureFixedRoom();
+                TreasureRoom treasureRoomInstance = mapGenerator.getTreasureRoomInstance();
+                if (treasureFixedRoom != null && treasureFixedRoom.getBounds() != null
+                        && treasureRoomInstance != null) {
+                    Rectangle bounds = treasureFixedRoom.getBounds();
+                    Vector2 localChestPos = treasureRoomInstance.getChestPosition();
+                    int worldChestX = (int) bounds.x + (int) localChestPos.x;
+                    int worldChestY = (int) bounds.y + (int) localChestPos.y;
+                    System.out.println(
+                            "🎁 Baú da sala TREASURE em tile mundial: (" + worldChestX + "," + worldChestY + ")");
+
+                    Chest chest = new Chest(this, worldChestX, worldChestY, "drops/bau_nivel1.png");
+                    addChest(chest);
                 }
             }
 
@@ -468,6 +494,9 @@ public class Mapa implements RoomTransitionManager {
             for (NPC npc : npcs) {
                 npc.update(deltaTime);
             }
+        }
+        for (Chest chest : chests) {
+            chest.update(deltaTime);
         }
 
     }

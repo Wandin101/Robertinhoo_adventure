@@ -39,6 +39,7 @@ public class EsmeraldaDialogue implements NpcDialogue {
     private List<Integer> availableTalkIndices;
     private List<Integer> availableGoodbyeIndices;
     private String[] shopInsufficientFundsMessages;
+    private String[] shopFullInventoryMessages;
     private State previousState; // para restaurar após a mensagem
 
     // Controle de vozes
@@ -144,6 +145,12 @@ public class EsmeraldaDialogue implements NpcDialogue {
             shopInsufficientFundsMessages = new String[insufficientArray.size];
             for (int i = 0; i < insufficientArray.size; i++) {
                 shopInsufficientFundsMessages[i] = insufficientArray.getString(i);
+            }
+
+            JsonValue inventoryFullArray = esmeralda.get("shop_full_inventory_messages");
+            shopFullInventoryMessages = new String[inventoryFullArray.size];
+            for (int i = 0; i < inventoryFullArray.size; i++) {
+                shopFullInventoryMessages[i] = inventoryFullArray.getString(i);
             }
 
             // Inicializa listas de índices disponíveis
@@ -347,6 +354,16 @@ public class EsmeraldaDialogue implements NpcDialogue {
         previousState = state;
         state = State.SHOP_MESSAGE;
         currentText = opinion;
+        waitingForChoice = false;
+        setTalking(true);
+        playRandomVoice();
+        NpcInteractionHUD.getInstance().reloadCurrentText();
+    }
+
+    public void showInventoryFullMessage() {
+        previousState = state;
+        state = State.SHOP_MESSAGE;
+        currentText = shopFullInventoryMessages[random.nextInt(shopFullInventoryMessages.length)];
         waitingForChoice = false;
         setTalking(true);
         playRandomVoice();

@@ -119,7 +119,7 @@ public class GameGameSoundsPaths {
         // audio.loadSound(Sounds.ITEM_PICKUP, "sounds/environment/item_pickup.wav");
         // audio.loadSound(Sounds.DOOR_OPEN, "sounds/environment/door_open.wav");
         // audio.loadSound(Sounds.CHEST_OPEN, "sounds/environment/chest_open.wav");
-        audio.loadAmbient(Ambient.FOGUEIRA_SOUND, "Sounds/fogueiraSound.wav");
+        audio.loadAmbient(Ambient.FOGUEIRA_SOUND, "Sounds/fogueiraSound.ogg");
 
         // // UI
         // audio.loadSound(Sounds.UI_SELECT, "sounds/ui/select.wav");

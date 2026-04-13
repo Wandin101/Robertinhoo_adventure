@@ -136,7 +136,17 @@ public class CardActionModal {
         if (model.buyItem(item)) {
             shopUI.onPurchaseSuccess(row, col);
         } else {
-            shopUI.onPurchaseFailed(row, col);
+            switch (model.getLastError()) {
+                case INSUFFICIENT_SOULS:
+                    shopUI.onPurchaseFailed(row, col);
+                    break;
+                case INVENTORY_FULL:
+                    shopUI.onInventoryFull();
+                    break;
+                default:
+                    shopUI.onPurchaseFailed(row, col);
+                    break;
+            }
         }
     }
 
