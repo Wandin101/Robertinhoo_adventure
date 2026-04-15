@@ -19,7 +19,7 @@ public class EscurecedorAmbiente {
 
     public EscurecedorAmbiente() {
         shapeRenderer = new ShapeRenderer();
-        intensidadeEscuro = 0.4f;
+        intensidadeEscuro = 0.3f;
         lightSpheres = new ArrayList<>();
     }
 

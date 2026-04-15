@@ -55,14 +55,16 @@ public class MapGenerator {
             this.hasStartRoom = true;
 
         }
-
         if (includeTreasureRoom) {
             RoomConfiguration treasureConfig = new RoomConfiguration.Builder(RoomType.TREASURE)
-                    .hasEnemies(false) // por enquanto sem inimigos
+                    .hasEnemies(false)
                     .hasBarrels(false)
-                    .hasChests(true) // indica que tem baú
+                    .hasChests(true)
                     .build();
             treasureRoom = new FixedRoom(treasureConfig);
+            // 🔥 Atualiza as dimensões da FixedRoom para as reais da TreasureRoom
+            treasureRoom.setWidth(TreasureRoom.ROOM_WIDTH);
+            treasureRoom.setHeight(TreasureRoom.ROOM_HEIGHT);
             fixedRooms.add(treasureRoom);
             this.hasTresaureRomm = true;
         }

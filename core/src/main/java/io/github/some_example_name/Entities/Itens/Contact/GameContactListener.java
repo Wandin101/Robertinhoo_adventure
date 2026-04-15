@@ -54,6 +54,7 @@ public class GameContactListener implements ContactListener {
         handlers.add(new DoorHandler());
         handlers.add(new Room0PlantHandler());
         handlers.add(new InteractableHandler());
+        handlers.add(new SoulHandler(player));
     }
 
     @Override
