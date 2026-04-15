@@ -13,4 +13,6 @@ public class Constants {
     public static final short BIT_DOOR = 256;
     public static final short BIT_ROOM0_PLANT = 512;
     public static final short BIT_INTERACTABLE = 1024;
+    public static final short BIT_SOUL = 2048;
+
 }

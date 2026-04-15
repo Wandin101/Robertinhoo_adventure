@@ -10,6 +10,8 @@ import io.github.some_example_name.Entities.Itens.CenarioItens.Barrel;
 import io.github.some_example_name.Entities.Itens.CenarioItens.Grass;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
+import io.github.some_example_name.Entities.SoulShopSystem.Soul;
+
 import com.badlogic.gdx.physics.box2d.Body;
 
 public class MapCleanUpManager {
@@ -24,6 +26,7 @@ public class MapCleanUpManager {
         processProjectiles(deltaTime);
         processEnemies();
         processDestructibles(deltaTime);
+        processSouls();
     }
 
     private void processProjectiles(float deltaTime) {
@@ -105,6 +108,18 @@ public class MapCleanUpManager {
                     destructibleIterator.remove();
                     Gdx.app.log("MapCleanupManager", "Destructible removido.");
                 }
+            }
+        }
+    }
+
+    private void processSouls() {
+        Iterator<Soul> it = mapa.getSouls().iterator();
+        while (it.hasNext()) {
+            Soul soul = it.next();
+            if (soul.isMarkedForRemoval()) {
+                soul.dispose(); // destrói corpo e libera textura
+                it.remove();
+                Gdx.app.log("MapCleanupManager", "Alma removida.");
             }
         }
     }

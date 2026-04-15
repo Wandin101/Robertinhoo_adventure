@@ -43,6 +43,7 @@ import io.github.some_example_name.Entities.Npcs.EsmeraldaNPC;
 import io.github.some_example_name.Entities.Npcs.NPC;
 import io.github.some_example_name.Entities.Player.Robertinhoo;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
+import io.github.some_example_name.Entities.SoulShopSystem.Soul;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Otimizations.MapBorderManager;
 import io.github.some_example_name.Otimizations.WallOtimizations;
@@ -60,6 +61,7 @@ import io.github.some_example_name.MapConfig.Rooms.Items_sala_0.CampFire;
 import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Engraving;
 import io.github.some_example_name.MapConfig.Rooms.Itens_start_room.Pillar;
 import io.github.some_example_name.MapConfig.Spawner.EntitySpawner;
+import io.github.some_example_name.MapConfig.Spawner.SoulSpawner;
 
 public class Mapa implements RoomTransitionManager {
 
@@ -88,6 +90,7 @@ public class Mapa implements RoomTransitionManager {
     public PathfindingSystem pathfindingSystem;
     public CampFire campFire;
     public Engraving engraving;
+    public List<Soul> souls = new ArrayList<>();
 
     public World world;
     public WallOtimizations agruparParedes;
@@ -204,13 +207,13 @@ public class Mapa implements RoomTransitionManager {
                 if (spawnRoom != null && spawnRoom.getBounds() != null) {
                     Rectangle bounds = spawnRoom.getBounds();
 
-                    // Porta
-                    int doorX = (int) bounds.x + StartRoom.DOOR_TILE_X;
-                    int doorY = (int) bounds.y + StartRoom.DOOR_TILE_Y;
-                    Room0Door door = new Room0Door(this, doorX, doorY, false);
-                    setDoor(door);
-                    System.out.println("🚪 Porta criada em tile mundial: (" + doorX + "," + doorY
-                            + ")");
+                    // // Porta
+                    // int doorX = (int) bounds.x + StartRoom.DOOR_TILE_X;
+                    // int doorY = (int) bounds.y + StartRoom.DOOR_TILE_Y;
+                    // Room0Door door = new Room0Door(this, doorX, doorY, false);
+                    // setDoor(door);
+                    // System.out.println("🚪 Porta criada em tile mundial: (" + doorX + "," + doorY
+                    // + ")");
 
                     // Pilares e gravura
                     StartRoom startRoom = mapGenerator.getStartRoomInstance();
@@ -247,6 +250,7 @@ public class Mapa implements RoomTransitionManager {
 
                     Chest chest = new Chest(this, worldChestX, worldChestY, "drops/bau_nivel1.png");
                     addChest(chest);
+                    SoulSpawner.spawnAroundChest(this, worldChestX - 0.5f, worldChestY, 5);
                 }
             }
 
@@ -848,5 +852,13 @@ public class Mapa implements RoomTransitionManager {
 
     public void setEngraving(Engraving engraving) {
         this.engraving = engraving;
+    }
+
+    public void addSoul(Soul soul) {
+        souls.add(soul);
+    }
+
+    public List<Soul> getSouls() {
+        return souls;
     }
 }

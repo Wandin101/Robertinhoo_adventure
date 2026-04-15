@@ -185,6 +185,7 @@ public class Robertinhoo implements ShadowEntity {
         fixtureDef.filter.maskBits = Constants.BIT_OBJECT | Constants.BIT_PLAYER_ATTACK |
                 Constants.BIT_ENEMY | Constants.BIT_PROJECTILE |
                 Constants.BIT_ITEM | Constants.BIT_WALL | Constants.BIT_DOOR | Constants.BIT_ROOM0_PLANT
+                | Constants.BIT_SOUL
                 | Constants.BIT_INTERACTABLE;
 
         body.createFixture(fixtureDef);

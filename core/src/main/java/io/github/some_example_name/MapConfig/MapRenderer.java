@@ -46,6 +46,7 @@ import io.github.some_example_name.Entities.Renderer.Projectile.ProjectileRender
 import io.github.some_example_name.Entities.Renderer.RenderInventory.RenderInventory;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowEntity;
 import io.github.some_example_name.Entities.Renderer.Shadow.ShadowRenderer;
+import io.github.some_example_name.Entities.SoulShopSystem.Soul;
 import io.github.some_example_name.Interface.CabanaInteractionSystem;
 import io.github.some_example_name.Luz.EscurecedorAmbiente;
 import io.github.some_example_name.Luz.SistemaLuz;
@@ -403,7 +404,10 @@ public class MapRenderer {
 
         // Itens de craft
         craftItensRenderer.render(spriteBatch, mapa.getCraftItems(), offsetX, offsetY);
-
+        for (Soul soul : mapa.getSouls()) {
+            soul.update(delta);
+            soul.render(spriteBatch, offsetX, offsetY, TILE_SIZE);
+        }
         spriteBatch.end(); // Fim das entidades
 
         // ==================== ILUMINAÇÃO ====================
@@ -457,6 +461,10 @@ public class MapRenderer {
 
                 sistemaLuz.renderLight(centerX, centerY, lightRadius, chestLightColor);
             }
+        }
+
+        for (Soul soul : mapa.getSouls()) {
+            soul.renderLight(sistemaLuz, offsetX, offsetY, TILE_SIZE);
         }
         sistemaLuz.end();
 

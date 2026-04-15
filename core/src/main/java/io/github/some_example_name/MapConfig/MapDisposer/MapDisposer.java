@@ -7,6 +7,7 @@ import io.github.some_example_name.Entities.Itens.Ammo.Ammo;
 import io.github.some_example_name.Entities.Itens.Weapon.Projectile;
 import io.github.some_example_name.Entities.Itens.Weapon.Weapon;
 import io.github.some_example_name.Entities.Renderer.ItensRenderer.Destructible;
+import io.github.some_example_name.Entities.SoulShopSystem.Soul;
 import io.github.some_example_name.Sounds.AudioManager;
 import io.github.some_example_name.MapConfig.Mapa;
 
@@ -161,5 +162,10 @@ public class MapDisposer {
             mapa.staticItems.clear();
         if (mapa.wallPositions != null)
             mapa.wallPositions.clear();
+        if (mapa.souls != null)
+            for (Soul soul : mapa.getSouls()) {
+                soul.dispose();
+            }
+        mapa.getSouls().clear();
     }
 }
